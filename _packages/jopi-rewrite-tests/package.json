@@ -1,0 +1,28 @@
+{
+  "name": "jopi-rewrite-test",
+  "version": "1.0.0",
+  "private": "true",
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "engines": {
+    "bun": "^1.2.18"
+  },
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "bun src/tests.ts",
+    "serveStatic": "cd ../flat-website; serve  --listen 4321"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.13",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "jopi-rewrite": "workspace:*",
+    "jopi-rewrite-ui": "workspace:*"
+  }
+}

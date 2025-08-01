@@ -1,0 +1,384 @@
+// noinspection JSUnusedGlobalSymbols
+
+import {JopiRequest, type SendingBody} from "./core.ts";
+import type {LoadBalancer} from "./loadBalancing";
+
+export interface ServerDownResult<T> {
+    newServer?: ServerFetch<T>,
+    newServerWeight?: number;
+}
+
+export interface FetchOptions {
+    headers?: Headers;
+    method?: string;
+    verbose?: boolean;
+}
+
+export interface ServerFetchOptions<T> {
+    /**
+     * Allow automatically removing the trailing slashs.
+     * If I have http://127.0.0.1/doc/, then it's begun http://127.0.0.1/doc
+     * Default value is false.
+     */
+    removeTrailingSlash?: boolean;
+
+    /**
+     * Allow automatically removing the trailing slashs for the website root.
+     * If I have http://127.0.0.1/, then it's begun http://127.0.0.1
+     * Default value is false.
+     */
+    removeRootTrailingSlash?: boolean;
+
+    /**
+     * Is called before a request.
+     * Is used to start the server if we are doing headless.
+     */
+    beforeRequesting?: (url: string, fetchOptions: FetchOptions, data: T)=>void|Promise<void>;
+
+    /**
+     * Is called if we detect that the server is down.
+     * Allow starting a script which will restart the server
+     * or send a mal to the admin.
+     *
+     * @returns
+     *      true if we can retry the call.
+     *      false if we can't.
+     */
+    ifServerIsDown?: (fetcher: ServerFetch<T>, data: T)=>void|Promise<ServerDownResult<T>>;
+
+    headers?: Headers;
+    userDefaultHeaders?: boolean;
+    cookies?: { [key: string]: string };
+    verbose?: boolean;
+
+    /**
+     * The public url of the website.
+     * It's the url that he must use to build the url in his content.
+     * It's not the url of the server where he can be reached.
+     *
+     * Setting a public url will allow automatically setting the X-Forwarded-Host and X-Forwarded-Proto headers.
+     */
+    publicUrl?: string | URL;
+
+    /**
+     * An object which will be sent to beforeRequesting.
+     * Will also be where ifServerIsDown can store his state.
+     */
+    data? :T;
+
+    /**
+     * Allow rewriting the url for complex cases.
+     */
+    rewriteUrl?: (url: string, headers: Headers, fetcher: ServerFetch<any>)=>URL;
+
+    /**
+     * Allow rewriting a redirection.
+     */
+    translateRedirect?: (url: string)=>URL;
+}
+
+export class ServerFetch<T> {
+    private readonly options: ServerFetchOptions<T>;
+    private lastURL: string | undefined;
+
+    /**
+     * The load-balancer will attach himself if this instance
+     * is used by a load balancer.
+     */
+    public loadBalancer?: LoadBalancer;
+
+    /**
+     * Create an instance that translates urls from an origin to a destination.
+     *      Ex: http://127.0.0.1                --> https://www.mywebiste.com
+     *      Ex: https://my-server.com           --> https://134.555.666.66:7890  (with hostname: my-server.com)
+     *
+     * @param fromOrigin
+     *      The origin of our current website.
+     * @param targetOrigin
+     *      The origin of the target website.
+     * @param hostName
+     *      Must be set if toOrigin use an IP and not a hostname.
+     *      (will set the Host header)
+     * @param options
+     *      Options for the ServerFetch instance.
+     */
+    static fromTo<T>(fromOrigin: string, targetOrigin: string, hostName?: string, options?: ServerFetchOptions<T>): ServerFetch<T> {
+        const urlFromOrigin = new URL(fromOrigin);
+        const urlTargetOrigin = new URL(targetOrigin);
+        targetOrigin = urlTargetOrigin.toString().slice(0, -1);
+
+        return new ServerFetch<T>({
+            ...options,
+
+            rewriteUrl(url: string, headers: Headers) {
+                const urlInfos = new URL(url);
+                urlInfos.port = urlTargetOrigin.port;
+                urlInfos.protocol = urlTargetOrigin.protocol;
+                urlInfos.hostname = urlTargetOrigin.hostname;
+
+                if (hostName) {
+                    headers.set('Host', hostName);
+                }
+
+                return urlInfos;
+            },
+
+            translateRedirect(url: string) {
+                if (url[0]==="/") {
+                    url = targetOrigin + url;
+                }
+
+                const urlInfos = new URL(url);
+                urlInfos.port = urlFromOrigin.port;
+                urlInfos.protocol = urlFromOrigin.protocol;
+                urlInfos.hostname = urlFromOrigin.hostname;
+
+                return urlInfos;
+            }
+        });
+    }
+
+    static useOrigin<T>(serverOrigin: string, hostName?: string, options?: ServerFetchOptions<T>) {
+        const origin = new URL(serverOrigin);
+
+        return new ServerFetch<T>({
+            ...options,
+
+            rewriteUrl(url: string, headers: Headers) {
+                const urlInfos = new URL(url);
+                urlInfos.port = origin.port;
+                urlInfos.protocol = origin.protocol;
+                urlInfos.hostname = origin.hostname;
+
+                if (hostName) {
+                    headers.set('Host', hostName);
+                }
+
+                return urlInfos;
+            }
+        });
+    }
+
+    static useAsIs<T>(options?: ServerFetchOptions<T>) {
+        return new ServerFetch<T>(options);
+    }
+
+    protected constructor(options?: ServerFetchOptions<T>|undefined) {
+        options = options || {};
+        this.options = options;
+
+        if (!options.data) options.data = {} as T;
+        if (!options.headers) options.headers = new Headers();
+        if (options.userDefaultHeaders !== false) this.useDefaultHeaders();
+
+        this.compileCookies();
+
+        if (options.publicUrl) {
+            const url = new URL(options.publicUrl);
+            options.headers.set('X-Forwarded-Proto', url.protocol.replace(':', ''));
+            options.headers.set('X-Forwarded-Host', url.host);
+
+            let ignorePort = false;
+
+            if (url.protocol === 'http:') {
+                if (!url.port || (url.port === "80")) {
+                    ignorePort = true;
+                }
+            } else {
+                if (!url.port || (url.port === "443")) {
+                    ignorePort = true;
+                }
+            }
+
+            if (!ignorePort) {
+                options.headers.set('X-Forwarded-Port', url.port);
+            }
+
+            /**
+             * For wordpress add this to wp-config.php:
+             * if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+             *     $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_X_FORWARDED_HOST'];
+             *
+             *     if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
+             *         $_SERVER['HTTPS']='on';
+             *         define("WP_SITEURL", 'https://' . $_SERVER['HTTP_HOST']);
+             *     } else {
+             *         $_SERVER['HTTPS']='off';
+             *         define("WP_SITEURL", 'http://' . $_SERVER['HTTP_HOST']);
+             *     }
+             *
+             *     define("WP_HOME", WP_SITEURL);
+             * }
+             */
+        }
+    }
+
+    async checkIfServerOk(): Promise<boolean> {
+        if (!this.lastURL) return false;
+        let url = new URL(this.lastURL);
+        url.pathname = "/";
+
+        const res = await this.fetch("GET", url);
+        return res.status < 500;
+    }
+
+    private useDefaultHeaders() {
+        const headers = this.options.headers!;
+
+        headers.set('accept', 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8');
+        headers.set('accept-encoding', 'gzip');
+        // TODO: use the caller one.
+        headers.set('accept-language', 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7');
+        headers.set('user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36');
+    }
+
+    private compileCookies() {
+        if (!this.options.cookies) return;
+        let cookies = '';
+
+        for (const [name, value] of Object.entries(this.options.cookies)) {
+            cookies += `;${name}=${value}`;
+        }
+
+        if (cookies) {
+            this.options.headers?.set("Cookies", cookies.substring(1));
+        }
+    }
+
+    /**
+     * Allow to directly proxy a request as is we were directly asking the target server.
+     */
+    async directProxy(request: JopiRequest): Promise<Response> {
+        // Take request.urlInfos since request.urlInfos can have been updated.
+        // request.url can be an old url.
+        //
+        return this.doFetch(request.method, request.urlInfos.toString(), request.body, request.headers);
+    }
+
+    async fetch(method: string, url: URL, body?: SendingBody, headers?: Headers) {
+        return this.doFetch(method, url.toString(), body, headers);
+    }
+
+    async fetch2(method: string, url: string, body?: SendingBody, headers?: Headers) {
+        return this.doFetch(method, url, body, headers);
+    }
+
+    normalizeUrl(urlInfos: URL): string {
+        // To known: urlInfos.toString() always add a "/" at the end.
+        // new URL("http://127.0.0.1") --> http://127.0.0.1/
+
+        if (urlInfos.pathname.length<=1 && this.options.removeRootTrailingSlash) {
+            return urlInfos.origin;
+        }
+
+        return urlInfos.toString();
+    }
+
+    /**
+     * Allow fetching a some content.
+     */
+    private async doFetch(method: string, url: string, body?: SendingBody, headers?: Headers): Promise<Response> {
+        const bckURL = url;
+        headers = headers || this.options.headers || new Headers();
+
+        headers.delete("Host");
+        headers.delete("Origin");
+
+        if (this.options.rewriteUrl) {
+            let urlInfos = this.options.rewriteUrl(url, headers!, this);
+            url = this.normalizeUrl(urlInfos);
+        }
+
+        if (this.options.removeTrailingSlash && url.endsWith('/')) {
+            url = url.slice(0, -1);
+        }
+
+        const fetchOptions: any = {
+            method: method,
+            headers: headers,
+            verbose: this.options.verbose,
+
+            // Allow avoiding SSL certificate check.
+            //
+            rejectUnauthorized: false,
+            requestCert: false,
+            tls: {
+                rejectUnauthorized: false,
+                checkServerIdentity: () => { return undefined }
+            },
+
+            // Allow avoiding automatic redirections.
+            // @ts-ignore
+            redirect: 'manual',
+
+            body: body
+        };
+
+        if (this.options.beforeRequesting) {
+            const res = this.options.beforeRequesting(url, fetchOptions, this.options.data!);
+            if (res instanceof Promise) await res;
+        }
+
+        this.lastURL = url;
+
+        try {
+            let r = await fetch(url, fetchOptions);
+
+            // Create a valid redirection response that avoids pitfall
+            // where the browser loops in an infinite redirection.
+            //
+            if (r.status >= 300 && r.status < 400) {
+                let location = r.headers.get('location');
+
+                if (location && this.options.translateRedirect) {
+                    location = this.normalizeUrl(this.options.translateRedirect(location));
+                }
+
+                if (location) {
+                    const headers = new Headers({Location: location});
+
+                    r = new Response(null, {
+                        status: r.status,
+                        headers: headers,
+                    });
+                }
+            }
+
+            if (this.options.verbose) {
+                console.log(`Fetched [${r.status}]`, url);
+                if (!r.body) console.log("Response hasn't a body");
+                const ct = r.headers.get("content-length");
+                if (ct !== undefined && ct === '0') console.log(`Response content-length: ${length}`);
+            }
+
+            // Avoid a bug where r.body isn't encoded while the head say he his.
+            r.headers.delete("content-encoding");
+
+            return r;
+        } catch(e) {
+            if (this.options.ifServerIsDown) {
+                // Allow we to know there is something fishy.
+                const r = this.options.ifServerIsDown(this, this.options.data!);
+
+                if (r instanceof Promise) {
+                    const result = await r;
+
+                    // We can retry to send the request?
+                    if (result.newServer) {
+                        if (this.loadBalancer) {
+                            this.loadBalancer.replaceServer(this, result.newServer, result.newServerWeight);
+                        }
+
+                        return result.newServer.doFetch(method, bckURL, body, headers);
+                    }
+                }
+            }
+
+            // 521: Web Server Is Down.
+            return new Response(null, { status: 521 });
+        }
+    }
+}
+
+// Allow disable ssl certificate verification.
+//process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';

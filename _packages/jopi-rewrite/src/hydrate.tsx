@@ -1,0 +1,186 @@
+import path from "node:path";
+import esbuild from "esbuild";
+import sassPlugin from 'esbuild-plugin-sass';
+import React from "react";
+
+import {type JopiRequest, WebSite} from "./core";
+
+// @ts-ignore
+import template from "./template.jsx?raw";
+
+import {isServerSide} from "./utils";
+import {setNewHydrateListener} from "_packages/jopi-rewrite-ui";
+
+//region Bundle
+
+async function generateScript(outputDir: string, components: {[key: string]: string}): Promise<string> {
+    let declarations = "";
+
+    for (const componentKey in components) {
+        const componentPath = components[componentKey];
+        declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
+    }
+
+    let script = template.replace("//[DECLARE]", declarations);
+
+    const filePath = path.join(outputDir, "loader.jsx")
+    const file = Bun.file(filePath);
+    await file.write(script)
+
+    return filePath;
+}
+
+let gTempDirPath = path.join("node_modules", ".reactHydrateCache");
+
+async function doBundling_EsBuild(entryPoint: string, outputDir: string, publicPath: string): Promise<void> {
+    await esbuild.build({
+        entryPoints: [entryPoint],
+        bundle: true,
+        outdir: outputDir,
+        platform: 'browser',
+        format: 'esm',
+        target: "es2020",
+        publicPath: publicPath,
+        splitting: true,
+
+        plugins: [sassPlugin()],
+
+        minify: true,
+        sourcemap: true
+    });
+}
+
+async function doBundling_BunBundler(entryPoint: string, outputDir: string, publicPath: string): Promise<void> {
+    // https://bun.sh/docs/bundler
+
+    await Bun.build({
+        entrypoints: [entryPoint],
+        outdir: outputDir,
+        //splitting: true,
+        target: 'browser',
+
+        //minify: true,
+        //sourcemap: "none",
+
+        naming: "[dir]/[name].[ext]",
+        //naming: "[dir]/index_[hash].js",
+        publicPath: publicPath
+    });
+}
+
+export function getBundleUrl(webSite: WebSite) {
+    return webSite.welcomeUrl + "/_bundle";
+}
+
+export async function createBundle(webSite: WebSite): Promise<void> {
+    const components = getHydrateComponents();
+    const outputDir = path.join(gTempDirPath, webSite.hostName);
+    const entryPoint = await generateScript(outputDir, components);
+    const publicUrl = webSite.welcomeUrl + '/_bundle/';
+
+    await doBundling_EsBuild(entryPoint, outputDir, publicUrl);
+    //await doBundling_BunBundler(entryPoint, outputDir, publicUrl);
+}
+
+export function toResourceUrl(req: JopiRequest, resName: string) {
+    return req.webSite.welcomeUrl + "/" + resName;
+}
+
+export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
+    const pathName = req.urlInfos.pathname;
+    let idx = pathName.lastIndexOf("/");
+    const fileName = pathName.substring(idx);
+    const filePath = path.resolve(path.join(gTempDirPath, req.webSite.hostName, fileName));
+
+    const file = Bun.file(filePath);
+    let contentType = file.type;
+    let isJS = false;
+
+    if (contentType.startsWith("text/javascript")) {
+        isJS = true;
+        contentType = "application/javascript;charset=utf-8";
+    }
+
+    try {
+        let content = await file.text();
+
+        if (isJS) {
+            content = content.replaceAll("import.meta", "''");
+        }
+
+        return new Response(
+            content,
+            {
+                status: 200,
+                headers: {
+                    "content-type": contentType,
+                    // "content-length": "" + file.size
+                }
+            });
+    }
+    catch {
+        return new Response("", {status: 404});
+    }
+}
+
+//endregion
+
+//region UI
+
+export function hasHydrateComponents() {
+    return gHasComponents;
+}
+
+export function getHydrateComponents() {
+    return gHydrateComponents;
+}
+
+interface JopiHydrateProps {
+    Child: React.FunctionComponent;
+    args: any,
+    id: string;
+    asSpan: boolean;
+}
+
+function useHydrateComponent(importMeta: { filename: string }): string {
+    if (isServerSide()) {
+        const key = Bun.hash(importMeta.filename).toString();
+        const filePath = importMeta.filename;
+
+        const currentFilePath = gHydrateComponents[key];
+        if (currentFilePath === filePath) return key;
+        if (currentFilePath) throw new Error(`JopiHydrate: key ${key} already registered with ${currentFilePath}`);
+
+        gHasComponents = true;
+        gHydrateComponents[key] = filePath;
+
+        return key;
+    }
+
+    return "";
+}
+
+function JopiHydrate({id, args, asSpan, Child,}: JopiHydrateProps) {
+    const props = {"jopi-hydrate": JSON.stringify({id, args})};
+
+    if (asSpan) {
+        return <span {...props}><Child {...args}>{}</Child></span>;
+    }
+
+    return <div {...props}><Child {...args}>{}</Child></div>;
+}
+
+function onNewHydrate(importMeta: {filename: string}, f: React.FunctionComponent, isSpan: boolean): React.FunctionComponent {
+    // Register the component.
+    const id = useHydrateComponent(importMeta);
+
+    // Wrap our component.
+    return (p:any) => <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent} />;
+}
+
+const gHydrateComponents: {[key: string]: string} = {};
+let gHasComponents = false;
+
+setNewHydrateListener(onNewHydrate);
+
+//endregion

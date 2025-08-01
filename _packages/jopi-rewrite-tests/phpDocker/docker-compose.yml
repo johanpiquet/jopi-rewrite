@@ -1,0 +1,39 @@
+services:
+  nginx:
+    image: nginx:stable-alpine
+    container_name: my_nginx_container
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./src:/var/www/html
+    depends_on:
+      - php
+
+  php:
+    build:
+      context: phpDock
+      dockerfile: phpDock/Dockerfile
+    container_name: my_php_container
+    volumes:
+      - ./src:/var/www/html
+    environment:
+      PHP_IDE_CONFIG: "serverName=docker"
+
+  mysql:
+    image: mysql:8.0
+    container_name: my_mysql_container
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql_password
+      MYSQL_DATABASE: mysql_database
+      MYSQL_USER: mysql_user
+      MYSQL_PASSWORD: mysql_user_password
+    volumes:
+      # Here we use a named volume since we will not add the content to our GIT.
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+    driver: local
