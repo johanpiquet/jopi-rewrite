@@ -1,7 +1,7 @@
 import {
     type CacheEntry,
     cacheEntryToResponse,
-    PageCache, WebSite, octetToMo,
+    PageCache, octetToMo,
     ONE_KILO_OCTET, ONE_MEGA_OCTET,
     readContentLength,
     responseToCacheEntry
@@ -13,6 +13,7 @@ import * as path from "node:path";
 
 const clearHotReloadKey = NodeSpace.app.clearHotReloadKey;
 const keepOnHotReload = NodeSpace.app.keepOnHotReload;
+const HOT_RELOAD_KEY = "jopi.rewrite.inMemoryCache.hotReloadKey";
 
 export interface InMemoryCacheOptions {
     /**
@@ -60,8 +61,6 @@ interface MyCacheEntry extends CacheEntry {
     gzipBinarySize?: number;
 }
 
-const HOT_RELOAD_KEY = "jopi.rewrite.inMemoryCache.hotReloadKey";
-
 class InMemoryCache extends PageCache {
     createSubCache(name: string): PageCache {
         return new InMemorySubCache(this, name);
@@ -101,16 +100,28 @@ class InMemoryCache extends PageCache {
         this.maxMemoryUsageDelta = Math.trunc(options.maxMemoryUsageDela_mo * ONE_MEGA_OCTET);
     }
 
-    override async addToCache(url: URL, response: Response, webSite: WebSite, storeUncompressed: boolean, meta: unknown): Promise<Response> {
-        return this.key_AddToCache(url.toString(), response, webSite, storeUncompressed, meta);
+    override async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, meta: unknown): Promise<Response> {
+        return this.key_AddToCache(url.toString(), response, headersToInclude, storeUncompressed, meta);
     }
 
-    removeFromCache(url: URL): Promise<void> {
+    override removeFromCache(url: URL): Promise<void> {
         return this.key_removeFromCache(url.toString());
     }
 
-    override async getFromCache(url: URL, _webSite: WebSite, getGzippedVersion: boolean): Promise<Response|undefined> {
+    override async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
         return this.key_getFromCache(url.toString(), getGzippedVersion);
+    }
+
+    override async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
+        const cacheEntry = this.cache.get(url.toString());
+        if (!cacheEntry) return false;
+
+        if (requireUncompressedVersion===undefined) {
+            return true;
+        }
+
+        if (requireUncompressedVersion) return cacheEntry.ucpBinary!==undefined;
+        return cacheEntry.gzipBinary!==undefined;
     }
 
     getMeta<T>(url: URL): Promise<T|undefined> {
@@ -148,8 +159,8 @@ class InMemoryCache extends PageCache {
 
     //region With a key
 
-    async key_AddToCache(key: string, response: Response, webSite: WebSite, storeUncompressed: boolean, meta: unknown) {
-        const cacheEntry = responseToCacheEntry(response, webSite, meta, !storeUncompressed) as MyCacheEntry;
+    async key_AddToCache(key: string, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, meta: unknown) {
+        const cacheEntry = responseToCacheEntry(response, headersToInclude, meta, !storeUncompressed) as MyCacheEntry;
 
         if (response.status===200 && response.body) {
             const contentLength = readContentLength(response.headers);
@@ -380,15 +391,19 @@ class InMemorySubCache extends PageCache {
         this.prefix = name + " : ";
     }
 
-    override async addToCache(url: URL, response: Response, webSite: WebSite, storeUncompressed: boolean, meta: unknown): Promise<Response> {
-        return this.parent.key_AddToCache(this.prefix + url.toString(), response, webSite, storeUncompressed, meta);
+    override async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, meta: unknown): Promise<Response> {
+        return this.parent.key_AddToCache(this.prefix + url.toString(), response, headersToInclude, storeUncompressed, meta);
+    }
+
+    override async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
+        return this.parent.hasInCache(url, requireUncompressedVersion);
     }
 
     removeFromCache(url: URL): Promise<void> {
         return this.parent.key_removeFromCache(this.prefix + url.toString());
     }
 
-    override async getFromCache(url: URL, _webSite: WebSite, getGzippedVersion: boolean): Promise<Response|undefined> {
+    override async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
         return this.parent.key_getFromCache(this.prefix + url.toString(), getGzippedVersion);
     }
 

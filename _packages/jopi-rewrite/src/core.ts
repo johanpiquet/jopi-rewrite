@@ -334,11 +334,11 @@ export class JopiRequest {
     async getFromCache(useGzippedVersion: boolean = true, url?: URL): Promise<Response|undefined> {
         if (!url) url = this.urlInfos;
 
-        let res = await this.cache.getFromCache(url, this.webSite, useGzippedVersion);
+        let res = await this.cache.getFromCache(url, useGzippedVersion);
 
         if (!res) {
             if (this.cache!==this.mainCache) {
-                return await this.mainCache.getFromCache(this.urlInfos, this.webSite, useGzippedVersion);
+                return await this.mainCache.getFromCache(this.urlInfos, useGzippedVersion);
             }
         }
 
@@ -358,19 +358,19 @@ export class JopiRequest {
     }
 
     addToCache_Compressed(response: Response, meta?: unknown, url?: URL): Promise<Response> {
-        return this.cache.addToCache(url || this.urlInfos, response, this.webSite, false, meta);
+        return this.cache.addToCache(url || this.urlInfos, response, this.webSite.getHeadersToCache(), false, meta);
     }
 
     addToCache_Uncompressed(response: Response, meta?: unknown, url?: URL): Promise<Response> {
-        return this.cache.addToCache(url||this.urlInfos, response, this.webSite, true, meta);
+        return this.cache.addToCache(url||this.urlInfos, response, this.webSite.getHeadersToCache(), true, meta);
     }
 
     async getCacheMeta<T>(url?: URL): Promise<T|undefined|null> {
-        let res = await this.cache.getMeta<T>(url || this.urlInfos, this.webSite);
+        let res = await this.cache.getMeta<T>(url || this.urlInfos);
 
         if (!res) {
             if (this.cache!==this.mainCache) {
-                return await this.cache.getMeta<T>(this.urlInfos, this.webSite);
+                return await this.cache.getMeta<T>(this.urlInfos);
             }
         }
 
@@ -724,7 +724,7 @@ export class WebSite {
     private _on404?: JopiRouteHandler;
     private _on500?: JopiErrorHandler;
 
-    private readonly headersToCache: string[] = ["content-type", "etag", "last-modified"];
+    private headersToCache: string[] = ["content-type", "etag", "last-modified"];
     private middlewares?: JopiMiddleware[];
     private postMiddlewares?: JopiPostMiddleware[];
 
@@ -1181,12 +1181,16 @@ export interface ServerStartOptions {
 }
 
 export abstract class PageCache {
-    getFromCache(_url: URL, _webSite: WebSite, _getGzippedVersion: boolean): Promise<Response|undefined> {
+    getFromCache(_url: URL, _getGzippedVersion: boolean): Promise<Response|undefined> {
         return Promise.resolve(undefined);
     }
 
-    async addToCache(_url: URL, response: Response, _webSite: WebSite, _storeUncompressed: boolean, _meta: unknown): Promise<Response> {
+    async addToCache(_url: URL, response: Response, _headersToInclude: string[]|undefined, _storeUncompressed: boolean, _meta: unknown): Promise<Response> {
         return Promise.resolve(response);
+    }
+
+    hasInCache(_url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
+        return Promise.resolve(false);
     }
 
     removeFromCache(_url: URL): Promise<void> {
@@ -1197,7 +1201,7 @@ export abstract class PageCache {
     /**
      * Returns the metadata for the cache entry.
      */
-    getMeta<T>(_url: URL, _webSite: WebSite): Promise<T|undefined> {
+    getMeta<T>(_url: URL): Promise<T|undefined> {
         return Promise.resolve(undefined);
     }
 
@@ -1267,20 +1271,17 @@ export class WebSiteMirrorCache extends PageCache {
         await Bun.file(filePath).delete();
     }
 
-    async hasInCache(url: URL): Promise<undefined|{addedDate: number, filePath: string}> {
+    override async hasInCache(url: URL): Promise<boolean> {
         const filePath = this.calcFilePath(url);
         const file = Bun.file(filePath);
 
         try {
             const stat = await file.stat();
-
-            return {
-                addedDate: stat.ctimeMs,
-                filePath
-            }
+            return stat.isFile();
         }
-        catch { return undefined; }
-
+        catch {
+            return false;
+        }
     }
 
     override async getFromCache(url: URL): Promise<Response|undefined> {
@@ -1414,7 +1415,9 @@ export function cacheEntryToResponse(entry: CacheEntry) {
     return new Response("", {status: entry.status, headers: entry.headers});
 }
 
-export function responseToCacheEntry(response: Response, webSite: WebSite, meta: any, isGzipped: boolean): CacheEntry {
+const gDefaultHeadersToCache: string[] = [ "content-type", "etag", "last-modified"];
+
+export function responseToCacheEntry(response: Response, headersToInclude: string[]|undefined, meta: any, isGzipped: boolean): CacheEntry {
     const status = response.status;
     const entry: CacheEntry = {meta, isGzipped, status};
 
@@ -1424,7 +1427,7 @@ export function responseToCacheEntry(response: Response, webSite: WebSite, meta:
         entry.headers = headers;
 
         // "content-type", "etag", "last-modified"
-        const headersToInclude = webSite.getHeadersToCache();
+        if (!headersToInclude) headersToInclude = gDefaultHeadersToCache;
 
         headersToInclude.forEach(header => addHeaderIfExist(headers, header, response.headers));
     }

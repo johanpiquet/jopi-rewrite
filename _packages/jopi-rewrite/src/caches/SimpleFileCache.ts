@@ -1,4 +1,4 @@
-import {type CacheEntry, cacheEntryToResponse, PageCache, responseToCacheEntry, WebSite} from "../core";
+import {type CacheEntry, cacheEntryToResponse, PageCache, responseToCacheEntry} from "../core";
 import path from "node:path";
 import {gzipFile} from "../gzip";
 import fs from "node:fs/promises";
@@ -26,10 +26,10 @@ export class SimpleFileCache extends PageCache {
         return fp;
     }
 
-    override async addToCache(url: URL, response: Response, webSite: WebSite, storeUncompressed: boolean, meta: unknown): Promise<Response> {
+    override async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, meta: unknown): Promise<Response> {
         // >>> Store the infos.
 
-        await this.saveCacheEntry(url, response, webSite, meta, !storeUncompressed);
+        await this.saveCacheEntry(url, response, headersToInclude, meta, !storeUncompressed);
 
         // >>> Store the body.
 
@@ -73,7 +73,7 @@ export class SimpleFileCache extends PageCache {
         return Promise.resolve();
     }
 
-    override async getFromCache(url: URL, _webSite: WebSite, getGzippedVersion: boolean): Promise<Response|undefined> {
+    override async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
         const cacheEntry = await this.getCacheEntry(url);
 
         // Mean the entry doesn't exist.
@@ -117,6 +117,15 @@ export class SimpleFileCache extends PageCache {
         return cacheEntryToResponse(cacheEntry);
     }
 
+    override async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
+        const cacheEntry = await this.getCacheEntry(url);
+        if (!cacheEntry) return false;
+
+        if (requireUncompressedVersion===undefined) return true;
+        if (requireUncompressedVersion) return cacheEntry.isGzipped===false;
+        return cacheEntry.isGzipped===true;
+    }
+
     override async getMeta<T>(url: URL): Promise<T|undefined> {
         const infos = await this.getCacheEntry(url);
         if (!infos) return undefined;
@@ -135,8 +144,8 @@ export class SimpleFileCache extends PageCache {
         }
     }
 
-    private async saveCacheEntry(url: URL, response: Response, webSite: WebSite, meta: any, isGzipped: boolean) {
-        const cacheEntry = responseToCacheEntry(response, webSite, meta, isGzipped);
+    private async saveCacheEntry(url: URL, response: Response, headersToInclude: string[]|undefined, meta: any, isGzipped: boolean) {
+        const cacheEntry = responseToCacheEntry(response, headersToInclude, meta, isGzipped);
 
         const filePath = this.calcFilePath(url) + " info";
         await fs.mkdir(path.dirname(filePath), {recursive: true});

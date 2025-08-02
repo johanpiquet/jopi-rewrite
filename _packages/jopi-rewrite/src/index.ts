@@ -7,7 +7,6 @@ export * from "./searchParamFilter";
 export * from "./serverFetch";
 export * from "./caches/InMemoryCache";
 export * from "./caches/SimpleFileCache";
-export * from "./caches/ChainedCache";
 export * from "./loadBalancing";
 export * from "./automaticStartStop";
 export * from "./middlewares";
