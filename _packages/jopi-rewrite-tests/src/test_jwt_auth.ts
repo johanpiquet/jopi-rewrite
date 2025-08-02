@@ -1,4 +1,4 @@
-import {JopiServer, NotAuthorizedException, ONE_DAY, WebSite} from "jopi-rewrite";
+import {JopiServer, NotAuthorizedException, WebSite} from "jopi-rewrite";
 
 const server = new JopiServer();
 const myWebSite = server.addWebsite(new WebSite("http://127.0.0.1"));
@@ -10,7 +10,7 @@ server.startServer();
 myWebSite.setJwtSecret("my-secret-key");
 
 myWebSite.setJwtTokenStore((token, cookieValue, req, res) => {
-    req.addCookie(res, "authorization", cookieValue, {maxAge: ONE_DAY * 365})
+    req.addCookie(res, "authorization", cookieValue, {maxAge: NodeSpace.timer.ONE_DAY * 365})
 });
 
 // Our function checking the user login password.

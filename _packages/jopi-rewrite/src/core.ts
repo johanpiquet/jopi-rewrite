@@ -14,7 +14,8 @@ import fs from "node:fs/promises";
 import {$} from "bun";
 import {PostMiddlewares} from "./middlewares";
 import * as jwt from 'jsonwebtoken';
-import {ONE_DAY} from "./utils";
+
+const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
 export type JopiRouter = RouterContext<JopiRouteHandler>;
 export type JopiRouteHandler = (req: JopiRequest) => Response|Promise<Response>;

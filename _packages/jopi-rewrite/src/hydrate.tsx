@@ -7,9 +7,7 @@ import {type JopiRequest, WebSite} from "./core";
 
 // @ts-ignore
 import template from "./template.jsx?raw";
-
-import {isServerSide} from "./utils";
-import {setNewHydrateListener} from "_packages/jopi-rewrite-ui";
+import {setNewHydrateListener} from "jopi-rewrite-ui";
 
 //region Bundle
 
@@ -143,7 +141,7 @@ interface JopiHydrateProps {
 }
 
 function useHydrateComponent(importMeta: { filename: string }): string {
-    if (isServerSide()) {
+    if (NodeSpace.what.isServerSide) {
         const key = Bun.hash(importMeta.filename).toString();
         const filePath = importMeta.filename;
 

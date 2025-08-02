@@ -1,6 +1,7 @@
 import type {ServerFetch} from "./serverFetch";
 import {JopiRequest, type SendingBody} from "./core";
-import {newInterval} from "./utils";
+
+const newInterval = NodeSpace.timer.newInterval;
 
 export class LoadBalancer {
     private readonly servers: Server[] = [];

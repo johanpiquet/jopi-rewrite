@@ -10,7 +10,9 @@ import {
 import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip";
 
 import * as path from "node:path";
-import {clearHotReloadKey, keepIfHotReload} from "../hotReload";
+
+const clearHotReloadKey = NodeSpace.app.clearHotReloadKey;
+const keepOnHotReload = NodeSpace.app.keepOnHotReload;
 
 export interface InMemoryCacheOptions {
     /**
@@ -65,7 +67,7 @@ class InMemoryCache extends PageCache {
         return new InMemorySubCache(this, name);
     }
 
-    private readonly cache = keepIfHotReload(HOT_RELOAD_KEY, () => new Map<string, MyCacheEntry>());
+    private readonly cache = keepOnHotReload(HOT_RELOAD_KEY, () => new Map<string, MyCacheEntry>());
 
     private readonly maxContentLength: number;
 

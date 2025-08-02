@@ -38,6 +38,7 @@
     "react-dom": "^19.1.0",
     "rou3": "^0.7.3",
     "sass": "^1.89.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "jopi-node-space": "latest"
   }
 }

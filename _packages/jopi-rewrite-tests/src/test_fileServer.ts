@@ -12,6 +12,6 @@ myWebSite.onGET("/**", req => {
 
         // The default behavior to return "req.error404Response()".
         // Here for this sample, we choose to redirect to the home page.
-        onNotFound: req => req.redirectResponse(false, "/")
+        onNotFound: req => req.redirectResponse(false, "/404-not-found.html")
     });
 });

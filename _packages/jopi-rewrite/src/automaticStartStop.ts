@@ -1,13 +1,8 @@
-import {newInterval, ONE_MINUTE} from "./utils";
-import { $ } from "bun";
-import {onApplicationExit} from "./osSignals";
-import {
-    TERMINAL_BLUE_BACKGROUND,
-    TERMINAL_GREEN_BACKGROUND,
-    TERMINAL_RED,
-    TERMINAL_RED_BACKGROUND, TERMINAL_YELLOW_BACKGROUND,
-    terminalColor
-} from "./colorTools";
+import "jopi-node-space";
+
+const Term = NodeSpace.term;
+const ONE_MINUTE = NodeSpace.timer.ONE_MINUTE;
+const newInterval = NodeSpace.timer.newInterval;
 
 export enum AutomaticStartStopState { Stopped, Starting, Started, Stopping }
 
@@ -67,7 +62,7 @@ export class AutomaticStartStop {
         this.boundStop = this.stop.bind(this);
 
         if (!params.keepAlive) {
-            onApplicationExit(this.boundStop);
+            NodeSpace.app.onAppExiting(this.boundStop);
         }
     }
 
@@ -117,13 +112,13 @@ export class AutomaticStartStop {
         // But since it's async, state can have changed since.
         //
         if (this.state===AutomaticStartStopState.Stopped) {
-            console.log(terminalColor(`Is starting server [${this.name}].`, TERMINAL_YELLOW_BACKGROUND));
+            console.log(Term.colorize(Term.B_YELLOW, `Is starting server [${this.name}].`));
             this.setState(AutomaticStartStopState.Starting);
 
             await this.onStart(this.data);
 
             this.setState(AutomaticStartStopState.Started);
-            console.log(terminalColor(`Server [${this.name}] is started.`, TERMINAL_YELLOW_BACKGROUND));
+            console.log(Term.colorize(Term.B_YELLOW, `Server [${this.name}] is started.`));
 
         }
     }
@@ -146,13 +141,13 @@ export class AutomaticStartStop {
         // But since it's async, state can have changed since.
         //
         if (this.state===AutomaticStartStopState.Started) {
-            console.log(terminalColor(`Is shutting down server [${this.name}].`, TERMINAL_RED_BACKGROUND));
+            console.log(Term.colorize(Term.B_RED, `Is shutting down server [${this.name}].`));
             this.setState(AutomaticStartStopState.Stopping);
 
             await this.onStop(this.data);
 
             this.setState(AutomaticStartStopState.Stopped);
-            console.log(terminalColor(`Server [${this.name}] is shutdown.`, TERMINAL_RED_BACKGROUND));
+            console.log(Term.colorize(Term.B_RED, `Server [${this.name}] is shutdown.`));
         }
     }
 

@@ -35,6 +35,6 @@
 
 //import "./test_replace";
 //import "./test_startStopManager";
-//import "./test_fileServer"
+import "./test_fileServer"
 
 //endregion

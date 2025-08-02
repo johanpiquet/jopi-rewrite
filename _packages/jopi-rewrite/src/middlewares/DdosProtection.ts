@@ -1,5 +1,7 @@
 import {getServerStartOptions, type JopiMiddleware, type JopiRequest} from "../core";
-import {newInterval, applyDefaults} from "../utils";
+
+const newInterval = NodeSpace.timer.newInterval;
+const applyDefaults = NodeSpace.applyDefaults;
 
 // slowhttptest -c 1000 -H -i 10 -r 200 -t GET -u http://my-server -x 24 -p 3
 

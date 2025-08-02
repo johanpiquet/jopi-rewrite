@@ -3,6 +3,7 @@
     "./_packages/*"
   ],
   "scripts": {
-    "bun-install": "bun install"
+    "bun-install": "bun install",
+    "bun-upgrade": "bun update"
   }
 }
