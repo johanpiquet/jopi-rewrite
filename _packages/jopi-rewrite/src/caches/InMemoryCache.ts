@@ -1,8 +1,12 @@
 import {
     type CacheEntry,
     cacheEntryToResponse,
-    PageCache, octetToMo,
-    ONE_KILO_OCTET, ONE_MEGA_OCTET,
+    type MetaUpdater,
+    MetaUpdaterResult,
+    octetToMo,
+    ONE_KILO_OCTET,
+    ONE_MEGA_OCTET,
+    PageCache,
     readContentLength,
     responseToCacheEntry
 } from "../core";
@@ -108,8 +112,8 @@ class InMemoryCache extends PageCache {
         return this.key_removeFromCache(url.toString());
     }
 
-    override async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
-        return this.key_getFromCache(url.toString(), getGzippedVersion);
+    override async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater): Promise<Response|undefined> {
+        return this.key_getFromCache(url.toString(), getGzippedVersion, updater);
     }
 
     override async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
@@ -213,9 +217,26 @@ class InMemoryCache extends PageCache {
         return Promise.resolve();
     }
 
-    async key_getFromCache(key: string, getGzippedVersion: boolean): Promise<Response|undefined> {
+    async key_getFromCache(key: string, getGzippedVersion: boolean, updater?: MetaUpdater): Promise<Response|undefined> {
         const res = await this.key_getValueFromCache(key, getGzippedVersion);
-        if (res) return cacheEntryToResponse(res);
+
+        if (res) {
+            if (updater) {
+                const meta = res.meta||{};
+                const updateResult = updater(meta);
+
+                switch (updateResult) {
+                    case MetaUpdaterResult.MUST_DELETE:
+                        res.meta = undefined;
+                        break;
+                    case MetaUpdaterResult.IS_UPDATED:
+                        res.meta = meta;
+                        break;
+                }
+            }
+
+            return cacheEntryToResponse(res);
+        }
         return undefined;
     }
 
@@ -403,8 +424,8 @@ class InMemorySubCache extends PageCache {
         return this.parent.key_removeFromCache(this.prefix + url.toString());
     }
 
-    override async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
-        return this.parent.key_getFromCache(this.prefix + url.toString(), getGzippedVersion);
+    override async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater): Promise<Response|undefined> {
+        return this.parent.key_getFromCache(this.prefix + url.toString(), getGzippedVersion, updater);
     }
 
     getMeta<T>(url: URL): Promise<T|undefined> {

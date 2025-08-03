@@ -1,4 +1,11 @@
-import {type CacheEntry, cacheEntryToResponse, PageCache, responseToCacheEntry} from "../core";
+import {
+    type CacheEntry,
+    cacheEntryToResponse,
+    type MetaUpdater,
+    MetaUpdaterResult,
+    PageCache,
+    responseToCacheEntry
+} from "../core";
 import path from "node:path";
 import {gzipFile} from "../gzip";
 import fs from "node:fs/promises";
@@ -29,7 +36,7 @@ export class SimpleFileCache extends PageCache {
     override async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, meta: unknown): Promise<Response> {
         // >>> Store the infos.
 
-        await this.saveCacheEntry(url, response, headersToInclude, meta, !storeUncompressed);
+        await this.saveNewCacheEntry(url, response, headersToInclude, meta, !storeUncompressed);
 
         // >>> Store the body.
 
@@ -73,12 +80,28 @@ export class SimpleFileCache extends PageCache {
         return Promise.resolve();
     }
 
-    override async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
+    override async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater): Promise<Response|undefined> {
         const cacheEntry = await this.getCacheEntry(url);
 
         // Mean the entry doesn't exist.
         if (!cacheEntry) {
             return undefined;
+        }
+
+        if (updater) {
+            const meta = cacheEntry.meta||{};
+            const updateResult = updater(meta);
+
+            switch (updateResult) {
+                case MetaUpdaterResult.MUST_DELETE:
+                    cacheEntry.meta = undefined;
+                    await this.saveCacheEntry(url, cacheEntry);
+                    break;
+                case MetaUpdaterResult.IS_UPDATED:
+                    cacheEntry.meta = meta;
+                    await this.saveCacheEntry(url, cacheEntry);
+                    break;
+            }
         }
 
         if (cacheEntry.status===200) {
@@ -144,9 +167,12 @@ export class SimpleFileCache extends PageCache {
         }
     }
 
-    private async saveCacheEntry(url: URL, response: Response, headersToInclude: string[]|undefined, meta: any, isGzipped: boolean) {
+    private async saveNewCacheEntry(url: URL, response: Response, headersToInclude: string[]|undefined, meta: any, isGzipped: boolean) {
         const cacheEntry = responseToCacheEntry(response, headersToInclude, meta, isGzipped);
+        return this.saveCacheEntry(url, cacheEntry);
+    }
 
+    private async saveCacheEntry(url: URL, cacheEntry: CacheEntry) {
         const filePath = this.calcFilePath(url) + " info";
         await fs.mkdir(path.dirname(filePath), {recursive: true});
         await Bun.file(filePath).write(JSON.stringify(cacheEntry));

@@ -331,10 +331,17 @@ export class JopiRequest {
 
     //region Cache
 
-    async getFromCache(useGzippedVersion: boolean = true, url?: URL): Promise<Response|undefined> {
-        if (!url) url = this.urlInfos;
-
-        let res = await this.cache.getFromCache(url, useGzippedVersion);
+    /**
+     * Get from the cache the entry corresponding to the curent url.
+     *
+     * @param useGzippedVersion
+     *      If true, returns the compressed version in priority.
+     *      If it doesn't exist, then will return the uncompressed version.
+     * @param metaUpdater
+     *      Allow updating the meta of the cache entry.
+     */
+    async getFromCache(useGzippedVersion: boolean = true, metaUpdater?: MetaUpdater): Promise<Response|undefined> {
+        let res = await this.cache.getFromCache(this.urlInfos, useGzippedVersion, metaUpdater);
 
         if (!res) {
             if (this.cache!==this.mainCache) {
@@ -1180,8 +1187,15 @@ export interface ServerStartOptions {
     timeout?: number;
 }
 
+/**
+ * Update the meta-data.
+ * Return true if a change has been done, false otherwise.
+ */
+export type MetaUpdater = (meta: any|undefined) => MetaUpdaterResult;
+export enum MetaUpdaterResult { IS_UPDATED, IS_NOT_UPDATED, MUST_DELETE}
+
 export abstract class PageCache {
-    getFromCache(_url: URL, _getGzippedVersion: boolean): Promise<Response|undefined> {
+    getFromCache(_url: URL, _getGzippedVersion: boolean, _metaUpdater?: MetaUpdater): Promise<Response|undefined> {
         return Promise.resolve(undefined);
     }
 

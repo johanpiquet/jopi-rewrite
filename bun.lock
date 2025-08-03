@@ -10,7 +10,7 @@
         "css-url-parser": "^1.1.4",
         "esbuild": "^0.25.6",
         "esbuild-plugin-sass": "^1.0.1",
-        "jopi-node-space": "latest",
+        "jopi-node-space": "link:jopi-node-space",
         "jopi-rewrite-ui": "*",
         "jsonwebtoken": "^9.0.2",
         "react": "^19.1.0",
@@ -272,7 +272,7 @@
 
     "jopi-crawler": ["jopi-crawler@1.0.1", "", { "dependencies": { "css-url-parser": "^1.1.4", "rou3": "latest" } }, "sha512-CeIBJWaI8UPGiyQlh+5TpJ3qDeJ5dKeFSC5sHZ2vKJNnAjIXzlJl1cCz7Qrul/DF0ZQSdxMrl7BxsG54y/J6cg=="],
 
-    "jopi-node-space": ["jopi-node-space@0.0.4", "", {}, "sha512-3hxWYAIGzemm4iMPidKlQPTvUlyGXLZZ5sk5a7xg+23Ge8f4rLOpFCflK1ZeNR+UqmXG/m19iIgdA7rpxvluWw=="],
+    "jopi-node-space": ["jopi-node-space@link:jopi-node-space", {}],
 
     "jopi-rewrite": ["jopi-rewrite@workspace:_packages/jopi-rewrite"],
 

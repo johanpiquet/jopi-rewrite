@@ -2,3 +2,6 @@
 * ChainedCache has been removed.
 * PageCache: replace webSite by requiredHeaders.
 * PageCache.hasInCache added.
+
+**2025-08-03**
+* PageCache.getFromCache has now the possibility to update the metadata.

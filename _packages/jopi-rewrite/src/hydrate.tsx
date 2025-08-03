@@ -71,6 +71,8 @@ export function getBundleUrl(webSite: WebSite) {
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
+    if (!hasHydrateComponents()) return;
+
     const components = getHydrateComponents();
     const outputDir = path.join(gTempDirPath, webSite.hostName);
     const entryPoint = await generateScript(outputDir, components);
