@@ -6,3 +6,4 @@
 **2025-08-03**
 * PageCache.getFromCache has now the possibility to update the metadata.
 * Page.addToCache has now the possibility to update the existing metadata.
+* PageCache is now an interface (and not a class).

@@ -1187,40 +1187,24 @@ export interface MetaUpdater<T> {
 
 export enum MetaUpdaterResult { IS_NOT_UPDATED, IS_UPDATED, MUST_DELETE}
 
-export abstract class PageCache {
-    getFromCache(_url: URL, _getGzippedVersion: boolean, _metaUpdater?: MetaUpdater<unknown>): Promise<Response|undefined> {
-        return Promise.resolve(undefined);
-    }
+export interface PageCache {
+    getFromCache(url: URL, getGzippedVersion: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response | undefined>;
 
-    async addToCache(_url: URL, response: Response, _headersToInclude: string[]|undefined, _storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
-        return Promise.resolve(response);
-    }
+    addToCache(url: URL, response: Response, headersToInclude: string[] | undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response>;
 
-    hasInCache(_url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
-        return Promise.resolve(false);
-    }
+    hasInCache(url: URL, requireUncompressedVersion?: boolean | undefined): Promise<boolean>;
 
-    removeFromCache(_url: URL): Promise<void> {
-        // Nothing to do.
-        return Promise.resolve();
-    }
+    removeFromCache(url: URL): Promise<void>;
 
-    /**
-     * Returns the metadata for the cache entry.
-     */
-    getMeta<T>(_url: URL): Promise<T|undefined> {
-        return Promise.resolve(undefined);
-    }
+    getMeta<T>(url: URL): Promise<T | undefined>;
 
-    abstract createSubCache(name: string): PageCache;
+    createSubCache(name: string): PageCache;
 }
 
-export class WebSiteMirrorCache extends PageCache {
+export class WebSiteMirrorCache implements PageCache {
     public readonly rootDir: string;
 
     constructor(rootDir: string) {
-        super();
-
         if (!rootDir) rootDir = ".";
         if (!path.isAbsolute(rootDir)) rootDir = path.resolve(process.cwd(), rootDir);
         this.rootDir = rootDir;
@@ -1249,7 +1233,7 @@ export class WebSiteMirrorCache extends PageCache {
         return fp;
     }
 
-    override async addToCache(url: URL, response: Response): Promise<Response> {
+    async addToCache(url: URL, response: Response): Promise<Response> {
         // We don't store 404 and others.
         if (response.status !== 200) return response;
 
@@ -1273,12 +1257,12 @@ export class WebSiteMirrorCache extends PageCache {
         }
     }
 
-    override async removeFromCache(url: URL): Promise<void> {
+    async removeFromCache(url: URL): Promise<void> {
         const filePath = this.calcFilePath(url);
         await Bun.file(filePath).delete();
     }
 
-    override async hasInCache(url: URL): Promise<boolean> {
+    async hasInCache(url: URL): Promise<boolean> {
         const filePath = this.calcFilePath(url);
         const file = Bun.file(filePath);
 
@@ -1291,7 +1275,7 @@ export class WebSiteMirrorCache extends PageCache {
         }
     }
 
-    override async getFromCache(url: URL): Promise<Response|undefined> {
+    async getFromCache(url: URL): Promise<Response|undefined> {
         const filePath = this.calcFilePath(url);
         const file = Bun.file(filePath);
 
@@ -1310,7 +1294,7 @@ export class WebSiteMirrorCache extends PageCache {
         return undefined;
     }
 
-    override async getMeta<T>(url: URL): Promise<T|undefined> {
+    async getMeta<T>(url: URL): Promise<T|undefined> {
         const filePath = this.calcFilePath(url);
 
         try {
@@ -1329,8 +1313,28 @@ export class WebSiteMirrorCache extends PageCache {
     }
 }
 
-export class VoidPageCache extends PageCache {
-    override createSubCache(_name: string): PageCache {
+export class VoidPageCache implements PageCache {
+    getFromCache(): Promise<Response | undefined> {
+        return Promise.resolve(undefined);
+    }
+
+    addToCache(_url: URL, response: Response): Promise<Response> {
+        return Promise.resolve(response);
+    }
+
+    hasInCache(): Promise<boolean> {
+        return Promise.resolve(false);
+    }
+
+    removeFromCache(_url: URL): Promise<void> {
+        return Promise.resolve();
+    }
+
+    getMeta<T>(_url: URL): Promise<T | undefined> {
+        return Promise.resolve(undefined);
+    }
+
+    createSubCache(): PageCache {
         return this;
     }
 }

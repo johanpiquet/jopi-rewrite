@@ -6,7 +6,7 @@ import {
     octetToMo,
     ONE_KILO_OCTET,
     ONE_MEGA_OCTET,
-    PageCache,
+    type PageCache,
     readContentLength,
     responseToCacheEntry
 } from "../core";
@@ -65,7 +65,7 @@ interface MyCacheEntry extends CacheEntry {
     gzipBinarySize?: number;
 }
 
-class InMemoryCache extends PageCache {
+class InMemoryCache implements PageCache {
     createSubCache(name: string): PageCache {
         return new InMemorySubCache(this, name);
     }
@@ -83,8 +83,6 @@ class InMemoryCache extends PageCache {
     private readonly maxMemoryUsageDelta: number;
 
     constructor(options?: InMemoryCacheOptions) {
-        super();
-
         options = options || {};
 
         if (!options.maxContentLength) options.maxContentLength = ONE_KILO_OCTET * 600;
@@ -104,19 +102,19 @@ class InMemoryCache extends PageCache {
         this.maxMemoryUsageDelta = Math.trunc(options.maxMemoryUsageDela_mo * ONE_MEGA_OCTET);
     }
 
-    override async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
+    async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
         return this.key_AddToCache(url.toString(), response, headersToInclude, storeUncompressed, metaUpdater);
     }
 
-    override removeFromCache(url: URL): Promise<void> {
+    removeFromCache(url: URL): Promise<void> {
         return this.key_removeFromCache(url.toString());
     }
 
-    override async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater<unknown>): Promise<Response|undefined> {
+    async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater<unknown>): Promise<Response|undefined> {
         return this.key_getFromCache(url.toString(), getGzippedVersion, updater);
     }
 
-    override async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
+    async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
         const cacheEntry = this.cache.get(url.toString());
         if (!cacheEntry) return false;
 
@@ -416,19 +414,18 @@ class InMemoryCache extends PageCache {
     //endregion
 }
 
-class InMemorySubCache extends PageCache {
+class InMemorySubCache implements PageCache {
     private readonly prefix: string;
 
     constructor(private readonly parent: InMemoryCache, name: string) {
-        super();
         this.prefix = name + " : ";
     }
 
-    override async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
+    async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
         return this.parent.key_AddToCache(this.prefix + url.toString(), response, headersToInclude, storeUncompressed, metaUpdater);
     }
 
-    override async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
+    async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
         return this.parent.hasInCache(url, requireUncompressedVersion);
     }
 
@@ -436,7 +433,7 @@ class InMemorySubCache extends PageCache {
         return this.parent.key_removeFromCache(this.prefix + url.toString());
     }
 
-    override async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater<unknown>): Promise<Response|undefined> {
+    async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater<unknown>): Promise<Response|undefined> {
         return this.parent.key_getFromCache(this.prefix + url.toString(), getGzippedVersion, updater);
     }
 
