@@ -63,8 +63,8 @@ export interface AuthResult {
 export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
 
 export class JopiRequest {
-    private cache: PageCache;
-    private readonly mainCache: PageCache;
+    public cache: PageCache;
+    public readonly mainCache: PageCache;
     private cookies?: {[name: string]: string};
 
     constructor(public readonly webSite: WebSite,
@@ -350,6 +350,17 @@ export class JopiRequest {
         }
 
         return res;
+    }
+
+    async hasInCache(useGzippedVersion?: boolean|undefined): Promise<boolean> {
+        let res = await this.cache.hasInCache(this.urlInfos, useGzippedVersion);
+        if (res) return true;
+
+        if (this.cache!==this.mainCache) {
+            return await this.mainCache.hasInCache(this.urlInfos, useGzippedVersion);
+        }
+
+        return false;
     }
 
     removeFromCache(url?: URL): Promise<void> {
