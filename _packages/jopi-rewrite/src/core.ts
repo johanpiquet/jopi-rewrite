@@ -340,7 +340,7 @@ export class JopiRequest {
      * @param metaUpdater
      *      Allow updating the meta of the cache entry.
      */
-    async getFromCache(useGzippedVersion: boolean = true, metaUpdater?: MetaUpdater): Promise<Response|undefined> {
+    async getFromCache(useGzippedVersion: boolean = true, metaUpdater?: MetaUpdater<unknown>): Promise<Response|undefined> {
         let res = await this.cache.getFromCache(this.urlInfos, useGzippedVersion, metaUpdater);
 
         if (!res) {
@@ -364,24 +364,12 @@ export class JopiRequest {
         return this.cache.removeFromCache(url || this.urlInfos);
     }
 
-    addToCache_Compressed(response: Response, meta?: unknown, url?: URL): Promise<Response> {
-        return this.cache.addToCache(url || this.urlInfos, response, this.webSite.getHeadersToCache(), false, meta);
+    addToCache_Compressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
+        return this.cache.addToCache(this.urlInfos, response, this.webSite.getHeadersToCache(), false, metaUpdater);
     }
 
-    addToCache_Uncompressed(response: Response, meta?: unknown, url?: URL): Promise<Response> {
-        return this.cache.addToCache(url||this.urlInfos, response, this.webSite.getHeadersToCache(), true, meta);
-    }
-
-    async getCacheMeta<T>(url?: URL): Promise<T|undefined|null> {
-        let res = await this.cache.getMeta<T>(url || this.urlInfos);
-
-        if (!res) {
-            if (this.cache!==this.mainCache) {
-                return await this.cache.getMeta<T>(this.urlInfos);
-            }
-        }
-
-        return res;
+    addToCache_Uncompressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
+        return this.cache.addToCache(this.urlInfos, response, this.webSite.getHeadersToCache(), true, metaUpdater);
     }
 
     /**
@@ -1191,15 +1179,20 @@ export interface ServerStartOptions {
  * Update the meta-data.
  * Return true if a change has been done, false otherwise.
  */
-export type MetaUpdater = (meta: any|undefined) => MetaUpdaterResult;
-export enum MetaUpdaterResult { IS_UPDATED, IS_NOT_UPDATED, MUST_DELETE}
+export interface MetaUpdater<T> {
+    updateMeta(meta: any | undefined, data: T): MetaUpdaterResult;
+    requireCurrentMeta?: boolean;
+    data?: T;
+}
+
+export enum MetaUpdaterResult { IS_NOT_UPDATED, IS_UPDATED, MUST_DELETE}
 
 export abstract class PageCache {
-    getFromCache(_url: URL, _getGzippedVersion: boolean, _metaUpdater?: MetaUpdater): Promise<Response|undefined> {
+    getFromCache(_url: URL, _getGzippedVersion: boolean, _metaUpdater?: MetaUpdater<unknown>): Promise<Response|undefined> {
         return Promise.resolve(undefined);
     }
 
-    async addToCache(_url: URL, response: Response, _headersToInclude: string[]|undefined, _storeUncompressed: boolean, _meta: unknown): Promise<Response> {
+    async addToCache(_url: URL, response: Response, _headersToInclude: string[]|undefined, _storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
         return Promise.resolve(response);
     }
 

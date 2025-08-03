@@ -33,7 +33,23 @@ export class SimpleFileCache extends PageCache {
         return fp;
     }
 
-    override async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, meta: unknown): Promise<Response> {
+    override async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater: MetaUpdater<unknown>): Promise<Response> {
+        let meta: any;
+
+        if (metaUpdater) {
+            const murData = metaUpdater.data;
+
+            if (metaUpdater.requireCurrentMeta) {
+                const cacheEntry = await this.getCacheEntry(url);
+                if (cacheEntry) meta = cacheEntry.meta;
+            }
+
+            meta = meta || {};
+            const mur = metaUpdater.updateMeta(meta, murData);
+            if (mur===MetaUpdaterResult.MUST_DELETE) meta = undefined;
+            else if (mur===MetaUpdaterResult.IS_NOT_UPDATED) meta = undefined;
+        }
+
         // >>> Store the infos.
 
         await this.saveNewCacheEntry(url, response, headersToInclude, meta, !storeUncompressed);
@@ -80,7 +96,7 @@ export class SimpleFileCache extends PageCache {
         return Promise.resolve();
     }
 
-    override async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater): Promise<Response|undefined> {
+    override async getFromCache(url: URL, getGzippedVersion: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response|undefined> {
         const cacheEntry = await this.getCacheEntry(url);
 
         // Mean the entry doesn't exist.
@@ -88,19 +104,27 @@ export class SimpleFileCache extends PageCache {
             return undefined;
         }
 
-        if (updater) {
-            const meta = cacheEntry.meta||{};
-            const updateResult = updater(meta);
+        let meta: any;
 
-            switch (updateResult) {
-                case MetaUpdaterResult.MUST_DELETE:
-                    cacheEntry.meta = undefined;
-                    await this.saveCacheEntry(url, cacheEntry);
-                    break;
-                case MetaUpdaterResult.IS_UPDATED:
+        if (metaUpdater) {
+            const murData = metaUpdater.data;
+            if (metaUpdater.requireCurrentMeta) meta = cacheEntry.meta;
+
+            let bckMeta = meta;
+            meta = meta || {};
+
+            const mur = metaUpdater.updateMeta(meta, murData);
+
+            if (mur!==MetaUpdaterResult.IS_NOT_UPDATED) {
+                if (mur === MetaUpdaterResult.MUST_DELETE) {
+                    if (bckMeta!==undefined) {
+                        cacheEntry.meta = undefined;
+                        await this.saveCacheEntry(url, cacheEntry);
+                    }
+                } else {
                     cacheEntry.meta = meta;
                     await this.saveCacheEntry(url, cacheEntry);
-                    break;
+                }
             }
         }
 
