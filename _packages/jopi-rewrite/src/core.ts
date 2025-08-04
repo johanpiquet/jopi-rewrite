@@ -464,6 +464,37 @@ export class JopiRequest {
 
     //region Test type / React on type
 
+    getContentTypeCategory(response: Response): ContentTypeCategory {
+        const contentType = response.headers.get("content-type");
+        if (!contentType) return ContentTypeCategory.OTHER;
+
+        if (contentType.startsWith("text/")) {
+            if (contentType.startsWith("html", 5)) {
+                return ContentTypeCategory.TEXT_HTML;
+            } else if (contentType.startsWith("css")) {
+                return ContentTypeCategory.TEXT_CSS;
+            } else if (contentType.startsWith("javascript", 5)) {
+                return ContentTypeCategory.TEXT_JAVASCRIPT;
+            } else if (contentType.startsWith("json")) {
+                return ContentTypeCategory.TEXT_JSON;
+            }
+        } else if (contentType.startsWith("image")) {
+            return ContentTypeCategory.IMAGE;
+        } else if (contentType.startsWith("application")) {
+            if (contentType.startsWith("x-www-form-urlencoded", 12)) {
+                return ContentTypeCategory.FORM_URL_ENCODED;
+            } else if (contentType.startsWith("json", 12)) {
+                return ContentTypeCategory.TEXT_JSON;
+            } else if (contentType.startsWith("javascript", 12)) {
+                return ContentTypeCategory.TEXT_JAVASCRIPT;
+            }
+        } else if (contentType.startsWith("multipart/form-data")) {
+            return ContentTypeCategory.FORM_MULTIPART;
+        }
+
+        return ContentTypeCategory.OTHER;
+    }
+
     isHtml(response: Response): boolean {
         const contentType = response.headers.get("content-type");
         if (contentType===null) return false;
@@ -544,30 +575,9 @@ export class JopiRequest {
         return res;
     }
 
-    /**
-     * Extract the text from the response body and return a new response.
-     */
-    async duplicateTextResponse(res: Response, handler: (text:string)=>void): Promise<Response> {
-        const text = await res.text();
-        handler(text);
-        return new Response(text, {status: res.status, headers: res.headers});
-    }
+    //endregion
 
-    spyTextResponse(res: Response, spy: (text:string)=>void): Promise<Response> {
-        let isText = this.isHtml(res) || this.isCss(res) 
-            || this.isJavascript(res) || this.isJson(res);
-
-        if (!isText) {
-            let contentType = res.headers.get("content-type");
-            if (contentType) isText = contentType.startsWith("text/");
-        }
-
-        if (isText) {
-            return this.duplicateTextResponse(res, spy);
-        }
-
-        return Promise.resolve(res);
-    }
+    //region Spy
 
     async duplicateReadableStream(stream: ReadableStream | null): Promise<(ReadableStream<any> | null)[]> {
         if (!stream) return [null, null];
@@ -609,6 +619,34 @@ export class JopiRequest {
     }
 
     async spyRequest(handleRequest: (req: JopiRequest) => Response|Promise<Response>): Promise<Response> {
+        return this.spyRequestData(handleRequest, (data) => {
+            this.printSpyRequestData(data);
+        });
+    }
+
+    async printSpyRequestData(data: JopiRequestSpyData) {
+        const term = NodeSpace.term;
+        const headerColor = term.buildWriter(term.C_RED);
+        const titleColor = term.buildWriter(term.C_ORANGE);
+
+        let resAsText = "";
+        try {resAsText = await data.res.text()} catch {}
+
+        console.log();
+        console.log(headerColor(this.method, this.url));
+        console.log(titleColor("|- referer: "), data.reqReferer);
+        console.log(titleColor("|- reqContentType:"), data.reqContentType);
+        console.log(titleColor("|- reqData:"), JSON.stringify(data.reqData));
+        console.log(titleColor("|- resData:"), resAsText);
+        console.log(titleColor("|- reqCookie:"), data.reqCookies);
+        console.log(titleColor("|- resContentType:"), data.resContentType);
+        console.log(titleColor("|- resCookieSet:"), data.resCookieSet);
+    }
+
+    async spyRequestData(
+        handleRequest: (req: JopiRequest) => Response|Promise<Response>,
+        onSpy: JopiRequestSpy
+    ): Promise<Response> {
         const [bunNewReq, spyReq] = await this.duplicateRawRequest(this.bunRequest);
 
         // Required because the body is already consumed.
@@ -621,17 +659,20 @@ export class JopiRequest {
         // Required because the body is already consumed.
         this.bunRequest = spyReq;
 
-        const term = NodeSpace.term;
-        const headerColor = term.buildWriter(term.C_RED);
-        const titleColor = term.buildWriter(term.C_ORANGE);
+        onSpy({
+            method: this.method,
+            res: spyRes,
 
-        console.log(headerColor(this.method, this.url));
-        console.log(titleColor("|- url: "), this.url);
-        console.log(titleColor("|- referer: "), this.headers.get("referer"));
-        console.log(titleColor("|- reqContentType:"), this.reqContentType);
-        console.log(titleColor("|- reqData:"), JSON.stringify(await this.getReqDataInfos()));
-        console.log(titleColor("|- resData:"), await spyRes.text());
-        console.log(titleColor("|- resContentType:"), res.headers.get("content-type"));
+            reqUrl: this.url,
+            reqReferer: this.headers.get("referer"),
+            reqContentType: this.reqContentType,
+            reqData: await this.getReqDataInfos(),
+            resContentType: res.headers.get("content-type"),
+            resContentTypeCat: this.getContentTypeCategory(res),
+
+            reqCookies: this.headers.get("cookies"),
+            resCookieSet: spyRes.headers.getSetCookie()
+        });
 
         return bunNewRes;
     }
@@ -892,6 +933,24 @@ export class JopiRequest {
         return this.error404Response();
     }
 }
+
+export interface JopiRequestSpyData {
+    method: string;
+
+    reqUrl: string;
+    reqReferer: string|null;
+    reqContentType: string|null;
+    reqData: any;
+
+    res: Response;
+    resContentType: string|null;
+    resContentTypeCat: ContentTypeCategory;
+
+    reqCookies: string|null;
+    resCookieSet: string[]|null;
+}
+
+export type JopiRequestSpy = (data: JopiRequestSpyData) => void;
 
 const gEmptyObject = {};
 
@@ -1574,6 +1633,23 @@ export interface CacheEntry {
 
     _refCount?: number;
     _refCountSinceGC?: number;
+}
+
+export enum ContentTypeCategory {
+    OTHER,
+
+    _TEXT_              = 10,
+    TEXT_HTML           = 11,
+    TEXT_CSS            = 12,
+    TEXT_JAVASCRIPT     = 13,
+    TEXT_JSON           = 14,
+
+    _FORM_              = 20,
+    FORM_MULTIPART      = 20,
+    FORM_URL_ENCODED    = 21,
+
+    _BINARY_            = 30,
+    IMAGE
 }
 
 //region JQuery
