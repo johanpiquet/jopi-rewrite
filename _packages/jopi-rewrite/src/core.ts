@@ -26,6 +26,7 @@ export type SendingBody = ReadableStream<Uint8Array> | string | FormData | null;
 
 type WebSiteMap = {[hostname: string]: WebSite};
 
+export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Promise<Response>;
 export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
 export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
 
@@ -69,7 +70,7 @@ export class JopiRequest {
 
     constructor(public readonly webSite: WebSite,
                 public readonly urlInfos: URL,
-                public readonly bunRequest: Request,
+                public bunRequest: Request,
                 public readonly bunServer: Bun.Server,
                 public readonly route: WebSiteRoute)
     {
@@ -191,6 +192,15 @@ export class JopiRequest {
                 // If JSON is invalid.
             }
         }
+        else if (this.isReqBodyXFormUrlEncoded) {
+            try {
+                let data = await this.reqBodyAsText();
+                new URLSearchParams(data).forEach((value, key) => res[key] = value);
+            }
+            catch {
+                // If invalid.
+            }
+        }
         else if (this.isReqBodyFormData) {
             try {
                 const asFormData = await this.reqBodyAsFormData();
@@ -202,6 +212,54 @@ export class JopiRequest {
         }
 
         return res as T;
+    }
+
+    /**
+     * Returns all the data about the request, organized by category.
+     */
+    async getReqDataInfos(): Promise<any> {
+        let res: any = {};
+
+        const searchParams = this.urlInfos.searchParams;
+
+        if (searchParams.size) {
+            const t: any = res.searchParams = {};
+            searchParams.forEach((value, key) =>t[key] = value);
+        }
+
+        if (this.urlParts) {
+            res.urlParts = {...this.urlParts};
+        }
+
+        if (this.isReqBodyJson) {
+            try {
+                res.body = await this.reqBodyAsJson();
+            }
+            catch {
+                // If JSON is invalid.
+            }
+        }
+        else if (this.isReqBodyFormData) {
+            try {
+                const t: any = res.formData = {};
+                const asFormData = await this.reqBodyAsFormData();
+                asFormData.forEach((value, key) => t[key] = value);
+            }
+            catch {
+                // If FormData is invalid.
+            }
+        } else if (this.isReqBodyXFormUrlEncoded) {
+            try {
+                let data = await this.reqBodyAsText();
+                const t: any = res.formUrlEncoded = {};
+                new URLSearchParams(data).forEach((value, key) => t[key] = value);
+            }
+            catch {
+                // If invalid.
+            }
+        }
+
+        return res;
     }
 
     /**
@@ -221,6 +279,12 @@ export class JopiRequest {
         const ct = this.reqContentType;
         if (ct===null) return false;
         return ct.startsWith("multipart/form-data");
+    }
+
+    get isReqBodyXFormUrlEncoded(): boolean {
+        const ct = this.reqContentType;
+        if (ct===null) return false;
+        return ct.startsWith("application/x-www-form-urlencoded");
     }
 
     /**
@@ -406,30 +470,170 @@ export class JopiRequest {
         return contentType.startsWith("text/html");
     }
 
+    isCss(response: Response): boolean {
+        const contentType = response.headers.get("content-type");
+        if (contentType===null) return false;
+        return contentType.startsWith("text/css");
+    }
+
+    isJavascript(response: Response): boolean {
+        const contentType = response.headers.get("content-type");
+        if (contentType===null) return false;
+        return contentType.startsWith("application/javascript") || contentType.startsWith("text/javascript");
+    }
+
     isJson(response: Response): boolean {
         const contentType = response.headers.get("content-type");
         if (contentType===null) return false;
         return contentType.startsWith("application/json");
     }
 
-    hookIfHtml(res: Response, ...hooks: TextModifier[]): Promise<Response> {
+    isXFormUrlEncoded(response: Response): boolean {
+        const contentType = response.headers.get("content-type");
+        if (contentType===null) return false;
+        return contentType.startsWith("x-www-form-urlencoded");
+    }
+
+    async hookIfHtml(res: Response, ...hooks: TextModifier[]): Promise<Response> {
         if (this.isHtml(res)) {
-            return this.hookHtml(res, hooks);
+            return this.htmlResponse(await this.applyTextModifiers(res, hooks));
         }
 
         return Promise.resolve(res);
     }
 
-    async hookHtml(res: Response, hooks: TextModifier[]): Promise<Response> {
+    async hookIfCss(res: Response, ...hooks: TextModifier[]): Promise<Response> {
+        if (this.isCss(res)) {
+            return new Response(
+                await this.applyTextModifiers(res, hooks),
+                {headers: {"content-type": "text/css"}}
+            );
+        }
+
+        return Promise.resolve(res);
+    }
+
+    async hookIfJavascript(res: Response, ...hooks: TextModifier[]): Promise<Response> {
+        if (this.isJavascript(res)) {
+            return new Response(
+                await this.applyTextModifiers(res, hooks),
+                {headers: {"content-type": "text/javascript"}}
+            );
+        }
+
+        return Promise.resolve(res);
+    }
+
+    async applyTextModifiers(res: Response, hooks: TextModifier[]): Promise<string> {
         let text = await res.text() as string;
 
         for (const hook of hooks) {
-            const res = hook(text, this);
-            if (res instanceof Promise) text = await (res as Promise<string>);
-            else text = res as string;
+            const hRes = hook(text, this);
+            text = hRes instanceof Promise ? await hRes : hRes;
         }
 
-        return this.htmlResponse(text);
+        return text;
+    }
+
+    async executeModifiers(res: Response, hooks: ResponseModifier[]): Promise<Response> {
+        for (const hook of hooks) {
+            const hRes = hook(res, this);
+            res = hRes instanceof Promise ? await hRes : hRes;
+        }
+
+        return res;
+    }
+
+    /**
+     * Extract the text from the response body and return a new response.
+     */
+    async duplicateTextResponse(res: Response, handler: (text:string)=>void): Promise<Response> {
+        const text = await res.text();
+        handler(text);
+        return new Response(text, {status: res.status, headers: res.headers});
+    }
+
+    spyTextResponse(res: Response, spy: (text:string)=>void): Promise<Response> {
+        let isText = this.isHtml(res) || this.isCss(res) 
+            || this.isJavascript(res) || this.isJson(res);
+
+        if (!isText) {
+            let contentType = res.headers.get("content-type");
+            if (contentType) isText = contentType.startsWith("text/");
+        }
+
+        if (isText) {
+            return this.duplicateTextResponse(res, spy);
+        }
+
+        return Promise.resolve(res);
+    }
+
+    async duplicateReadableStream(stream: ReadableStream | null): Promise<(ReadableStream<any> | null)[]> {
+        if (!stream) return [null, null];
+        return stream.tee();
+    }
+
+    async duplicateRawRequest(raw: Request): Promise<[Request, Request]> {
+        const [str1, str2] = await this.duplicateReadableStream(raw.body);
+
+        const res1 = new Request(raw.url, {
+            body: str1,
+            headers: raw.headers,
+            method: raw.method
+        });
+
+        const res2 = new Request(raw.url, {
+            body: str2,
+            headers: raw.headers,
+            method: raw.method
+        });
+
+        return [res1, res2];
+    }
+
+    async duplicateResponse(raw: Response): Promise<[Response, Response]> {
+        const [str1, str2] = await this.duplicateReadableStream(raw.body);
+
+        const res1 = new Response(str1, {
+            status: raw.status,
+            headers: raw.headers
+        });
+
+        const res2 = new Response(str2, {
+            status: raw.status,
+            headers: raw.headers
+        });
+
+        return [res1, res2];
+    }
+
+    async spyRequest(handleRequest: (req: JopiRequest) => Response|Promise<Response>): Promise<Response> {
+        const [bunNewReq, spyReq] = await this.duplicateRawRequest(this.bunRequest);
+
+        // Required because the body is already consumed.
+        this.bunRequest = bunNewReq;
+
+        let res = handleRequest(this);
+        if (res instanceof Promise) res = await res;
+        const [bunNewRes, spyRes] = await this.duplicateResponse(res);
+
+        // Required because the body is already consumed.
+        this.bunRequest = spyReq;
+
+        const term = NodeSpace.term;
+        const headerColor = term.buildWriter(term.C_RED);
+        const titleColor = term.buildWriter(term.C_ORANGE);
+
+        console.log(headerColor(this.method, this.url));
+        console.log(titleColor("|- url: "), this.url);
+        console.log(titleColor("|- referer: "), this.headers.get("referer"));
+        console.log(titleColor("|- reqContentType:"), this.reqContentType);
+        console.log(titleColor("|- reqData:"), JSON.stringify(await this.getReqDataInfos()));
+        console.log(titleColor("|- resData:"), await spyRes.text());
+        console.log(titleColor("|- resContentType:"), res.headers.get("content-type"));
+
+        return bunNewRes;
     }
 
     //endregion
@@ -447,7 +651,7 @@ export class JopiRequest {
         return this.cookies[name];
     }
 
-    hookIfCookie(res: Response, name: string, testCookieValue: null | undefined | TestCookieValue, ...hooks: TextModifier[]): Promise<Response> {
+    async hookIfCookie(res: Response, name: string, testCookieValue: null | undefined | TestCookieValue, ...hooks: TextModifier[]): Promise<Response> {
         const cookieValue = this.getCookie(name);
 
         if (cookieValue) {
@@ -455,7 +659,7 @@ export class JopiRequest {
                 return Promise.resolve(res);
             }
 
-            return this.hookHtml(res, hooks);
+            return this.htmlResponse(await this.applyTextModifiers(res, hooks));
         }
 
         return Promise.resolve(res);
@@ -870,6 +1074,12 @@ export class WebSite {
 
     on500(handler: JopiRouteHandler) {
         this._on500 = handler;
+    }
+
+    getRouteFor(url: string, method: string = "GET"): WebSiteRoute|undefined {
+        const matched = findRoute(this.router!, method, url);
+        if (!matched) return undefined;
+        return matched.data;
     }
 
     processRequest(urlInfos: URL, bunRequest: Request, bunServer: Bun.Server): Response|Promise<Response> {

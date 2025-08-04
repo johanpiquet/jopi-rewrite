@@ -13,3 +13,4 @@
 **2025-08-04**
 * webSite.onGET() return a WebSiteRoute
 * req.route returns this WebSiteRoute
+* Added spyRequest and spyTextResponse

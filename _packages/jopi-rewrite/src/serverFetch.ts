@@ -284,6 +284,9 @@ export class ServerFetch<T> {
         headers.delete("Host");
         headers.delete("Origin");
 
+        // Avoid some protections using the referer.
+        headers.delete("Referer");
+
         if (this.options.rewriteUrl) {
             let urlInfos = this.options.rewriteUrl(url, headers!, this);
             url = this.normalizeUrl(urlInfos);
