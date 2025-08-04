@@ -15,3 +15,4 @@
 * req.route returns this WebSiteRoute
 * Added spyRequest and spyTextResponse
 * BUG: hookIfHtml doesn't return previous headers
+* BUG: redirect doesn't return the headers.

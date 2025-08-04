@@ -92,9 +92,9 @@ export class ServerFetch<T> {
      *      Ex: http://127.0.0.1                --> https://www.mywebiste.com
      *      Ex: https://my-server.com           --> https://134.555.666.66:7890  (with hostname: my-server.com)
      *
-     * @param fromOrigin
+     * @param sPublicUrl
      *      The origin of our current website.
-     * @param targetOrigin
+     * @param sTargerUrl
      *      The origin of the target website.
      * @param hostName
      *      Must be set if toOrigin use an IP and not a hostname.
@@ -102,19 +102,21 @@ export class ServerFetch<T> {
      * @param options
      *      Options for the ServerFetch instance.
      */
-    static fromTo<T>(fromOrigin: string, targetOrigin: string, hostName?: string, options?: ServerFetchOptions<T>): ServerFetch<T> {
-        const urlFromOrigin = new URL(fromOrigin);
-        const urlTargetOrigin = new URL(targetOrigin);
-        targetOrigin = urlTargetOrigin.toString().slice(0, -1);
+    static fromTo<T>(sPublicUrl: string, sTargerUrl: string, hostName?: string, options?: ServerFetchOptions<T>): ServerFetch<T> {
+        const publicUrl = new URL(sPublicUrl);
+        const targerUrl = new URL(sTargerUrl);
+        sTargerUrl = targerUrl.toString().slice(0, -1);
+
+        if (!hostName) hostName = targerUrl.hostname;
 
         return new ServerFetch<T>({
             ...options,
 
             rewriteUrl(url: string, headers: Headers) {
                 const urlInfos = new URL(url);
-                urlInfos.port = urlTargetOrigin.port;
-                urlInfos.protocol = urlTargetOrigin.protocol;
-                urlInfos.hostname = urlTargetOrigin.hostname;
+                urlInfos.port = targerUrl.port;
+                urlInfos.protocol = targerUrl.protocol;
+                urlInfos.hostname = targerUrl.hostname;
 
                 if (hostName) {
                     headers.set('Host', hostName);
@@ -125,13 +127,13 @@ export class ServerFetch<T> {
 
             translateRedirect(url: string) {
                 if (url[0]==="/") {
-                    url = targetOrigin + url;
+                    url = sTargerUrl + url;
                 }
 
                 const urlInfos = new URL(url);
-                urlInfos.port = urlFromOrigin.port;
-                urlInfos.protocol = urlFromOrigin.protocol;
-                urlInfos.hostname = urlFromOrigin.hostname;
+                urlInfos.port = publicUrl.port;
+                urlInfos.protocol = publicUrl.protocol;
+                urlInfos.hostname = publicUrl.hostname;
 
                 return urlInfos;
             }
@@ -139,16 +141,17 @@ export class ServerFetch<T> {
     }
 
     static useOrigin<T>(serverOrigin: string, hostName?: string, options?: ServerFetchOptions<T>) {
-        const origin = new URL(serverOrigin);
+        const urlOrigin = new URL(serverOrigin);
+        if (!hostName) hostName = urlOrigin.hostname;
 
         return new ServerFetch<T>({
             ...options,
 
             rewriteUrl(url: string, headers: Headers) {
                 const urlInfos = new URL(url);
-                urlInfos.port = origin.port;
-                urlInfos.protocol = origin.protocol;
-                urlInfos.hostname = origin.hostname;
+                urlInfos.port = urlOrigin.port;
+                urlInfos.protocol = urlOrigin.protocol;
+                urlInfos.hostname = urlOrigin.hostname;
 
                 if (hostName) {
                     headers.set('Host', hostName);
@@ -193,23 +196,6 @@ export class ServerFetch<T> {
             if (!ignorePort) {
                 options.headers.set('X-Forwarded-Port', url.port);
             }
-
-            /**
-             * For wordpress add this to wp-config.php:
-             * if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
-             *     $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_X_FORWARDED_HOST'];
-             *
-             *     if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
-             *         $_SERVER['HTTPS']='on';
-             *         define("WP_SITEURL", 'https://' . $_SERVER['HTTP_HOST']);
-             *     } else {
-             *         $_SERVER['HTTPS']='off';
-             *         define("WP_SITEURL", 'http://' . $_SERVER['HTTP_HOST']);
-             *     }
-             *
-             *     define("WP_HOME", WP_SITEURL);
-             * }
-             */
         }
     }
 
@@ -248,11 +234,8 @@ export class ServerFetch<T> {
     /**
      * Allow to directly proxy a request as is we were directly asking the target server.
      */
-    async directProxy(request: JopiRequest): Promise<Response> {
-        // Take request.urlInfos since request.urlInfos can have been updated.
-        // request.url can be an old url.
-        //
-        return this.doFetch(request.method, request.urlInfos.toString(), request.body, request.headers);
+    async directProxy(req: JopiRequest): Promise<Response> {
+        return this.doFetch(req.method, req.urlInfos.href, req.body, req.headers);
     }
 
     async fetch(method: string, url: URL, body?: SendingBody, headers?: Headers) {
@@ -264,14 +247,14 @@ export class ServerFetch<T> {
     }
 
     normalizeUrl(urlInfos: URL): string {
-        // To known: urlInfos.toString() always add a "/" at the end.
+        // To known: urlInfos.toString() always add a "/" at the end for the root.
         // new URL("http://127.0.0.1") --> http://127.0.0.1/
 
         if (urlInfos.pathname.length<=1 && this.options.removeRootTrailingSlash) {
             return urlInfos.origin;
         }
 
-        return urlInfos.toString();
+        return urlInfos.href;
     }
 
     /**
@@ -279,16 +262,17 @@ export class ServerFetch<T> {
      */
     private async doFetch(method: string, url: string, body?: SendingBody, headers?: Headers): Promise<Response> {
         const bckURL = url;
-        headers = headers || this.options.headers || new Headers();
 
-        headers.delete("Host");
-        headers.delete("Origin");
+        if (!headers) {
+            if (this.options.headers) headers = this.options.headers;
+            else headers = new Headers();
+        }
 
         // Avoid some protections using the referer.
         //headers.delete("Referer");
 
         if (this.options.rewriteUrl) {
-            let urlInfos = this.options.rewriteUrl(url, headers!, this);
+            let urlInfos = this.options.rewriteUrl(url, headers, this);
             url = this.normalizeUrl(urlInfos);
         }
 
@@ -301,6 +285,12 @@ export class ServerFetch<T> {
             headers: headers,
             verbose: this.options.verbose,
 
+            // Allow avoiding automatic redirections.
+            // @ts-ignore
+            redirect: 'manual',
+
+            body: body,
+
             // Allow avoiding SSL certificate check.
             //
             rejectUnauthorized: false,
@@ -308,13 +298,7 @@ export class ServerFetch<T> {
             tls: {
                 rejectUnauthorized: false,
                 checkServerIdentity: () => { return undefined }
-            },
-
-            // Allow avoiding automatic redirections.
-            // @ts-ignore
-            redirect: 'manual',
-
-            body: body
+            }
         };
 
         if (this.options.beforeRequesting) {
@@ -324,36 +308,21 @@ export class ServerFetch<T> {
 
         this.lastURL = url;
 
-        /*let fetchRequest = new Request(
-            url,
-            {
-                method: method,
-                headers: new Headers(headers),
-                body: body,
-                redirect: 'manual',
-            }
-        );*/
-
         try {
             let r = await fetch(url, fetchOptions);
-            //let r = await fetch(fetchRequest);
 
-            // Create a valid redirection response that avoids pitfall
-            // where the browser loops in an infinite redirection.
-            //
             if (r.status >= 300 && r.status < 400) {
                 let location = r.headers.get('location');
 
-                if (location && this.options.translateRedirect) {
-                    location = this.normalizeUrl(this.options.translateRedirect(location));
-                }
-
                 if (location) {
-                    const headers = new Headers({Location: location});
+                    if (this.options.translateRedirect) {
+                        location = this.normalizeUrl(this.options.translateRedirect(location));
+                        r.headers.set('Location', location);
+                    }
 
                     r = new Response(null, {
                         status: r.status,
-                        headers: headers,
+                        headers: r.headers,
                     });
                 }
             }
