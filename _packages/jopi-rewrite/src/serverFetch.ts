@@ -285,7 +285,7 @@ export class ServerFetch<T> {
         headers.delete("Origin");
 
         // Avoid some protections using the referer.
-        headers.delete("Referer");
+        //headers.delete("Referer");
 
         if (this.options.rewriteUrl) {
             let urlInfos = this.options.rewriteUrl(url, headers!, this);
@@ -324,8 +324,19 @@ export class ServerFetch<T> {
 
         this.lastURL = url;
 
+        /*let fetchRequest = new Request(
+            url,
+            {
+                method: method,
+                headers: new Headers(headers),
+                body: body,
+                redirect: 'manual',
+            }
+        );*/
+
         try {
             let r = await fetch(url, fetchOptions);
+            //let r = await fetch(fetchRequest);
 
             // Create a valid redirection response that avoids pitfall
             // where the browser loops in an infinite redirection.

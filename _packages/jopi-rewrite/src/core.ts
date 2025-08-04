@@ -67,6 +67,7 @@ export class JopiRequest {
     public cache: PageCache;
     public readonly mainCache: PageCache;
     private cookies?: {[name: string]: string};
+    private _headers: Headers;
 
     constructor(public readonly webSite: WebSite,
                 public readonly urlInfos: URL,
@@ -76,6 +77,7 @@ export class JopiRequest {
     {
         this.cache = webSite.mainCache;
         this.mainCache = webSite.mainCache;
+        this._headers = this.bunRequest.headers;
     }
 
     //region Properties
@@ -110,7 +112,11 @@ export class JopiRequest {
     }
 
     get headers(): Headers {
-        return this.bunRequest.headers;
+        return this._headers;
+    }
+
+    set headers(value: Headers) {
+        this._headers = value;
     }
 
     /**
@@ -527,7 +533,10 @@ export class JopiRequest {
 
     async hookIfHtml(res: Response, ...hooks: TextModifier[]): Promise<Response> {
         if (this.isHtml(res)) {
-            return this.htmlResponse(await this.applyTextModifiers(res, hooks));
+            return new Response(
+                await this.applyTextModifiers(res, hooks),
+                {status: res.status, headers: res.headers}
+            );
         }
 
         return Promise.resolve(res);
@@ -537,7 +546,7 @@ export class JopiRequest {
         if (this.isCss(res)) {
             return new Response(
                 await this.applyTextModifiers(res, hooks),
-                {headers: {"content-type": "text/css"}}
+                {status: res.status, headers: res.headers}
             );
         }
 
@@ -548,7 +557,7 @@ export class JopiRequest {
         if (this.isJavascript(res)) {
             return new Response(
                 await this.applyTextModifiers(res, hooks),
-                {headers: {"content-type": "text/javascript"}}
+                {status: res.status, headers: res.headers}
             );
         }
 
@@ -630,23 +639,31 @@ export class JopiRequest {
         const titleColor = term.buildWriter(term.C_ORANGE);
 
         let resAsText = "";
-        try {resAsText = await data.res.text()} catch {}
+        //
+        try {
+            if (data.res) {
+                let res = data.res();
+                if (!res) resAsText = "[NO SET]";
+                else resAsText = await res.text()
+            } else {
+                resAsText = "[NO SET]";
+            }
+        } catch {
+        }
 
         console.log();
         console.log(headerColor(this.method, this.url));
         console.log(titleColor("|- referer: "), data.reqReferer);
         console.log(titleColor("|- reqContentType:"), data.reqContentType);
-        console.log(titleColor("|- reqData:"), JSON.stringify(data.reqData));
-        console.log(titleColor("|- resData:"), resAsText);
+        console.log(titleColor("|- reqData:"), data.reqData);
         console.log(titleColor("|- reqCookie:"), data.reqCookies);
         console.log(titleColor("|- resContentType:"), data.resContentType);
         console.log(titleColor("|- resCookieSet:"), data.resCookieSet);
+        console.log(titleColor("|- resHeaders:"), data.resHeaders);
+        console.log(titleColor("|- resData:"), resAsText);
     }
 
-    async spyRequestData(
-        handleRequest: (req: JopiRequest) => Response|Promise<Response>,
-        onSpy: JopiRequestSpy
-    ): Promise<Response> {
+    async spyRequestData(handleRequest: JopiRouteHandler, onSpy: JopiRequestSpy): Promise<Response> {
         const [bunNewReq, spyReq] = await this.duplicateRawRequest(this.bunRequest);
 
         // Required because the body is already consumed.
@@ -661,7 +678,7 @@ export class JopiRequest {
 
         onSpy({
             method: this.method,
-            res: spyRes,
+            res: ()=>spyRes,
 
             reqUrl: this.url,
             reqReferer: this.headers.get("referer"),
@@ -670,9 +687,13 @@ export class JopiRequest {
             resContentType: res.headers.get("content-type"),
             resContentTypeCat: this.getContentTypeCategory(res),
 
-            reqCookies: this.headers.get("cookies"),
-            resCookieSet: spyRes.headers.getSetCookie()
-        });
+            reqCookies: this.headers.get("cookie"),
+            resCookieSet: spyRes.headers.getSetCookie(),
+
+            resStatus: spyRes.status,
+            resLocation: spyRes.headers.get("location"),
+            resHeaders: spyRes.headers
+        }, this);
 
         return bunNewRes;
     }
@@ -942,15 +963,21 @@ export interface JopiRequestSpyData {
     reqContentType: string|null;
     reqData: any;
 
-    res: Response;
+    // Allow avoiding printing the response content.
+    res: (()=>Response)|undefined|null;
+
     resContentType: string|null;
     resContentTypeCat: ContentTypeCategory;
+
+    resStatus: number;
+    resLocation: string|null;
+    resHeaders: Headers|undefined|null;
 
     reqCookies: string|null;
     resCookieSet: string[]|null;
 }
 
-export type JopiRequestSpy = (data: JopiRequestSpyData) => void;
+export type JopiRequestSpy = (data: JopiRequestSpyData, req: JopiRequest) => void;
 
 const gEmptyObject = {};
 
@@ -1051,6 +1078,12 @@ export class WebSite {
         const webSiteRoute: WebSiteRoute = {handler};
         allPath.forEach(path => addRoute(this.router, method, path, webSiteRoute));
         return webSiteRoute;
+    }
+
+    getWebSiteRoute(method:string, url: string): WebSiteRoute|undefined {
+        const matched = findRoute(this.router!, method, url);
+        if (!matched) return undefined;
+        return matched.data;
     }
 
     onGET(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {

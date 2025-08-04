@@ -14,3 +14,4 @@
 * webSite.onGET() return a WebSiteRoute
 * req.route returns this WebSiteRoute
 * Added spyRequest and spyTextResponse
+* BUG: hookIfHtml doesn't return previous headers
