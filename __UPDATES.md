@@ -10,3 +10,6 @@
 * Adding req.hasInCache
 * Exposing req.cache & req.mainCache
 
+**2025-08-04**
+* webSite.onGET() return a WebSiteRoute
+* req.route returns this WebSiteRoute

@@ -17,7 +17,7 @@ import * as jwt from 'jsonwebtoken';
 
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
-export type JopiRouter = RouterContext<JopiRouteHandler>;
+export type JopiRouter = RouterContext<WebSiteRoute>;
 export type JopiRouteHandler = (req: JopiRequest) => Response|Promise<Response>;
 export type JopiErrorHandler = (req: JopiRequest, error?: Error|string) => Response|Promise<Response>;
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
@@ -70,7 +70,8 @@ export class JopiRequest {
     constructor(public readonly webSite: WebSite,
                 public readonly urlInfos: URL,
                 public readonly bunRequest: Request,
-                public readonly bunServer: Bun.Server)
+                public readonly bunServer: Bun.Server,
+                public readonly route: WebSiteRoute)
     {
         this.cache = webSite.mainCache;
         this.mainCache = webSite.mainCache;
@@ -716,6 +717,11 @@ export class WebSiteOptions {
     cache?: PageCache;
 }
 
+export interface WebSiteRoute {
+    handler: JopiRouteHandler;
+    searchParamFilter?: SearchParamFilterFunction;
+}
+
 export class WebSite {
     readonly port: number;
     readonly hostName: string;
@@ -765,7 +771,7 @@ export class WebSite {
 
         this.hostName = urlInfos.hostname;
         this.mainCache = options.cache || gVoidCache;
-        this.router = createRouter<JopiRouteHandler>();
+        this.router = createRouter<WebSiteRoute>();
 
         if (hasHydrateComponents()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
@@ -773,91 +779,85 @@ export class WebSite {
     }
 
     addRoute(method: HttpMethod, path: string, handler: JopiRouteHandler) {
-        addRoute(this.router, method, path, handler)
+        const webSiteRoute: WebSiteRoute = {handler};
+        addRoute(this.router, method, path, webSiteRoute);
+        return webSiteRoute;
     }
 
-    onGET(path: string|string[], handler: JopiRouteHandler): WebSite {
+    addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler) {
+        const webSiteRoute: WebSiteRoute = {handler};
+        allPath.forEach(path => addRoute(this.router, method, path, webSiteRoute));
+        return webSiteRoute;
+    }
+
+    onGET(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
-            for (const p of path) this.addRoute("GET", p, handler);
-            return this;
+            return this.addSharedRoute("GET", path, handler);
         }
 
-        this.addRoute("GET", path, handler);
-        return this;
+        return this.addRoute("GET", path, handler);
     }
 
-    onPOST(path: string|string[], handler: JopiRouteHandler): WebSite {
+    onPOST(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
-            for (const p of path) this.addRoute("POST", p, handler);
-            return this;
+            return this.addSharedRoute("POST", path, handler);
         }
 
-        this.addRoute("POST", path, handler);
-        return this;
+        return this.addRoute("POST", path, handler);
     }
 
-    onPUT(path: string|string[], handler: JopiRouteHandler): WebSite {
+    onPUT(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
-            for (const p of path) this.addRoute("PUT", p, handler);
-            return this;
+            return this.addSharedRoute("PUT", path, handler);
         }
 
-        this.addRoute("PUT", path, handler);
-        return this;
+        return this.addRoute("PUT", path, handler);
     }
 
-    onDELETE(path: string|string[], handler: JopiRouteHandler): WebSite {
+    onDELETE(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
-            for (const p of path) this.addRoute("DELETE", p, handler);
-            return this;
+            return this.addSharedRoute("DELETE", path, handler);
         }
 
-        this.addRoute("DELETE", path, handler);
-        return this;
+        return this.addRoute("DELETE", path, handler);
     }
 
-    onPATCH(path: string|string[], handler: JopiRouteHandler): WebSite {
+    onPATCH(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
-            for (const p of path) this.addRoute("PATCH", p, handler);
-            return this;
+            return this.addSharedRoute("PATCH", path, handler);
         }
 
-        this.addRoute("PATCH", path, handler);
-        return this;
+        return this.addRoute("PATCH", path, handler);
     }
 
-    onHEAD(path: string|string[], handler: JopiRouteHandler): WebSite {
+    onHEAD(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
-            for (const p of path) this.addRoute("HEAD", p, handler);
-            return this;
+            return this.addSharedRoute("HEAD", path, handler);
         }
 
-        this.addRoute("HEAD", path, handler);
-        return this;
+        return this.addRoute("HEAD", path, handler);
     }
 
-    onOPTIONS(path: string|string[], handler: JopiRouteHandler): WebSite {
+    onOPTIONS(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
-            for (const p of path) this.addRoute("OPTIONS", p, handler);
-            return this;
+            return this.addSharedRoute("OPTIONS", path, handler);
         }
 
-        this.addRoute("OPTIONS", path, handler);
-        return this;
+        return this.addRoute("OPTIONS", path, handler);
     }
 
     onNotFound(handler: JopiRouteHandler) {
@@ -876,14 +876,14 @@ export class WebSite {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
 
-        const req = new JopiRequest(this, urlInfos, bunRequest, bunServer);
         const matched = findRoute(this.router!, bunRequest.method, urlInfos.pathname);
+        const req = new JopiRequest(this, urlInfos, bunRequest, bunServer, (matched?.data)!);
 
         if (matched) {
             req.urlParts = matched.params;
 
             try {
-                return matched.data(req);
+                return matched.data.handler(req);
             } catch (e) {
                 if (e instanceof NotAuthorizedException) {
                     return req.textResponse(e.message, 401);
@@ -1442,7 +1442,6 @@ const gDefaultHeadersToCache: string[] = [ "content-type", "etag", "last-modifie
 export function responseToCacheEntry(response: Response, headersToInclude: string[]|undefined, meta: any, isGzipped: boolean): CacheEntry {
     const status = response.status;
     const entry: CacheEntry = {meta, isGzipped, status};
-
 
     if (status===200) {
         const headers = {};
