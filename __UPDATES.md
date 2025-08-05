@@ -19,3 +19,7 @@
 
 **2025-08-05**
 * Adding CacheRole to PageCache.
+* Downgrading ReactJS version from 19 to 18 for compatibility. 
+* Upgrading npm module to 1.0.5.
+* Adding EsBuild loaders for common types.
+* Upgrading npm module to 1.0.6.

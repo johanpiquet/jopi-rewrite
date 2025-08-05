@@ -43,6 +43,27 @@ async function doBundling_EsBuild(entryPoint: string, outputDir: string, publicP
 
         plugins: [sassPlugin()],
 
+        loader: {
+            // Polices
+            '.woff': 'file',
+            '.woff2': 'file',
+            '.ttf': 'file',
+            '.eot': 'file',
+            // Images
+            '.jpg': 'file',
+            '.jpeg': 'file',
+            '.png': 'file',
+            '.svg': 'file',
+            '.gif': 'file',
+            '.webp': 'file',
+            // Médias
+            '.mp3': 'file',
+            '.mp4': 'file',
+            // Autres
+            '.html': 'text',
+            '.md': 'text'
+        },
+
         minify: true,
         sourcemap: true
     });

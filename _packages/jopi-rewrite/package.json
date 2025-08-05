@@ -1,6 +1,6 @@
 {
   "name": "jopi-rewrite",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": [
@@ -12,15 +12,20 @@
   ],
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
+
   "engines": {
     "bun": "^1.2.18"
   },
+
   "main": "src/index.ts",
+
   "scripts": {
     "tsc-noEmit": "tsc --noemit",
     "npm-publish": "npm publish --access public",
-    "bun link": "bun link"
+    "bun link": "bun link",
+    "bun unlink": "bun unlink"
   },
+
   "devDependencies": {
     "@types/bun": "^1.2.13",
     "@types/react": "^19.1.8",
@@ -29,6 +34,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "jopi-crawler": "latest"
   },
+
   "dependencies": {
     "cheerio": "^1.1.0",
     "css-url-parser": "^1.1.4",
