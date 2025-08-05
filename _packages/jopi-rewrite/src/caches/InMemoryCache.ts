@@ -1,6 +1,6 @@
 import {
     type CacheEntry,
-    cacheEntryToResponse,
+    cacheEntryToResponse, type CacheRole,
     type MetaUpdater,
     MetaUpdaterResult,
     octetToMo,

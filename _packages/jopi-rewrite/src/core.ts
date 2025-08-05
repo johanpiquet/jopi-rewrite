@@ -412,26 +412,11 @@ export class JopiRequest {
      *      Allow updating the meta of the cache entry.
      */
     async getFromCache(useGzippedVersion: boolean = true, metaUpdater?: MetaUpdater<unknown>): Promise<Response|undefined> {
-        let res = await this.cache.getFromCache(this.urlInfos, useGzippedVersion, metaUpdater);
-
-        if (!res) {
-            if (this.cache!==this.mainCache) {
-                return await this.mainCache.getFromCache(this.urlInfos, useGzippedVersion);
-            }
-        }
-
-        return res;
+        return await this.cache.getFromCache(this.urlInfos, useGzippedVersion, metaUpdater);
     }
 
     async hasInCache(useGzippedVersion?: boolean|undefined): Promise<boolean> {
-        let res = await this.cache.hasInCache(this.urlInfos, useGzippedVersion);
-        if (res) return true;
-
-        if (this.cache!==this.mainCache) {
-            return await this.mainCache.hasInCache(this.urlInfos, useGzippedVersion);
-        }
-
-        return false;
+        return await this.cache.hasInCache(this.urlInfos, useGzippedVersion);
     }
 
     removeFromCache(url?: URL): Promise<void> {
@@ -1500,7 +1485,14 @@ export interface MetaUpdater<T> {
 
 export enum MetaUpdaterResult { IS_NOT_UPDATED, IS_UPDATED, MUST_DELETE}
 
+export interface CacheRole {
+    isUserCache?: boolean;
+    isMobileCache?: boolean;
+}
+
 export interface PageCache {
+    cacheRole?: CacheRole;
+
     getFromCache(url: URL, getGzippedVersion: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response | undefined>;
 
     addToCache(url: URL, response: Response, headersToInclude: string[] | undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response>;

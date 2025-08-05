@@ -16,3 +16,6 @@
 * Added spyRequest and spyTextResponse
 * BUG: hookIfHtml doesn't return previous headers
 * BUG: redirect doesn't return the headers.
+
+**2025-08-05**
+* Adding CacheRole to PageCache.
