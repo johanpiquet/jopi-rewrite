@@ -16,13 +16,6 @@ export interface FetchOptions {
 
 export interface ServerFetchOptions<T> {
     /**
-     * Allow automatically removing the trailing slashs.
-     * If I have http://127.0.0.1/doc/, then it's begun http://127.0.0.1/doc
-     * Default value is false.
-     */
-    removeTrailingSlash?: boolean;
-
-    /**
      * Allow automatically removing the trailing slashs for the website root.
      * If I have http://127.0.0.1/, then it's begun http://127.0.0.1
      * Default value is false.
@@ -211,12 +204,29 @@ export class ServerFetch<T> {
     private useDefaultHeaders() {
         const headers = this.options.headers!;
 
-        headers.set('accept', 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8');
-        headers.set('accept-encoding', 'gzip');
-        // TODO: use the caller one.
-        headers.set('accept-language', 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7');
-        headers.set('user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36');
-    }
+        const json = {
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+
+            "connection": "keep-alive",
+            "cache-control": "max-age=0",
+            "dnt": "1",
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+            "sec-fetch-mode": "navigate",
+            "sec-fetch-dest": "document",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7,es;q=0.6",
+            "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-site": "none",
+            "sec-fetch-user": "?1"
+        };
+
+        for (const [key, value] of Object.entries(json)) {
+            headers.set(key, value);
+        }
+   }
 
     private compileCookies() {
         if (!this.options.cookies) return;
@@ -276,10 +286,6 @@ export class ServerFetch<T> {
             url = this.normalizeUrl(urlInfos);
         }
 
-        if (this.options.removeTrailingSlash && url.endsWith('/')) {
-            url = url.slice(0, -1);
-        }
-
         const fetchOptions: any = {
             method: method,
             headers: headers,
@@ -320,10 +326,8 @@ export class ServerFetch<T> {
                         r.headers.set('Location', location);
                     }
 
-                    r = new Response(null, {
-                        status: r.status,
-                        headers: r.headers,
-                    });
+                    console.log("serverFetch - Redirecting from", url, "to", location);
+                    r = new Response(null, {status: r.status, headers: r.headers});
                 }
             }
 

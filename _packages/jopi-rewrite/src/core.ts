@@ -393,7 +393,7 @@ export class JopiRequest {
         return server.directProxy(this);
     }
 
-    fetchServer(method: string="GET", url?: URL, body?: RequestBody, headers?: Headers): Promise<Response> {
+    fetchServer(headers?: Headers, method: string="GET", url?: URL, body?: RequestBody): Promise<Response> {
         if (!url) url = this.urlInfos;
         return this.webSite.loadBalancer.fetch(method, url, body, headers);
     }
