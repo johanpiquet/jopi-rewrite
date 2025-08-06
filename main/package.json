@@ -37,13 +37,13 @@
     "css-url-parser": "^1.1.4",
     "esbuild": "^0.25.6",
     "esbuild-plugin-sass": "^1.0.1",
-    "react": "^18.0.0",
-    "react-dom": "^18.1.0",
+    "react": "*",
+    "react-dom": "*",
     "rou3": "^0.7.3",
     "sass": "^1.89.2",
     "jsonwebtoken": "^9.0.2",
 
-    "jopi-rewrite-ui": "latest",
-    "jopi-node-space": "latest"
+    "jopi-rewrite-ui": "workspace:*",
+    "jopi-node-space": "workspace:*"
   }
 }
