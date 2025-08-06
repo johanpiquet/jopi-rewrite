@@ -1,5 +1,5 @@
 import React from "react";
-import {mustHydrate, isServerSide} from "_packages/jopi-rewrite-ui";
+import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
 import "./ComponentA.scss"
 
 const Component = function({name}: {name: string}) {

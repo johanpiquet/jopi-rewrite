@@ -1,5 +1,5 @@
 import React from "react";
-import {mustHydrate} from "_packages/jopi-rewrite-ui";
+import {mustHydrate} from "jopi-rewrite-ui";
 import "./ComponentB.scss"
 
 export default mustHydrate(import.meta, function({name}: {name: string}) {

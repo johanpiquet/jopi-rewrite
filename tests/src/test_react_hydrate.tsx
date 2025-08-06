@@ -9,5 +9,6 @@ await createServer(async req => {
         return req.error404Response();
     }
 
-    return req.reactResponse(<ComponentA name="jopi" />);
+    let cp = <ComponentA name="jopi" />;
+    return req.reactResponse(cp);
 });
