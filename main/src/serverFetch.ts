@@ -326,7 +326,6 @@ export class ServerFetch<T> {
                         r.headers.set('Location', location);
                     }
 
-                    console.log("serverFetch - Redirecting from", url, "to", location);
                     r = new Response(null, {status: r.status, headers: r.headers});
                 }
             }
