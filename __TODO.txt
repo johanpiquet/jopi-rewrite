@@ -1,0 +1,4 @@
+****** Branch: Integration-de-jopi-node-space **************************************************************************
+[x] Refactoring afin d'utiliser jopi-node-space
+
+[ ] ChainedCache a été retiré. Maj doc pour le retirer.

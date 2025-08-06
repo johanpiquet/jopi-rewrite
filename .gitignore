@@ -1,9 +1,4 @@
-# Project exclude paths
 node_modules
-flat-website
-.idea
 temp
-
 .DS_Store
-
 __TODO.txt
