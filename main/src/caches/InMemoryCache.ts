@@ -1,6 +1,6 @@
 import {
     type CacheEntry,
-    cacheEntryToResponse, type CacheRole,
+    cacheEntryToResponse,
     type MetaUpdater,
     MetaUpdaterResult,
     octetToMo,
@@ -9,11 +9,13 @@ import {
     type PageCache,
     readContentLength,
     responseToCacheEntry
-} from "../core";
+} from "../core.ts";
 
-import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip";
+import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
 
 import * as path from "node:path";
+
+const nFS = NodeSpace.fs;
 
 const clearHotReloadKey = NodeSpace.app.clearHotReloadKey;
 const keepOnHotReload = NodeSpace.app.keepOnHotReload;
@@ -52,7 +54,7 @@ export interface InMemoryCacheOptions {
     maxMemoryUsage_mo?: number;
 
     /**
-     * A delta allow to not trigger garbage collector too soon.
+     * A delta allows not triggering garbage collector too soon.
      */
     maxMemoryUsageDela_mo?: number;
 }
@@ -132,7 +134,7 @@ class InMemoryCache implements PageCache {
 
     private async setBinary(cacheEntry: MyCacheEntry, response: Response, storeUncompressed: boolean) {
         // We only store a compressed version.
-        // No gzipped version. Why ? Probably because the content will be hacked.
+        // No gzipped version. Why? Probably because the content will be hacked.
         //
         if (storeUncompressed) {
             cacheEntry.ucpBinary = await response.arrayBuffer();
@@ -140,23 +142,23 @@ class InMemoryCache implements PageCache {
             return;
         }
 
-        const filePath = path.resolve(path.join(".", "temp", crypto.randomUUID()));
-        await mkDirForFile(filePath);
+        const fileUncompressed = path.resolve(path.join(".", "temp", crypto.randomUUID()));
+        const fileGzip = fileUncompressed + ".gzip";
+        await mkDirForFile(fileUncompressed);
 
-        await saveReadableStreamToFile(filePath, response.body as ReadableStream);
-        await gzipFile(filePath, filePath + ".gzip");
+        await saveReadableStreamToFile(fileUncompressed, response.body as ReadableStream);
+        await gzipFile(fileUncompressed, fileGzip);
 
-        const fileGzip = Bun.file(filePath + ".gzip");
-        const fileUC = Bun.file(filePath);
-        const fileSize = fileGzip.size;
+        const fileGZipSize = await nFS.getFileSize(fileGzip);
 
-        if (fileSize<this.maxContentLength) {
-            cacheEntry.gzipBinary = await fileGzip.arrayBuffer();
+        if (fileGZipSize<this.maxContentLength) {
+            let bytes = await nFS.readFileToBytes(fileGzip);
+            cacheEntry.gzipBinary = bytes.buffer as ArrayBuffer;
             cacheEntry.gzipBinarySize = cacheEntry.gzipBinary.byteLength;
         }
 
-        await fileUC.delete();
-        await fileGzip.delete();
+        await nFS.unlink(fileUncompressed);
+        await nFS.unlink(fileGzip);
     }
 
     //region With a key
@@ -334,7 +336,7 @@ class InMemoryCache implements PageCache {
             for (const [key, cacheEntry] of this.cache.entries()) {
                 if (!cacheEntry._refCountSinceGC) {
                     if (avoidHtml && isHtml(cacheEntry)) {
-                        // Avoid removing html items since they need calculation.
+                        // Avoid removing HTML items since they need calculation.
                         continue;
                     }
 
@@ -354,7 +356,7 @@ class InMemoryCache implements PageCache {
 
                 for (const [key, cacheEntry] of this.cache.entries()) {
                     if (avoidHtml && isHtml(cacheEntry)) {
-                        // Avoid removing html items since they need calculation.
+                        // Avoid removing HTML items since they need calculation.
                         continue;
                     }
 

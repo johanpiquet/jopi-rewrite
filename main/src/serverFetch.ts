@@ -1,7 +1,7 @@
 // noinspection JSUnusedGlobalSymbols
 
 import {JopiRequest, type SendingBody} from "./core.ts";
-import type {LoadBalancer} from "./loadBalancing";
+import type {LoadBalancer} from "./loadBalancing.ts";
 
 export interface ServerDownResult<T> {
     newServer?: ServerFetch<T>,

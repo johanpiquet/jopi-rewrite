@@ -3,7 +3,7 @@ import esbuild from "esbuild";
 import sassPlugin from 'esbuild-plugin-sass';
 import React from "react";
 
-import {type JopiRequest, WebSite} from "./core";
+import {type JopiRequest, WebSite} from "./core.ts";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;

@@ -181,7 +181,7 @@ export class AutomaticStartStop {
 
     protected initialize(): Promise<void> {
         if (this.requireTool) {
-            const toolPath = Bun.which(this.requireTool);
+            const toolPath = NodeSpace.os.which(this.requireTool);
             if (toolPath === null) throw new ToolNotFoundError(this.requireTool);
 
             console.log(`${this.requireTool} fount at ${toolPath}.`);

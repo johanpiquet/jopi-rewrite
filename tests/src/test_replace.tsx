@@ -46,7 +46,7 @@ function replaceSomeHtml(html: string, req: JopiRequest) {
 }
 
 await createServer(async req => {
-    let res = await req.fetchServer("GET");
+    let res = await req.fetchServer(undefined, "GET");
 
     res = await req.hookIfHtml(res, replaceSomeHtml, addCacheUpdateDateComment);
 

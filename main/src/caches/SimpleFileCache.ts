@@ -5,10 +5,11 @@ import {
     MetaUpdaterResult,
     type PageCache,
     responseToCacheEntry
-} from "../core";
+} from "../core.ts";
+
+import {gzipFile} from "../gzip.ts";
 
 import path from "node:path";
-import {gzipFile} from "../gzip";
 import fs from "node:fs/promises";
 
 const nCrypto = NodeSpace.crypto;
@@ -183,7 +184,7 @@ export class SimpleFileCache implements PageCache {
         const filePath = this.calcFilePath(url);
 
         try {
-            return await new Response(Bun.file(filePath + " info")).json();
+            return JSON.parse(await nFS.readTextFromFile(filePath + " info"));
         }
         catch {
             // We are here if the file doesn't exist.
@@ -199,7 +200,7 @@ export class SimpleFileCache implements PageCache {
     private async saveCacheEntry(url: URL, cacheEntry: CacheEntry) {
         const filePath = this.calcFilePath(url) + " info";
         await fs.mkdir(path.dirname(filePath), {recursive: true});
-        await Bun.file(filePath).write(JSON.stringify(cacheEntry));
+        await nFS.writeTextToFile(filePath, JSON.stringify(cacheEntry));
     }
 
     createSubCache(name: string): PageCache {

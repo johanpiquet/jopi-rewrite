@@ -3,19 +3,19 @@
 import * as path from "node:path";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
 import {ServerFetch} from "./serverFetch.ts";
-import type {SearchParamFilterFunction} from "./searchParamFilter";
+import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import * as ReactServer from 'react-dom/server';
 import React, {type ReactNode} from "react";
 
-import {createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents} from "./hydrate";
+import {createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents} from "./hydrate.tsx";
 import * as cheerio from "cheerio";
-import {LoadBalancer} from "./loadBalancing";
+import {LoadBalancer} from "./loadBalancing.ts";
 import fs from "node:fs/promises";
-import {$} from "bun";
 import {PostMiddlewares} from "./middlewares";
 import * as jwt from 'jsonwebtoken';
 
-const nfs = NodeSpace.fs;
+const nFS = NodeSpace.fs;
+const nOS = NodeSpace.os;
 
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
@@ -123,9 +123,9 @@ export class JopiRequest {
 
     /**
      * The part of the url.
-     * if :                     https://mywebsite/product-name/list
-     * and route                http://mywebsite/{productName}/list
-     * then urlParts contains  {productName: "product-name"}
+     * if : https://mywebsite/product-name/list
+     * and route http://mywebsite/{productName}/list
+     * then urlParts contains {productName: "product-name"}
      */
     urlParts?: any;
 
@@ -343,7 +343,7 @@ export class JopiRequest {
 
     /**
      * When DDOS protection is enabled, the request has a timeout of 60 seconds.
-     * Here it'd allow you to extend this time for request you known being slow.
+     * Here it'd allow you to extend this time for a request you knew was slow.
      */
     extendTimeout_sec(sec: number) {
         this.coreServer.timeout(this.coreRequest, sec);
@@ -813,7 +813,7 @@ export class JopiRequest {
      * Try to sign in the user with information you provide.
      * Return true if he is signed in, false otherwise.
      *
-     * If signed in, then it automatically add the Authorization header.
+     * If signed in, then it automatically adds the Authorization header.
      *
      * @param loginInfo
      *      Information with things like login/password-hash/...
@@ -977,7 +977,7 @@ export interface ServeFileOptions {
 
     /**
      * If the request file is not found, then call this function.
-     * If undefined, then will directly returns a 404 error.
+     * If undefined, then will directly return a 404 error.
      */
     onNotFound?: (req: JopiRequest) => Response|Promise<Response>;
 }
@@ -1415,8 +1415,8 @@ export class JopiServer {
                     const certFile = path.resolve(webSite.certificate.cert);
 
                     certificates.push({
-                        key: nfs.readTextSyncFromFile(keyFile),
-                        cert: nfs.readTextSyncFromFile(certFile),
+                        key: nFS.readTextSyncFromFile(keyFile),
+                        cert: nFS.readTextSyncFromFile(certFile),
                         serverName: webSite.hostName
                     });
                 }
@@ -1444,7 +1444,7 @@ export class JopiServer {
 
     /**
      * Generate a certificat for dev test.
-     * Require mkcert to be installed.
+     * Require "mkcert" to be installed.
      * See: https://github.com/FiloSottile/mkcert
      */
     async createDevCertificate(hostName: string): Promise<SslCertificatePath>  {
@@ -1452,9 +1452,9 @@ export class JopiServer {
         const keyFilePath = path.join(sslDirPath, "certificate.key");
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
 
-        if (!await nfs.isFile(certFilePath)) {
+        if (!await nFS.isFile(certFilePath)) {
             await fs.mkdir(sslDirPath, {recursive: true});
-            await $`cd ${sslDirPath}; mkcert -install; mkcert --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`;
+            await nOS.exec(`cd ${sslDirPath}; mkcert -install; mkcert --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
         }
 
         return {key: keyFilePath, cert: certFilePath};
@@ -1524,7 +1524,7 @@ export class WebSiteMirrorCache implements PageCache {
         url.protocol = "file:";
 
         const sURL = url.toString();
-        return nfs.fileURLToPath(sURL);
+        return nFS.fileURLToPath(sURL);
     }
 
     private calcFilePath(url: URL): string {
@@ -1551,11 +1551,11 @@ export class WebSiteMirrorCache implements PageCache {
             if (!response.body) return response;
 
             const [bodyRes, bodySaveFile] = response.body.tee();
-            await nfs.writeResponseToFile(new Response(bodySaveFile), filePath);
+            await nFS.writeResponseToFile(new Response(bodySaveFile), filePath);
 
             const headers: any = {
-                "content-type": nfs.getMimeTypeFromName(filePath),
-                "content-length": await nfs.getFileSize(filePath)
+                "content-type": nFS.getMimeTypeFromName(filePath),
+                "content-length": await nFS.getFileSize(filePath)
             };
 
             return new Response(bodyRes, {status: 200, headers});
@@ -1573,16 +1573,16 @@ export class WebSiteMirrorCache implements PageCache {
 
     async hasInCache(url: URL): Promise<boolean> {
         const filePath = this.calcFilePath(url);
-        const stats = await nfs.getFileStat(filePath);
+        const stats = await nFS.getFileStat(filePath);
         return !!stats && stats.isFile();
     }
 
     async getFromCache(url: URL): Promise<Response|undefined> {
         const filePath = this.calcFilePath(url);
-        const stats = await nfs.getFileStat(filePath);
+        const stats = await nFS.getFileStat(filePath);
 
         if (stats && stats.isFile()) {
-            let contentType = nfs.getMimeTypeFromName(filePath);
+            let contentType = nFS.getMimeTypeFromName(filePath);
             const contentLength = stats.size;
 
             const headers: any = {
@@ -1590,7 +1590,7 @@ export class WebSiteMirrorCache implements PageCache {
                 "content-length": contentLength.toString()
             };
 
-            return nfs.createResponseFromFile(filePath, 200, headers);
+            return nFS.createResponseFromFile(filePath, 200, headers);
         }
 
         return undefined;
@@ -1600,7 +1600,7 @@ export class WebSiteMirrorCache implements PageCache {
         const filePath = this.calcFilePath(url);
 
         try {
-            const text = await nfs.readTextFromFile(filePath + " meta");
+            const text = await nFS.readTextFromFile(filePath + " meta");
             return JSON.parse(text) as T;
         }
         catch {
@@ -1644,7 +1644,7 @@ export class VoidPageCache implements PageCache {
 const gVoidCache = new VoidPageCache();
 
 export interface CacheEntry {
-    binary?: ArrayBuffer|Bun.BunFile|Uint8Array;
+    binary?: ArrayBuffer|Uint8Array;
     binarySize?: number;
     isGzipped?: boolean;
 
