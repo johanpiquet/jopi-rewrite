@@ -13,6 +13,13 @@ import {LoadBalancer} from "./loadBalancing.ts";
 import fs from "node:fs/promises";
 import {PostMiddlewares} from "./middlewares";
 import * as jwt from 'jsonwebtoken';
+import {
+    type ServerInstance,
+    type ServerSocketAddress,
+    startServer,
+    type StartServerCoreOptions,
+    type StartServerOptions
+} from "./server.ts";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -74,7 +81,7 @@ export class JopiRequest {
     constructor(public readonly webSite: WebSite,
                 public readonly urlInfos: URL,
                 public coreRequest: Request,
-                public readonly coreServer: Bun.Server,
+                public readonly coreServer: ServerInstance,
                 public readonly route: WebSiteRoute)
     {
         this.cache = webSite.mainCache;
@@ -145,7 +152,7 @@ export class JopiRequest {
     /**
      * Returns information on the caller IP.
      */
-    get requestIP(): Bun.SocketAddress|null {
+    get requestIP(): ServerSocketAddress|null {
         return this.coreServer.requestIP(this.coreRequest);
     }
 
@@ -1161,7 +1168,7 @@ export class WebSite {
         return matched.data;
     }
 
-    processRequest(urlInfos: URL, bunRequest: Request, bunServer: Bun.Server): Response|Promise<Response> {
+    processRequest(urlInfos: URL, bunRequest: Request, bunServer: ServerInstance): Response|Promise<Response> {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
 
@@ -1368,7 +1375,7 @@ export class ServerAlreadyStartedError extends Error {
 
 export class JopiServer {
     private readonly webSites: WebSiteMap = {};
-    private readonly servers: Bun.Server[] = [];
+    private readonly servers: ServerInstance[] = [];
     private _isStarted = false;
 
     addWebsite(webSite: WebSite): WebSite {
@@ -1420,11 +1427,9 @@ export class JopiServer {
                         serverName: webSite.hostName
                     });
                 }
-
-                webSite.onServerStarted();
             });
-
-            const myServerInstance: Bun.Server = Bun.serve({
+            
+            const myServerOptions: StartServerOptions = {
                 ...gServerStartGlobalOptions,
 
                 port,
@@ -1436,8 +1441,11 @@ export class JopiServer {
                     if (!webSite) return new Response("", {status: 404});
                     return webSite.processRequest(urlInfos, req, myServerInstance);
                 }
-            });
+            };
 
+            const myServerInstance = startServer(myServerOptions);
+
+            Object.values(hostNameMap).forEach(webSite => webSite.onServerStarted());
             this.servers.push(myServerInstance);
         }
     }
@@ -1461,18 +1469,10 @@ export class JopiServer {
     }
 }
 
-const gServerStartGlobalOptions: ServerStartOptions = {};
+const gServerStartGlobalOptions: StartServerCoreOptions = {};
 
-export function getServerStartOptions(): ServerStartOptions {
+export function getServerStartOptions(): StartServerCoreOptions {
     return gServerStartGlobalOptions;
-}
-
-export interface ServerStartOptions {
-    /**
-     * The timeout value for a request.
-     * See: https://bun.sh/reference/bun/Server/timeout
-     */
-    timeout?: number;
 }
 
 /**
