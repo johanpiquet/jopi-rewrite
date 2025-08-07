@@ -1,5 +1,5 @@
 import path from "node:path";
-import esbuild from "esbuild";
+import esbuild, {type Plugin} from "esbuild";
 import sassPlugin from 'esbuild-plugin-sass';
 import React from "react";
 
@@ -11,6 +11,7 @@ const nCrypto = NodeSpace.crypto;
 // @ts-ignore
 //import template from "./template.jsx?raw";
 import {setNewHydrateListener} from "jopi-rewrite-ui";
+import fs from "node:fs/promises";
 
 //region Bundle
 
@@ -40,9 +41,21 @@ async function generateScript(outputDir: string, components: {[key: string]: str
     return filePath;
 }
 
-let gTempDirPath = path.join("node_modules", ".reactHydrateCache");
-
 async function doBundling_EsBuild(entryPoint: string, outputDir: string, publicPath: string): Promise<void> {
+    const jopiReplaceServerPlugin: Plugin = {
+        name: "jopi-replace-server",
+
+        setup(build) {
+            build.onLoad({ filter: /\.(ts|js)x?$/ }, async (args) => {
+                let contents = await fs.readFile(args.path, 'utf8');
+                const newContents = contents.replace("jopi-node-space-server", "jopi-node-space-browser");
+
+                if (newContents === contents) return null;
+                return {contents: newContents, loader: 'ts'};
+            });
+        }
+    };
+
     await esbuild.build({
         entryPoints: [entryPoint],
         bundle: true,
@@ -53,7 +66,7 @@ async function doBundling_EsBuild(entryPoint: string, outputDir: string, publicP
         publicPath: publicPath,
         splitting: true,
 
-        plugins: [sassPlugin()],
+        plugins: [sassPlugin(), jopiReplaceServerPlugin],
 
         loader: {
             // Polices
@@ -94,7 +107,6 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     const publicUrl = webSite.welcomeUrl + '/_bundle/';
 
     await doBundling_EsBuild(entryPoint, outputDir, publicUrl);
-    //await doBundling_BunBundler(entryPoint, outputDir, publicUrl);
 }
 
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
@@ -132,6 +144,8 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
         return new Response("", {status: 404});
     }
 }
+
+let gTempDirPath = path.join("node_modules", ".reactHydrateCache");
 
 //endregion
 
