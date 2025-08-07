@@ -2,19 +2,49 @@
 import http from "node:http";
 import type {ServerInstance, ServerSocketAddress, StartServerOptions} from "./server.ts";
 
+const nFS = NodeSpace.fs;
+
 class NodeServer implements ServerInstance {
     private server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
 
     constructor(private options: StartServerOptions) {
-        this.server = http.createServer((req, res) => {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'text/plain');
-            res.end('Bonjour le monde !\n');
+        const reqFetch = options.fetch;
+
+        this.server = http.createServer(async (req, res) => {
+            const headers = new Headers(req.headers as any);
+
+            let method = req.method!;
+            const body = (method=="GET"||method==="HEAD") ? undefined : nFS.nodeStreamToWebStream(req);
+            const webReq = new Request("https://" + req.headers.host! + req.url!, {body, headers, method});
+
+            // @ts-ignore
+            webReq.nodeJsReq = req;
+
+            let webRes = reqFetch(webReq);
+            if (webRes instanceof Promise) webRes = await webRes;
+
+            let resHeaders = webRes.headers;
+            let asJson: any = {};
+            resHeaders.forEach((value, key) => asJson[key] = value);
+
+            res.writeHead(webRes.status, asJson);
+
+            if (webRes.body) {
+                const asNodeStream = nFS.webStreamToNodeStream(webRes.body);
+                asNodeStream.pipe(res);
+            }
         });
     }
 
     requestIP(req: Request): ServerSocketAddress | null {
-        return null;
+        // @ts-ignore
+        let nodeReq: http.IncomingMessage = req.nodeJsReq;
+
+        return {
+            address: nodeReq.socket.remoteAddress!,
+            port: nodeReq.socket.remotePort!,
+            family: nodeReq.socket.remoteFamily as "IPv4" | "IPv6"
+        };
     }
 
     async stop(_closeActiveConnections: boolean): Promise<void> {

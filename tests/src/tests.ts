@@ -41,7 +41,7 @@
 
 //region NodeJS
 
-import "./test_nodejs.tsx";
+import "./test_nodejs_reactHydrate.tsx";
 
 //endregion
 
