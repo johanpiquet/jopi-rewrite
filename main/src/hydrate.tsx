@@ -5,7 +5,8 @@ import React from "react";
 
 import {type JopiRequest, WebSite} from "./core";
 
-const nfs = NodeSpace.fs;
+const nFS = NodeSpace.fs;
+const nCrypto = NodeSpace.crypto;
 
 // @ts-ignore
 import template from "./template.jsx?raw";
@@ -92,7 +93,7 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     const fileName = pathName.substring(idx);
     const filePath = path.resolve(path.join(gTempDirPath, req.webSite.hostName, fileName));
 
-    let contentType = nfs.getMimeTypeFromName(filePath);
+    let contentType = nFS.getMimeTypeFromName(filePath);
     let isJS = false;
 
     if (contentType.startsWith("text/javascript")) {
@@ -101,7 +102,7 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     }
 
     try {
-        let content = await nfs.readTextFromFile(filePath);
+        let content = await nFS.readTextFromFile(filePath);
 
         if (isJS) {
             content = content.replaceAll("import.meta", "''");
@@ -143,7 +144,7 @@ interface JopiHydrateProps {
 
 function useHydrateComponent(importMeta: { filename: string }): string {
     if (NodeSpace.what.isServerSide) {
-        const key = Bun.hash(importMeta.filename).toString();
+        const key = nCrypto.fastHash(importMeta.filename).toString();
         const filePath = importMeta.filename;
 
         const currentFilePath = gHydrateComponents[key];
