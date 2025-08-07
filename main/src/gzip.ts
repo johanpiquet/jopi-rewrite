@@ -1,4 +1,4 @@
-import {pipeline} from "stream/promises";
+import {pipeline} from "node:stream/promises";
 import {createReadStream, createWriteStream} from "node:fs";
 import {createGunzip, createGzip} from "node:zlib";
 import path from 'node:path';

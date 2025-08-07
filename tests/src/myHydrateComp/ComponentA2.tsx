@@ -1,7 +1,9 @@
 import React from "react";
 import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
 
-import "./ComponentA.scss";
+// Bun.js support SCSS and CSS natively.
+// Deno.js and Node.js don't support it.
+//import "./ComponentA.scss"; // bun.js ok
 
 const Component = function({name}: {name: string}) {
     function doClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {

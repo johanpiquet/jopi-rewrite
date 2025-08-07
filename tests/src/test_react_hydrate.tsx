@@ -2,7 +2,7 @@ import React from "react";
 import {createServer} from "./createServer";
 
 // Must be keep after a call to jopi-rewrite for correct initialization order.
-import ComponentA from "./myHydrateComp/ComponentA";
+import ComponentA from "./myHydrateComp/ComponentA.ts";
 
 await createServer(async req => {
     if (req.urlInfos.pathname==="/favicon.ico") {

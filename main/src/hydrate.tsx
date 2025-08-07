@@ -31,8 +31,6 @@ async function generateScript(outputDir: string, components: {[key: string]: str
     }
 
     resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
-    console.log("resolvedPath", resolvedPath);
-
     let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
     let script = template.replace("//[DECLARE]", declarations);
 

@@ -1,6 +1,6 @@
-import { createRequire } from 'node:module';
 import "jopi-node-space";
-import path from "node:path";
+import nodeJsServer from "./server_nodejs.ts"
+import bunJsServer from "./server_bunjs.ts"
 
 export interface StartServerCoreOptions {
     /**
@@ -8,33 +8,6 @@ export interface StartServerCoreOptions {
      * See: https://bun.sh/reference/bun/Server/timeout
      */
     timeout?: number;
-}
-
-let myRequire: NodeJS.Require;
-
-function doRequire(filename: string): any {
-    try {
-        if (NodeSpace.what.isBunJs) {
-            return require(filename);
-        }
-
-        if (filename[0]==='.') {
-            filename = path.resolve(path.join(import.meta.dirname, filename));
-        }
-
-        if (!myRequire) {
-            myRequire = createRequire(import.meta.dirname);
-        }
-
-        return myRequire(filename);
-    }
-    catch (e: any) {
-        if (e.code==="MODULE_NOT_FOUND") {
-            console.error(`Can't find module ${filename}.`);
-        }
-
-        throw e;
-    }
 }
 
 export interface StartServerOptions extends StartServerCoreOptions {
@@ -59,15 +32,7 @@ export interface TlsCertificate {
 }
 
 type StartServerFunction = (options: StartServerOptions) => ServerInstance;
-
-let serverImpl: StartServerFunction;
-
-if (NodeSpace.what.isBunJs) {
-    if (import.meta.filename.endsWith(".ts")) serverImpl = doRequire("./server_bunjs.ts").default;
-    else serverImpl = doRequire("./server_bunjs.js").default;
-} else {
-    serverImpl = doRequire("./server_nodejs.js").default;
-}
+const serverImpl: StartServerFunction = NodeSpace.what.isBunJs ?  bunJsServer : nodeJsServer;
 
 export const startServer = serverImpl;
 
