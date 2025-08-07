@@ -20,14 +20,14 @@ const startStop = new AutomaticStartStop({
     // Is called to start our docker.
     onStart: async () => {
         console.log("I'm starting !");
-        await Bun.$`cd phpDocker; docker compose up -d`;
+        await NodeSpace.process.exec(`cd phpDocker; docker compose up -d`);
         console.log("I'm started !");
     },
 
     // And to stop it.
     onStop: async () => {
         console.log("I'm stopping !");
-        await Bun.$`cd phpDocker; docker compose down`;
+        await NodeSpace.process.exec(`cd phpDocker; docker compose down`);
         console.log("I'm stopped !");
     }
 });
