@@ -9,9 +9,14 @@
   "engines": {
     "bun": "^1.2.18"
   },
+
   "main": "src/index.ts",
+  "type": "module",
+
   "scripts": {
-    "start": "bun src/tests.ts",
+    "tsc": "tsc",
+    "start-node": "node dist/tests.js",
+    "start-bun": "bun src/tests.ts",
     "serveStatic": "cd ../flat-website; serve  --listen 4321"
   },
   "devDependencies": {

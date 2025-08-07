@@ -8,7 +8,7 @@
 
 //region React
 
-import "./test_react_hydrate";
+//import "./test_react_hydrate";
 //import "./test_react_useJQuery";
 
 //endregion
@@ -36,6 +36,12 @@ import "./test_react_hydrate";
 //import "./test_replace";
 //import "./test_startStopManager";
 //import "./test_fileServer"
+
+//endregion
+
+//region NodeJS
+
+import "./test_nodejs.tsx";
 
 //endregion
 

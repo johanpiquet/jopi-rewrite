@@ -9,7 +9,7 @@ const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
 
 // @ts-ignore
-import template from "./template.jsx?raw";
+//import template from "./template.jsx?raw";
 import {setNewHydrateListener} from "jopi-rewrite-ui";
 
 //region Bundle
@@ -22,6 +22,18 @@ async function generateScript(outputDir: string, components: {[key: string]: str
         declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
     }
 
+    let resolvedPath: string;
+
+    if (NodeSpace.what.isNodeJS) {
+        resolvedPath = import.meta.resolve("./../src/template.jsx");
+    } else {
+        resolvedPath = import.meta.resolve("./../src/template.jsx");
+    }
+
+    resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
+    console.log("resolvedPath", resolvedPath);
+
+    let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
     let script = template.replace("//[DECLARE]", declarations);
 
     const filePath = path.join(outputDir, "loader.jsx");

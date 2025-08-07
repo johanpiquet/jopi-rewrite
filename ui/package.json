@@ -3,26 +3,33 @@
   "version": "1.0.3",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite-ui",
-
-  "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
+  "keywords": [
+    "express.js",
+    "nextjs",
+    "react",
+    "react-ssr",
+    "react-hydrate"
+  ],
   "author": "Johan PIQUET",
   "description": "The ui part of jopi-rewrite",
-
   "engines": {
     "bun": "^1.2.18"
   },
-
-  "main": "src/index.tsx",
-
+  "main": "dist/index.js",
   "scripts": {
-    "tsc-noEmit": "tsc --noemit",
+    "tsc": "tsc",
     "npm-publish": "npm publish --access public"
   },
-
   "devDependencies": {
     "@types/bun": "^1.2.13",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "typescript": "^5"
-  }
+  },
+  "nodeSwitch": {
+    "node": "dist",
+    "bun": "src"
+  },
+  "types": "dist/index.d.ts",
+  "type": "module"
 }

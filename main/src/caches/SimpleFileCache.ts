@@ -153,10 +153,10 @@ export class SimpleFileCache implements PageCache {
                 if (mustUnzip) {
                     const stream = nCompress.gunzipSync(fileBytes);
 
-                    cacheEntry.binary = stream;
+                    cacheEntry.binary = stream.buffer as ArrayBuffer;
                     cacheEntry.binarySize = stream.length;
                 } else {
-                    cacheEntry.binary = fileBytes;
+                    cacheEntry.binary = fileBytes.buffer as ArrayBuffer;
                     cacheEntry.binarySize = fileBytes.length;
                 }
             }

@@ -11,7 +11,8 @@ import {createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents} f
 import * as cheerio from "cheerio";
 import {LoadBalancer} from "./loadBalancing.ts";
 import fs from "node:fs/promises";
-import {PostMiddlewares} from "./middlewares";
+// noinspection ES6PreferShortImport
+import {PostMiddlewares} from "./middlewares/index.ts";
 import * as jwt from 'jsonwebtoken';
 import {
     type ServerInstance,
@@ -1644,7 +1645,7 @@ export class VoidPageCache implements PageCache {
 const gVoidCache = new VoidPageCache();
 
 export interface CacheEntry {
-    binary?: ArrayBuffer|Uint8Array;
+    binary?: ArrayBuffer;
     binarySize?: number;
     isGzipped?: boolean;
 

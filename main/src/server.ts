@@ -1,10 +1,40 @@
+import { createRequire } from 'node:module';
+import "jopi-node-space";
+import path from "node:path";
+
 export interface StartServerCoreOptions {
     /**
      * The timeout value for a request.
      * See: https://bun.sh/reference/bun/Server/timeout
      */
     timeout?: number;
+}
 
+let myRequire: NodeJS.Require;
+
+function doRequire(filename: string): any {
+    try {
+        if (NodeSpace.what.isBunJs) {
+            return require(filename);
+        }
+
+        if (filename[0]==='.') {
+            filename = path.resolve(path.join(import.meta.dirname, filename));
+        }
+
+        if (!myRequire) {
+            myRequire = createRequire(import.meta.dirname);
+        }
+
+        return myRequire(filename);
+    }
+    catch (e: any) {
+        if (e.code==="MODULE_NOT_FOUND") {
+            console.error(`Can't find module ${filename}.`);
+        }
+
+        throw e;
+    }
 }
 
 export interface StartServerOptions extends StartServerCoreOptions {
@@ -33,10 +63,10 @@ type StartServerFunction = (options: StartServerOptions) => ServerInstance;
 let serverImpl: StartServerFunction;
 
 if (NodeSpace.what.isBunJs) {
-    if (import.meta.filename.endsWith(".ts")) serverImpl = require("./server_bunjs.ts").default;
-    else serverImpl = require("./server_bunjs.js").default;
+    if (import.meta.filename.endsWith(".ts")) serverImpl = doRequire("./server_bunjs.ts").default;
+    else serverImpl = doRequire("./server_bunjs.js").default;
 } else {
-    serverImpl = require("./server_nodejs.js").default;
+    serverImpl = doRequire("./server_nodejs.js").default;
 }
 
 export const startServer = serverImpl;

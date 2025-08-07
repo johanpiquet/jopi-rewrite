@@ -12,18 +12,15 @@
   ],
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
-
   "engines": {
     "bun": "^1.2.18"
   },
-
-  "main": "src/index.ts",
-
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "tsc-noEmit": "tsc --noemit",
+    "tsc": "tsc",
     "npm-publish": "npm publish --access public"
   },
-
   "devDependencies": {
     "@types/bun": "^1.2.13",
     "@types/react": "^19.1.8",
@@ -31,7 +28,6 @@
     "typescript": "^5",
     "@types/jsonwebtoken": "^9.0.10"
   },
-
   "dependencies": {
     "cheerio": "^1.1.0",
     "css-url-parser": "^1.1.4",
@@ -42,8 +38,12 @@
     "rou3": "^0.7.3",
     "sass": "^1.89.2",
     "jsonwebtoken": "^9.0.2",
-
     "jopi-rewrite-ui": "workspace:*",
     "jopi-node-space": "workspace:*"
-  }
+  },
+  "nodeSwitch": {
+    "node": "dist",
+    "bun": "src"
+  },
+  "types": "dist/index.d.ts"
 }

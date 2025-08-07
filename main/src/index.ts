@@ -9,4 +9,4 @@ export * from "./caches/InMemoryCache.ts";
 export * from "./caches/SimpleFileCache.ts";
 export * from "./loadBalancing.ts";
 export * from "./automaticStartStop.ts";
-export * from "./middlewares";
+export * from "./middlewares/index.ts";
