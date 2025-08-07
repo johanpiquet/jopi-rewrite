@@ -6,9 +6,14 @@ import {
     type PageCache,
     responseToCacheEntry
 } from "../core";
+
 import path from "node:path";
 import {gzipFile} from "../gzip";
 import fs from "node:fs/promises";
+
+const nCrypto = NodeSpace.crypto;
+const nFS = NodeSpace.fs;
+const nCompress = NodeSpace.compress;
 
 export class SimpleFileCache implements PageCache {
     public readonly rootDir: string;
@@ -20,8 +25,8 @@ export class SimpleFileCache implements PageCache {
     }
 
     private calKey(url: URL): string {
-        // Using a hash allows difficulties with query string special characters.
-        return Bun.hash(url.toString()).toString()
+        // Using a hash allows avoiding difficulties with query string special characters.
+        return nCrypto.fastHash(url.toString());
     }
 
     private calcFilePath(url: URL): string {
@@ -62,23 +67,19 @@ export class SimpleFileCache implements PageCache {
         }
 
         const filePath = this.calcFilePath(url);
-        await fs.mkdir(path.dirname(filePath), {recursive: true});
-
-        const fileUncompressed = Bun.file(filePath);
-        await fileUncompressed.write(response);
+        await nFS.writeResponseToFile(response, filePath);
 
         if (!storeUncompressed) {
             await gzipFile(filePath, filePath + " gz");
-            await fileUncompressed.delete();
+            await nFS.unlink(filePath);
         }
 
         if (storeUncompressed) {
-            const result = new Response(fileUncompressed, {status: response.status, headers: response.headers});
+            const result = nFS.createResponseFromFile(filePath, response.status, response.headers);
             result.headers.delete("content-encoding");
             return result;
         } else {
-            const fileResponse = Bun.file(filePath + " gz");
-            const result = new Response(fileResponse, {status: response.status, headers: response.headers});
+            const result = nFS.createResponseFromFile(filePath + " gz", response.status, response.headers);
             result.headers.set("content-encoding", "gzip");
             return result;
         }
@@ -87,9 +88,9 @@ export class SimpleFileCache implements PageCache {
     async removeFromCache(url: URL): Promise<void> {
         const filePath = this.calcFilePath(url);
 
-        await Bun.file(filePath).delete();
-        await Bun.file(filePath + " gz").delete();
-        await Bun.file(filePath + " info").delete();
+        await nFS.unlink(filePath);
+        await nFS.unlink(filePath + " gz");
+        await nFS.unlink(filePath + " info");
 
         return Promise.resolve();
     }
@@ -145,16 +146,17 @@ export class SimpleFileCache implements PageCache {
             const baseFilePath = this.calcFilePath(url);
             const filePath = getGzippedVersion ? baseFilePath + " gz" : baseFilePath;
 
-            const file = Bun.file(filePath);
+            if (await nFS.isFile(filePath)) {
+                const fileBytes = await nFS.readFileToBytes(filePath);
 
-            if (await file.exists()) {
                 if (mustUnzip) {
-                    const stream = Bun.gunzipSync(await file.bytes());
+                    const stream = nCompress.gunzipSync(fileBytes);
+
                     cacheEntry.binary = stream;
                     cacheEntry.binarySize = stream.length;
                 } else {
-                    cacheEntry.binary = file;
-                    cacheEntry.binarySize = file.size;
+                    cacheEntry.binary = fileBytes;
+                    cacheEntry.binarySize = fileBytes.length;
                 }
             }
         }
