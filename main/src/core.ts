@@ -15,6 +15,8 @@ import {$} from "bun";
 import {PostMiddlewares} from "./middlewares";
 import * as jwt from 'jsonwebtoken';
 
+const nfs = NodeSpace.fs;
+
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
 export type JopiRouter = RouterContext<WebSiteRoute>;
@@ -71,13 +73,13 @@ export class JopiRequest {
 
     constructor(public readonly webSite: WebSite,
                 public readonly urlInfos: URL,
-                public bunRequest: Request,
-                public readonly bunServer: Bun.Server,
+                public coreRequest: Request,
+                public readonly coreServer: Bun.Server,
                 public readonly route: WebSiteRoute)
     {
         this.cache = webSite.mainCache;
         this.mainCache = webSite.mainCache;
-        this._headers = this.bunRequest.headers;
+        this._headers = this.coreRequest.headers;
     }
 
     //region Properties
@@ -93,22 +95,22 @@ export class JopiRequest {
      * Return the verb used for the request (GET, POST, PUT, DELETE, ...)
      */
     get method(): HttpMethod {
-        return this.bunRequest.method as HttpMethod;
+        return this.coreRequest.method as HttpMethod;
     }
 
     /**
      * Return the content type of the request.
      */
     get reqContentType(): string|null {
-        return this.bunRequest.headers.get("content-type");
+        return this.coreRequest.headers.get("content-type");
     }
 
     get url(): string {
-        return this.bunRequest.url;
+        return this.coreRequest.url;
     }
 
     get body(): RequestBody {
-        return this.bunRequest.body;
+        return this.coreRequest.body;
     }
 
     get headers(): Headers {
@@ -144,7 +146,7 @@ export class JopiRequest {
      * Returns information on the caller IP.
      */
     get requestIP(): Bun.SocketAddress|null {
-        return this.bunServer.requestIP(this.bunRequest);
+        return this.coreServer.requestIP(this.coreRequest);
     }
 
     get isFromLocalhost() {
@@ -272,7 +274,7 @@ export class JopiRequest {
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/bodyUsed
      */
     get isReqBodyUsed(): boolean {
-        return this.bunRequest.bodyUsed;
+        return this.coreRequest.bodyUsed;
     }
 
     get isReqBodyJson(): boolean {
@@ -297,42 +299,42 @@ export class JopiRequest {
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/text
      */
     reqBodyAsText(): Promise<string> {
-        return this.bunRequest.text();
+        return this.coreRequest.text();
     }
 
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/json
      */
     reqBodyAsJson<T>(): Promise<T> {
-        return this.bunRequest.json() as Promise<T>;
+        return this.coreRequest.json() as Promise<T>;
     }
 
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/arrayBuffer
      */
     reqBodyAsArrayBuffer(): Promise<ArrayBuffer> {
-        return this.bunRequest.arrayBuffer();
+        return this.coreRequest.arrayBuffer();
     }
 
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/blob
      */
     reqBodyAsBlob(): Promise<Blob> {
-        return this.bunRequest.blob();
+        return this.coreRequest.blob();
     }
 
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/bytes
      */
     reqBodyAsBytes(): Promise<Uint8Array> {
-        return this.bunRequest.bytes();
+        return this.coreRequest.bytes();
     }
 
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/formData
      */
     reqBodyAsFormData(): Promise<FormData> {
-        return this.bunRequest.formData();
+        return this.coreRequest.formData();
     }
 
     //endregion
@@ -344,7 +346,7 @@ export class JopiRequest {
      * Here it'd allow you to extend this time for request you known being slow.
      */
     extendTimeout_sec(sec: number) {
-        this.bunServer.timeout(this.bunRequest, sec);
+        this.coreServer.timeout(this.coreRequest, sec);
     }
 
     //endregion
@@ -649,17 +651,17 @@ export class JopiRequest {
     }
 
     async spyRequestData(handleRequest: JopiRouteHandler, onSpy: JopiRequestSpy): Promise<Response> {
-        const [bunNewReq, spyReq] = await this.duplicateRawRequest(this.bunRequest);
+        const [bunNewReq, spyReq] = await this.duplicateRawRequest(this.coreRequest);
 
         // Required because the body is already consumed.
-        this.bunRequest = bunNewReq;
+        this.coreRequest = bunNewReq;
 
         let res = handleRequest(this);
         if (res instanceof Promise) res = await res;
         const [bunNewRes, spyRes] = await this.duplicateResponse(res);
 
         // Required because the body is already consumed.
-        this.bunRequest = spyReq;
+        this.coreRequest = spyReq;
 
         onSpy({
             method: this.method,
@@ -688,13 +690,13 @@ export class JopiRequest {
     //region Cookies
 
     hasCookie(name: string, value?: string): boolean {
-        if (!this.cookies) this.cookies = parseCookies(this.bunRequest.headers);
+        if (!this.cookies) this.cookies = parseCookies(this.coreRequest.headers);
         if (value) return this.cookies[name] === value;
         return this.cookies[name] !== undefined;
     }
 
     getCookie(name: string): string|undefined {
-        if (!this.cookies) this.cookies = parseCookies(this.bunRequest.headers);
+        if (!this.cookies) this.cookies = parseCookies(this.coreRequest.headers);
         return this.cookies[name];
     }
 
@@ -1413,8 +1415,8 @@ export class JopiServer {
                     const certFile = path.resolve(webSite.certificate.cert);
 
                     certificates.push({
-                        key: Bun.file(keyFile),
-                        cert: Bun.file(certFile),
+                        key: nfs.readTextSyncFromFile(keyFile),
+                        cert: nfs.readTextSyncFromFile(certFile),
                         serverName: webSite.hostName
                     });
                 }
@@ -1450,7 +1452,7 @@ export class JopiServer {
         const keyFilePath = path.join(sslDirPath, "certificate.key");
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
 
-        if (!await Bun.file(certFilePath).exists()) {
+        if (!await nfs.isFile(certFilePath)) {
             await fs.mkdir(sslDirPath, {recursive: true});
             await $`cd ${sslDirPath}; mkcert -install; mkcert --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`;
         }
@@ -1522,7 +1524,7 @@ export class WebSiteMirrorCache implements PageCache {
         url.protocol = "file:";
 
         const sURL = url.toString();
-        return Bun.fileURLToPath(sURL);
+        return nfs.fileURLToPath(sURL);
     }
 
     private calcFilePath(url: URL): string {
@@ -1546,15 +1548,17 @@ export class WebSiteMirrorCache implements PageCache {
         await fs.mkdir(path.dirname(filePath), {recursive: true});
 
         try {
-            const file = Bun.file(filePath);
-            await file.write(response);
+            if (!response.body) return response;
+
+            const [bodyRes, bodySaveFile] = response.body.tee();
+            await nfs.writeResponseToFile(new Response(bodySaveFile), filePath);
 
             const headers: any = {
-                "content-type": file.type,
-                "content-length": file.size.toString()
+                "content-type": nfs.getMimeTypeFromName(filePath),
+                "content-length": await nfs.getFileSize(filePath)
             };
 
-            return new Response(file, {status: 200, headers});
+            return new Response(bodyRes, {status: 200, headers});
         }
         catch (e) {
             console.error(e);
@@ -1564,36 +1568,29 @@ export class WebSiteMirrorCache implements PageCache {
 
     async removeFromCache(url: URL): Promise<void> {
         const filePath = this.calcFilePath(url);
-        await Bun.file(filePath).delete();
+        await fs.unlink(filePath);
     }
 
     async hasInCache(url: URL): Promise<boolean> {
         const filePath = this.calcFilePath(url);
-        const file = Bun.file(filePath);
-
-        try {
-            const stat = await file.stat();
-            return stat.isFile();
-        }
-        catch {
-            return false;
-        }
+        const stats = await nfs.getFileStat(filePath);
+        return !!stats && stats.isFile();
     }
 
     async getFromCache(url: URL): Promise<Response|undefined> {
         const filePath = this.calcFilePath(url);
-        const file = Bun.file(filePath);
+        const stats = await nfs.getFileStat(filePath);
 
-        if (await file.exists()) {
-            let contentType = file.type;
-            const contentLength = file.size;
+        if (stats && stats.isFile()) {
+            let contentType = nfs.getMimeTypeFromName(filePath);
+            const contentLength = stats.size;
 
             const headers: any = {
                 "content-type": contentType,
                 "content-length": contentLength.toString()
             };
 
-            return new Response(file, {status: 200, headers});
+            return nfs.createResponseFromFile(filePath, 200, headers);
         }
 
         return undefined;
@@ -1603,7 +1600,7 @@ export class WebSiteMirrorCache implements PageCache {
         const filePath = this.calcFilePath(url);
 
         try {
-            const text = await new Response(Bun.file(filePath + " meta")).text();
+            const text = await nfs.readTextFromFile(filePath + " meta");
             return JSON.parse(text) as T;
         }
         catch {

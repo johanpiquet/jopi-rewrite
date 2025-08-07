@@ -26,16 +26,5 @@ export async function mkDirForFile(filePath: string): Promise<void> {
 }
 
 export async function saveReadableStreamToFile(filePath: string, stream: ReadableStream<Uint8Array>) {
-    const writer = Bun.file(filePath).writer();
-    const reader = stream.getReader();
-
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            writer.write(value);
-        }
-    } finally {
-        writer.end();
-    }
+    await NodeSpace.fs.writeResponseToFile(new Response(stream), filePath);
 }

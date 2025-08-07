@@ -5,6 +5,8 @@ import React from "react";
 
 import {type JopiRequest, WebSite} from "./core";
 
+const nfs = NodeSpace.fs;
+
 // @ts-ignore
 import template from "./template.jsx?raw";
 import {setNewHydrateListener} from "jopi-rewrite-ui";
@@ -21,9 +23,8 @@ async function generateScript(outputDir: string, components: {[key: string]: str
 
     let script = template.replace("//[DECLARE]", declarations);
 
-    const filePath = path.join(outputDir, "loader.jsx")
-    const file = Bun.file(filePath);
-    await file.write(script)
+    const filePath = path.join(outputDir, "loader.jsx");
+    await NodeSpace.fs.writeTextToFile(filePath, script, true);
 
     return filePath;
 }
@@ -69,24 +70,6 @@ async function doBundling_EsBuild(entryPoint: string, outputDir: string, publicP
     });
 }
 
-async function doBundling_BunBundler(entryPoint: string, outputDir: string, publicPath: string): Promise<void> {
-    // https://bun.sh/docs/bundler
-
-    await Bun.build({
-        entrypoints: [entryPoint],
-        outdir: outputDir,
-        //splitting: true,
-        target: 'browser',
-
-        //minify: true,
-        //sourcemap: "none",
-
-        naming: "[dir]/[name].[ext]",
-        //naming: "[dir]/index_[hash].js",
-        publicPath: publicPath
-    });
-}
-
 export function getBundleUrl(webSite: WebSite) {
     return webSite.welcomeUrl + "/_bundle";
 }
@@ -103,18 +86,13 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     //await doBundling_BunBundler(entryPoint, outputDir, publicUrl);
 }
 
-export function toResourceUrl(req: JopiRequest, resName: string) {
-    return req.webSite.welcomeUrl + "/" + resName;
-}
-
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     const pathName = req.urlInfos.pathname;
     let idx = pathName.lastIndexOf("/");
     const fileName = pathName.substring(idx);
     const filePath = path.resolve(path.join(gTempDirPath, req.webSite.hostName, fileName));
 
-    const file = Bun.file(filePath);
-    let contentType = file.type;
+    let contentType = nfs.getMimeTypeFromName(filePath);
     let isJS = false;
 
     if (contentType.startsWith("text/javascript")) {
@@ -123,7 +101,7 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     }
 
     try {
-        let content = await file.text();
+        let content = await nfs.readTextFromFile(filePath);
 
         if (isJS) {
             content = content.replaceAll("import.meta", "''");
