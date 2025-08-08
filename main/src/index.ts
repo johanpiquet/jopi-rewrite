@@ -2,7 +2,7 @@
 
 import "jopi-node-space";
 
-// Must be the first import.
+// Must be the first import (allow importing CSS for node.js).
 import "./importLoader.tsx";
 
 export * from "./core.ts";

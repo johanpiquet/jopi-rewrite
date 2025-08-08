@@ -13,7 +13,8 @@ const isNodeJs = NodeSpace.what.isNodeJS;
 //region Bundle
 
 /**
- * Search the source of the component if it's a javascript and not a typescript.
+ * Search the source of the component if it's a JavaScript and not a TypeScript.
+ * Why? Because EsBuild doesn't work well on already transpiled code.
  */
 async function searchSourceOf(scriptPath: string) {
     async function tryResolve(tsFile: string, outDir: string) {
@@ -98,8 +99,14 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
 
     const components = getHydrateComponents();
     const outputDir = path.join(gTempDirPath, webSite.hostName);
-    const entryPoint = await generateScript(outputDir, components);
     const publicUrl = webSite.welcomeUrl + '/_bundle/';
+
+    // Empty the dir, this make tests easier.
+    await nFS.rmDir(gTempDirPath);
+    await nFS.mkDir(gTempDirPath);
+
+    const entryPoint = await generateScript(outputDir, components);
+
 
     await esBuildBundleExternal({
         entryPoint, outputDir,
@@ -137,17 +144,6 @@ async function createBundle_esbuild(webSite: WebSite): Promise<void> {
             splitting: true
         }
     });
-
-    if (gOverrideBundleCss) {
-        try {
-            const cssFilePath = path.join(outputDir, "loader.css");
-            const cssContent = await nFS.readTextFromFile(gOverrideBundleCss);
-            await nFS.writeTextToFile(cssFilePath, cssContent);
-        }
-        catch(e) {
-            console.error(e);
-        }
-    }
 }
 
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
@@ -186,11 +182,6 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     }
 }
 
-export function overrideBundleCss(cssFilePath: string) {
-    gOverrideBundleCss = cssFilePath;
-}
-
-let gOverrideBundleCss: string|undefined;
 let gTempDirPath = path.join("node_modules", ".reactHydrateCache");
 
 //endregion
