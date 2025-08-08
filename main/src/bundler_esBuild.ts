@@ -14,10 +14,7 @@ export interface EsBuildParams {
 export async function esBuildBundle(params: EsBuildParams) {
     if (!params.plugins) params.plugins = [];
 
-    // @ts-ignore
-    globalThis.esBuildIsRunning = true;
-
-    const res = await esbuild.build({
+    await esbuild.build({
         entryPoints: [params.entryPoint],
         bundle: true,
         outdir: params.outputDir,
@@ -61,9 +58,6 @@ export async function esBuildBundle(params: EsBuildParams) {
 
         ...params.overrideConfig
     });
-
-    // @ts-ignore
-    globalThis.esBuildIsRunning = false;
 }
 
 // Allow replacing jopi-node-space-server by jopi-node-space-browser.

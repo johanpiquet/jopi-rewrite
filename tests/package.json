@@ -15,7 +15,7 @@
 
   "scripts": {
     "tsc": "tsc",
-    "start-node": "node --import jopi-loader dist/tests.js",
+    "start-node": "node dist/tests.js",
     "start-bun": "bun src/tests.ts",
     "serveStatic": "cd ../flat-website; serve  --listen 4321"
   },

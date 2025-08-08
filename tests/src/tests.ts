@@ -1,3 +1,5 @@
+import "jopi-rewrite"; // <-- Must be the first import to install the CSS loader.
+
 //region Cache
 
 //import "./test_cache_inMemoryCache";
@@ -39,8 +41,4 @@
 
 //endregion
 
-//region NodeJS
-
-import "./_test_nodejs_reactHydrate.tsx";
-
-//endregion
+import("./_test_nodejs_reactHydrate.tsx");

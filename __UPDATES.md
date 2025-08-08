@@ -28,3 +28,5 @@
 **2025-08-08**
 * Is now compatible with Node.js (but not CSS with react-hydrate).
 * CSS is now compatible with Node.js (need an external loader, will be improved).
+* No more need for an external loader.
+* Compatible with ReactJS SSR (they was a React bug requiring warming react before installing the loader).

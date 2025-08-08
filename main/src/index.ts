@@ -2,6 +2,9 @@
 
 import "jopi-node-space";
 
+// Must be the first import.
+import "./importLoader.tsx";
+
 export * from "./core.ts";
 export * from "./searchParamFilter.ts";
 export * from "./serverFetch.ts";

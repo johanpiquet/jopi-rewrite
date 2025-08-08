@@ -36,11 +36,9 @@
     "jopi-node-space": "workspace:*",
     "jopi-rewrite-ui": "workspace:*",
     "jsonwebtoken": "^9.0.2",
-    "react": "*",
-    "react-dom": "*",
-    "rou3": "^0.7.3",
-    "sass": "^1.90.0",
-    "source-map": "^0.7.6"
+    "react": ">19.0.0",
+    "react-dom": ">19.0.0",
+    "rou3": "^0.7.3"
   },
   "nodeSwitch": {
     "node": "dist",

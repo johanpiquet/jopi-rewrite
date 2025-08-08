@@ -1,5 +1,4 @@
 import path from "node:path";
-import sourceMap from "source-map";
 
 import React from "react";
 import {type JopiRequest, WebSite} from "./core.ts";
