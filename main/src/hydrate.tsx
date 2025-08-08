@@ -1,25 +1,57 @@
 import path from "node:path";
-import esbuild, {type Plugin} from "esbuild";
-import sassPlugin from 'esbuild-plugin-sass';
-import React from "react";
+import sourceMap from "source-map";
 
+import React from "react";
 import {type JopiRequest, WebSite} from "./core.ts";
+import {setNewHydrateListener} from "jopi-rewrite-ui";
+import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
+import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
-
-// @ts-ignore
-//import template from "./template.jsx?raw";
-import {setNewHydrateListener} from "jopi-rewrite-ui";
-import fs from "node:fs/promises";
+const isNodeJs = NodeSpace.what.isNodeJS;
 
 //region Bundle
+
+/**
+ * Search the source of the component if it's a javascript and not a typescript.
+ */
+async function searchSourceOf(scriptPath: string) {
+    async function tryResolve(tsFile: string, outDir: string) {
+        let out = path.sep + outDir + path.sep;
+        let idx = tsFile.lastIndexOf(out);
+
+        if (idx !== -1) {
+            tsFile = tsFile.slice(0, idx) + "/src/" + tsFile.slice(idx + out.length);
+
+            if (await nFS.isFile(tsFile)) return tsFile;
+            tsFile += "x";
+            if (await nFS.isFile(tsFile)) return tsFile;
+        }
+
+        return undefined;
+    }
+
+    if (!isNodeJs) return scriptPath;
+    if (!scriptPath.endsWith(".js")) return scriptPath;
+
+    let tsFile = scriptPath.slice(0, -2) + "ts";
+    if (await nFS.isFile(tsFile)) return tsFile;
+
+    let found = await tryResolve(tsFile, "dist");
+    if (found) return found;
+
+    found = await tryResolve(tsFile, "build");
+    if (found) return found;
+
+    return scriptPath;
+}
 
 async function generateScript(outputDir: string, components: {[key: string]: string}): Promise<string> {
     let declarations = "";
 
     for (const componentKey in components) {
-        const componentPath = components[componentKey];
+        const componentPath = await searchSourceOf(components[componentKey]);
         declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
     }
 
@@ -41,64 +73,28 @@ async function generateScript(outputDir: string, components: {[key: string]: str
     return filePath;
 }
 
-async function doBundling_EsBuild(entryPoint: string, outputDir: string, publicPath: string): Promise<void> {
-    const jopiReplaceServerPlugin: Plugin = {
-        name: "jopi-replace-server",
-
-        setup(build) {
-            build.onLoad({ filter: /\.(ts|js)x?$/ }, async (args) => {
-                let contents = await fs.readFile(args.path, 'utf8');
-                const newContents = contents.replace("jopi-node-space-server", "jopi-node-space-browser");
-
-                if (newContents === contents) return null;
-                return {contents: newContents, loader: 'ts'};
-            });
-        }
-    };
-
-    await esbuild.build({
-        entryPoints: [entryPoint],
-        bundle: true,
-        outdir: outputDir,
-        platform: 'browser',
-        format: 'esm',
-        target: "es2020",
-        publicPath: publicPath,
-        splitting: true,
-
-        plugins: [sassPlugin(), jopiReplaceServerPlugin],
-
-        loader: {
-            // Polices
-            '.woff': 'file',
-            '.woff2': 'file',
-            '.ttf': 'file',
-            '.eot': 'file',
-            // Images
-            '.jpg': 'file',
-            '.jpeg': 'file',
-            '.png': 'file',
-            '.svg': 'file',
-            '.gif': 'file',
-            '.webp': 'file',
-            // Médias
-            '.mp3': 'file',
-            '.mp4': 'file',
-            // Autres
-            '.html': 'text',
-            '.md': 'text'
-        },
-
-        minify: true,
-        sourcemap: true
-    });
-}
-
 export function getBundleUrl(webSite: WebSite) {
     return webSite.welcomeUrl + "/_bundle";
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
+    if (NodeSpace.what.isBunJs) {
+        return createBundle_esbuild(webSite);
+    } else {
+        // With node.js, import for CSS and other are not supported.
+        //
+        // It's why:
+        // - A special loader allows ignoring it.
+        // - But EsBuild can't execute from this base code.
+        // ==> We must execute it from a separate process.
+        //
+        return createBundle_esbuild_external(webSite);
+    }
+
+    //return createBundle_esbuild(webSite);
+}
+
+async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
     if (!hasHydrateComponents()) return;
 
     const components = getHydrateComponents();
@@ -106,7 +102,53 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     const entryPoint = await generateScript(outputDir, components);
     const publicUrl = webSite.welcomeUrl + '/_bundle/';
 
-    await doBundling_EsBuild(entryPoint, outputDir, publicUrl);
+    await esBuildBundleExternal({
+        entryPoint, outputDir,
+        publicPath: publicUrl,
+        usePlugins: ["jopiReplaceServerPlugin"],
+
+        overrideConfig: {
+            platform: 'browser',
+            bundle: true,
+            format: 'esm',
+            target: "es2020",
+            splitting: true
+        }
+    });
+}
+
+async function createBundle_esbuild(webSite: WebSite): Promise<void> {
+    if (!hasHydrateComponents()) return;
+
+    const components = getHydrateComponents();
+    const outputDir = path.join(gTempDirPath, webSite.hostName);
+    const entryPoint = await generateScript(outputDir, components);
+    const publicUrl = webSite.welcomeUrl + '/_bundle/';
+
+    await esBuildBundle({
+        entryPoint, outputDir,
+        publicPath: publicUrl,
+        plugins: [jopiReplaceServerPlugin],
+
+        overrideConfig: {
+            platform: 'browser',
+            bundle: true,
+            format: 'esm',
+            target: "es2020",
+            splitting: true
+        }
+    });
+
+    if (gOverrideBundleCss) {
+        try {
+            const cssFilePath = path.join(outputDir, "loader.css");
+            const cssContent = await nFS.readTextFromFile(gOverrideBundleCss);
+            await nFS.writeTextToFile(cssFilePath, cssContent);
+        }
+        catch(e) {
+            console.error(e);
+        }
+    }
 }
 
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
@@ -145,6 +187,11 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     }
 }
 
+export function overrideBundleCss(cssFilePath: string) {
+    gOverrideBundleCss = cssFilePath;
+}
+
+let gOverrideBundleCss: string|undefined;
 let gTempDirPath = path.join("node_modules", ".reactHydrateCache");
 
 //endregion

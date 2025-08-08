@@ -23,3 +23,8 @@
 * Upgrading npm module to 1.0.5.
 * Adding EsBuild loaders for common types.
 * Upgrading npm module to 1.0.6.
+
+
+**2025-08-08**
+* Is now compatible with Node.js (but not CSS with react-hydrate).
+* CSS is now compatible with Node.js (need an external loader, will be improved).
