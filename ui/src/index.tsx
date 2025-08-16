@@ -1,13 +1,14 @@
 import React from "react";
+import "jopi-node-space";
 
-const isBunJS = typeof(Bun) !== "undefined";
+const nWhat = NodeSpace.what;
 
 export function isServerSide(): boolean {
-    return isBunJS;
+    return nWhat.isServerSide;
 }
 
 export function isBrowserSide(): boolean {
-    return !isBunJS;
+    return nWhat.isBrowser;
 }
 
 export type OnNewHydrateListener = (importMeta: {filename: string}, f: React.FunctionComponent, isSpan: boolean) => React.FunctionComponent;
