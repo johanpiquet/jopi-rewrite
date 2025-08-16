@@ -30,3 +30,9 @@
 * CSS is now compatible with Node.js (need an external loader, will be improved).
 * No more need for an external loader.
 * Compatible with ReactJS SSR (they was a React bug requiring warming react before installing the loader).
+
+**2025-08-16**
+* Improved nodejs loader.
+* ... now import woff/jpg/png/...
+* ... now resolve files if don't add ".js" at end
+* ... now allow importing directory.
