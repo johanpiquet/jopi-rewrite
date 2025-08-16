@@ -1,4 +1,4 @@
-import {registerHooks} from 'node:module';
+import * as NodeModule from 'node:module';
 import * as ReactServer from 'react-dom/server';
 import React from "react";
 
@@ -27,6 +27,9 @@ export function initLoader() {
     if (gIsInitialized) return;
 
     // To know: init is ko if this function is empty, du to optimisations.
+    // It's also ko depending on node.js version.
+    // Must is using --import jopi-rewrite option when starting node.js.
+    //
     gIsInitialized = true;
 
     //debugger;
@@ -40,7 +43,7 @@ if (NodeSpace.what.isNodeJS) {
     // Warmup react.js to avoid a bug when using "registerHooks" with an older node.js version.
     ReactServer.renderToStaticMarkup(<div></div>);
 
-    registerHooks({
+    NodeModule.registerHooks({
         resolve(specifier, context, nextResolve) {
             function tryResolveFile(filePath: string, moduleName: string) {
                 if (fs.existsSync(filePath)) {
