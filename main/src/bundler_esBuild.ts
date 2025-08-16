@@ -38,6 +38,7 @@ export async function esBuildBundle(params: EsBuildParams) {
             '.woff2': 'file',
             '.ttf': 'file',
             '.eot': 'file',
+
             // Images
             '.jpg': 'file',
             '.jpeg': 'file',
@@ -45,10 +46,12 @@ export async function esBuildBundle(params: EsBuildParams) {
             '.svg': 'file',
             '.gif': 'file',
             '.webp': 'file',
-            // Médias
+
+            // Media
             '.mp3': 'file',
             '.mp4': 'file',
-            // Autres
+
+            // Others
             '.html': 'text',
             '.md': 'text'
         },

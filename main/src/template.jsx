@@ -29,5 +29,5 @@ function process() {
     }
 }
 
-// Allow init are ok.
+// Allow all init are ok.
 setTimeout(process, 10);

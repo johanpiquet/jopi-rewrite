@@ -10,17 +10,34 @@ export interface EsBuildExternalParams {
     overrideConfig?: BuildOptions;
 }
 
+//TODO: put to false
+const DO_DIRECT_CALL = true;
+
 /**
  * Will execute EsBuild from a separate process.
  * The file will call himself with the parameters for calling esbuild.
  * And process the call.
  */
-export async function esBuildBundleExternal(params: EsBuildExternalParams) {
+export async function esBuildBundleExternal(params: EsBuildExternalParams, doDirectCall = false) {
+    if (doDirectCall || DO_DIRECT_CALL) {
+        let config = params;
+        let config2 = config as EsBuildParams;
+
+        if (config.usePlugins && config.usePlugins.length > 0) {
+            if (config.usePlugins[0] === "jopiReplaceServerPlugin") {
+                config2.plugins = [jopiReplaceServerPlugin];
+            }
+        }
+
+        await esBuildBundle(config2);
+
+        return;
+    }
+
     let thisFile = import.meta.filename;
     let jsonParams = JSON.stringify(params);
 
-    //let nodeJsPath = process.argv[0];
-    let nodeJsPath = "bun";
+    let nodeJsPath = process.argv[0];
     const args = [thisFile, "--", "--jopi-bundler", jsonParams];
 
     // Here execFile is better than "exec" since it automatically encode the arguments.
@@ -39,17 +56,8 @@ export async function esBuildBundleExternal(params: EsBuildExternalParams) {
 if (process.argv.includes("--jopi-bundler")) {
     async function bundle() {
         let jsonEncoded = process.argv[process.argv.indexOf("--jopi-bundler") + 1];
-
         let config = JSON.parse(jsonEncoded) as EsBuildExternalParams;
-        let config2 = config as EsBuildParams;
-
-        if (config.usePlugins && config.usePlugins.length > 0) {
-            if (config.usePlugins[0] === "jopi-replace-server") {
-                config2.plugins = [jopiReplaceServerPlugin];
-            }
-        }
-
-        await esBuildBundle(config2);
+        await esBuildBundleExternal(config, true);
     }
 
     bundle().then();
