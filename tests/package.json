@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "axios": "^1.11.0",
-    "jopi-loader": "workspace:*",
     "jopi-rewrite": "workspace:*",
     "jopi-rewrite-ui": "workspace:*"
   }
