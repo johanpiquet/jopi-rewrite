@@ -301,10 +301,14 @@ export class ServerFetch<T> {
             //
             rejectUnauthorized: false,
             requestCert: false,
+
             tls: {
                 rejectUnauthorized: false,
                 checkServerIdentity: () => { return undefined }
-            }
+            },
+
+            // Required by node.js
+            duplex: "half"
         };
 
         if (this.options.beforeRequesting) {
