@@ -13,3 +13,4 @@ export * from "./caches/SimpleFileCache.ts";
 export * from "./loadBalancing.ts";
 export * from "./automaticStartStop.ts";
 export * from "./middlewares/index.ts";
+export {extensionForResourceType} from "./importLoader.tsx";

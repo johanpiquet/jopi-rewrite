@@ -4,16 +4,15 @@ import React from "react";
 
 import "jopi-node-space";
 
-// It's only required for node.js, since bun already import CSS correctly.
+// It's only required for node.js, since bun.js already import CSS correctly.
+//
 if (NodeSpace.what.isNodeJS) {
     // Warmup react.js to avoid a bug when using "registerHooks" with an older node.js version.
     ReactServer.renderToStaticMarkup(<div></div>);
 
-    const ignoredExtensions = ['.css', '.scss'];
-
     registerHooks({
         resolve(specifier, context, nextResolve) {
-            if (ignoredExtensions.some(ext => specifier.endsWith(ext))) {
+            if (extensionForResourceType_nojs.some(ext => specifier.endsWith(ext))) {
                 //console.log("⚠️ jopi-loader-loader found: ", specifier);
 
                 return {
@@ -41,3 +40,14 @@ if (NodeSpace.what.isNodeJS) {
         }
     });
 }
+
+const extensionForResourceType_nojs = [
+    ".css", ".scss",
+    ".jpg", ".png", ".jpeg", ".gif", ".svg", ".webp",
+    ".avif", ".ico",
+    ".woff", ".woff2", ".ttf", ".txt",
+];
+
+export const extensionForResourceType = [
+    ".js", ...extensionForResourceType_nojs
+];
