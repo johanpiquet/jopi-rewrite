@@ -338,7 +338,11 @@ export class ServerFetch<T> {
             }
 
             // Avoid a bug where r.body isn't encoded while the head say he his.
-            r.headers.delete("content-encoding");
+            let encoding = r.headers.get("content-encoding");
+
+            if (encoding!==null) {
+                r.headers.delete("content-encoding");
+            }
 
             return r;
         } catch(e) {
