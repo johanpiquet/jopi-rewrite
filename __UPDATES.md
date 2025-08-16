@@ -36,3 +36,4 @@
 * ... now import woff/jpg/png/...
 * ... now resolve files if don't add ".js" at end
 * ... now allow importing directory.
+* Added HTTPS support for node.js

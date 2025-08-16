@@ -1,5 +1,6 @@
 // server.js
 import http from "node:http";
+import https from "node:https";
 import type {ServerInstance, ServerSocketAddress, StartServerOptions} from "./server.ts";
 
 const nFS = NodeSpace.fs;
@@ -8,13 +9,11 @@ class NodeServer implements ServerInstance {
     private server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
 
     constructor(private options: StartServerOptions) {
-        const reqFetch = options.fetch;
-
-        this.server = http.createServer(async (req, res) => {
+        async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
             const headers = new Headers(req.headers as any);
 
-            let method = req.method!;
-            const body = (method=="GET"||method==="HEAD") ? undefined : nFS.nodeStreamToWebStream(req);
+            const method = req.method!;
+            const body = (method == "GET" || method === "HEAD") ? undefined : nFS.nodeStreamToWebStream(req);
 
             // req doesn't allow knowing if we are http or https.
             const webReq = new Request("https://" + req.headers.host! + req.url!, {body, headers, method});
@@ -35,7 +34,28 @@ class NodeServer implements ServerInstance {
                 const asNodeStream = nFS.webStreamToNodeStream(webRes.body);
                 asNodeStream.pipe(res);
             }
-        });
+        }
+
+        const reqFetch = options.fetch;
+
+        if (options.tls) {
+            let key = "", cert = "";
+
+            if (options.tls instanceof Array) {
+                for (const tls of options.tls) {
+                    key += tls.key;
+                    cert += tls.cert;
+                }
+            } else {
+                key = options.tls.key;
+                cert = options.tls.cert;
+            }
+
+            this.server = https.createServer({key, cert}, handler);
+        }
+        else {
+            this.server = http.createServer(handler);
+        }
     }
 
     requestIP(req: Request): ServerSocketAddress | null {
@@ -53,7 +73,7 @@ class NodeServer implements ServerInstance {
         this.server.close();
     }
 
-    timeout(req: Request, seconds: number): void {
+    timeout(_req: Request, _seconds: number): void {
         // Timeout is managed globally for all the requests.
     }
 
