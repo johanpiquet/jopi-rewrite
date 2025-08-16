@@ -16,7 +16,11 @@ class NodeServer implements ServerInstance {
             const body = (method == "GET" || method === "HEAD") ? undefined : nFS.nodeStreamToWebStream(req);
 
             // req doesn't allow knowing if we are http or https.
-            const webReq = new Request("https://" + req.headers.host! + req.url!, {body, headers, method});
+            const webReq = new Request("https://" + req.headers.host! + req.url!, {
+                body, headers, method,
+                // @ts-ignore
+                duplex: "half"
+            });
 
             // @ts-ignore
             webReq.nodeJsReq = req;
