@@ -10,8 +10,7 @@ export interface EsBuildExternalParams {
     overrideConfig?: BuildOptions;
 }
 
-//TODO: put to false
-const DO_DIRECT_CALL = true;
+const DO_DIRECT_CALL = false;
 
 /**
  * Will execute EsBuild from a separate process.
