@@ -6,7 +6,6 @@
     "outDir": "./dist",
     "rootDir": "./src",
 
-    // Permet d'avoir des fonctions comme fetch.
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
     "jsx": "react-jsx",
