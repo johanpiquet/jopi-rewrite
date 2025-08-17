@@ -37,9 +37,9 @@ export async function esBuildBundleExternal(params: EsBuildExternalParams, doDir
     let jsonParams = JSON.stringify(params);
 
     let nodeJsPath = process.argv[0];
-    const args = [thisFile, "--", "--jopi-bundler", jsonParams];
+    const args = [thisFile, "--import", "jopi-loader",  "--", "--jopi-bundler", jsonParams];
 
-    // Here execFile is better than "exec" since it automatically encode the arguments.
+    // Here execFile is better than "exec" since it automatically encodes the arguments.
     //
     execFile(
         nodeJsPath, args, { cwd: process.cwd() },

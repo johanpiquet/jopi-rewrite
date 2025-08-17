@@ -1,6 +1,11 @@
 import React from "react";
 import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
-import styles from "./LocalStyleButton.scss";
+
+// Return the css-module and note the path of the source file.
+// With node.js, it requires doing "node --import jopi-loader".
+// With bun.js, it'd require doing "bun --preload jopi-loader".
+//
+import styles from "./mybutton.module.scss";
 
 const Component = function({name}: {name: string}) {
     function doClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
