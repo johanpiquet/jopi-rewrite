@@ -37,3 +37,6 @@
 * ... now resolve files if don't add ".js" at end
 * ... now allow importing directory.
 * Added HTTPS support for node.js
+
+**2025-08-17**
+* Loader is moved to project jopi-loader. 

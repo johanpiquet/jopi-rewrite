@@ -26,7 +26,8 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "typescript": "^5",
-    "@types/jsonwebtoken": "^9.0.10"
+    "@types/jsonwebtoken": "^9.0.10",
+    "jopi-loader": "workspace:*"
   },
   "dependencies": {
     "cheerio": "^1.1.0",

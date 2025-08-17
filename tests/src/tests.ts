@@ -10,8 +10,11 @@ import "jopi-rewrite"; // <-- Must be the first import to install the CSS loader
 
 //region React
 
-//import "./test_react_hydrate";
-//import "./test_react_useJQuery";
+//import "./test_react_hydrate.tsx";
+//import "./test_react_useJQuery.tsx";
+import "./test_react_localStyle.tsx";
+
+//import("./_test_nodejs_reactHydrate.tsx");
 
 //endregion
 
@@ -40,5 +43,3 @@ import "jopi-rewrite"; // <-- Must be the first import to install the CSS loader
 //import "./test_fileServer"
 
 //endregion
-
-import("./_test_nodejs_reactHydrate.tsx");

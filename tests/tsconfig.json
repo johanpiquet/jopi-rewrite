@@ -6,13 +6,13 @@
     "outDir": "./dist",
     "rootDir": "./src",
 
-    // Permet d'avoir des fonctions comme fetch.
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
     "jsx": "react-jsx",
-    "target": "ES2020",
+    "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "node",
+
     "rewriteRelativeImportExtensions": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -20,12 +20,17 @@
     "skipLibCheck": true,
     "noEmitOnError": false,
     "verbatimModuleSyntax": true,
-    "allowJs": false
+    "allowJs": false,
+
+    "allowSyntheticDefaultImports": true,
+    "types": ["jopi-loader"]
   },
 
   "include": [
     "./src/**/*.ts",
-    "./src/**/*.tsx"
+    "./src/**/*.tsx",
+    "./src/**/*.scss",
+    "./src/**/*.css"
   ],
 
   "exclude": [

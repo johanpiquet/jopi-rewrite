@@ -6,7 +6,7 @@ import ComponentA from "./myHydrateComp/ComponentA";
 import ComponentB from "./myHydrateComp/ComponentB";
 
 await createServer(async req => {
-    let res = await req.fetchServer("GET");
+    let res = await req.fetchServer();
 
     res = await req.hookIfHtml(res, text => {
         const $ = req.asJquery(text);

@@ -1,11 +1,4 @@
-/// <reference path="./cheerio.d.ts" />
-
 import "jopi-node-space";
-
-// Must be the first import (allow importing CSS for node.js).
-import "./importLoader.tsx";
-
-export {initLoader, extensionForResourceType} from "./importLoader.tsx";
 
 export * from "./core.ts";
 export * from "./searchParamFilter.ts";
