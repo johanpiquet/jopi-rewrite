@@ -1,7 +1,7 @@
 import React from "react";
 
 // Must be keep after a call to jopi-rewrite for correct initialization order.
-import MyButton from "./myHydrateComp/LocalStyleButton.ts";
+import MyButton from "./myHydrateComp/LocalStyleButton.tsx";
 import {JopiServer, WebSite} from "jopi-rewrite";
 
 const server = new JopiServer();

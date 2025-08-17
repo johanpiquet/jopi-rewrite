@@ -12,11 +12,10 @@ const Component = function({name}: {name: string}) {
     if (isServerSide()) text += " (server side)";
     else text += " (browser side)";
 
-    console.log(styles);
-
-    return <div className="myLocalStyle" onClick={doClick}>
+    return <div className={styles.myLocalStyle} onClick={doClick}>
         <div className="welcome">{text}</div>
     </div>;
 };
 
-export default mustHydrate(import.meta, Component);
+//export default mustHydrate(import.meta, Component);
+export default Component;

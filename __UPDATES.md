@@ -39,4 +39,5 @@
 * Added HTTPS support for node.js
 
 **2025-08-17**
-* Loader is moved to project jopi-loader. 
+* Loader is moved to project jopi-loader.
+* Added support of CSS module for Node.js (bunjs don't support currently).
