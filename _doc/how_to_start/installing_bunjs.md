@@ -6,10 +6,12 @@ Bun.js has several advantages over Node.js, including better performance and a m
 
 The first step to working with Jopi Rewrite is therefore to install Bun.js.
 
+> [!NOTE]  
 > If you already have Node.js installed: `npm install bun -g`.  
 > For Linux & MacOS: `curl -fsSL https://bun.sh/install | bash`.  
 > For Windows: `powershell -c "irm bun.sh/install.ps1 | iex"`.
 
+> [!NOTE]  
 >Bun.js is highly compatible with Node.js and many things are similar.
 >* You use `bun` where you used to use `node`.  
 >  For example: `bun install` and `bun run start`.
