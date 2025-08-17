@@ -3,7 +3,7 @@ import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
 
 // Return the css-module and note the path of the source file.
 // With node.js, it requires doing "node --import jopi-loader".
-// With bun.js, it'd require doing "bun --preload jopi-loader".
+// With bun.js, it requires doing "bun --preload jopi-loader".
 //
 import styles from "./mybutton.module.scss";
 
@@ -22,5 +22,5 @@ const Component = function({name}: {name: string}) {
     </div>;
 };
 
-//export default mustHydrate(import.meta, Component);
-export default Component;
+export default mustHydrate(import.meta, Component);
+//export default Component;

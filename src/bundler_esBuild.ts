@@ -1,6 +1,7 @@
 import esbuild, {type BuildOptions, type Plugin} from "esbuild";
 import sassPlugin from 'esbuild-plugin-sass';
 import fs from "node:fs/promises";
+import {cssModuleHandler} from "jopi-loader";
 
 export interface EsBuildParams {
     entryPoint: string;
@@ -26,6 +27,7 @@ export async function esBuildBundle(params: EsBuildParams) {
 
         plugins: [
             sassPlugin(),
+            jopiCssPlugin,
             ...params.plugins
         ],
 
@@ -78,4 +80,12 @@ export const jopiReplaceServerPlugin: Plugin = {
             return {contents: newContents, loader: 'ts'};
         });
     }
+};
+
+export const jopiCssPlugin: Plugin = {
+    name: "jopi-loader",
+    setup(build) {
+        // @ts-ignore
+        build.onLoad({filter: /\.(css|scss)$/}, cssModuleHandler);
+    },
 };
