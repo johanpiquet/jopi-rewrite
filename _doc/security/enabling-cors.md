@@ -1,3 +1,5 @@
+# Enabling CORS
+
 ## What is CORS?
 
 CORS security prevents HTTP requests coming from a browser when they are not made from your website's web page.

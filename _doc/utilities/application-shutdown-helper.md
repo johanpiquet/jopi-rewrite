@@ -1,3 +1,7 @@
+# Application shutdown helper
+
+> TODO: is now migrated to Jopi-Node-Space. Doc must be updated.
+
 Jopi Rewrite allows registering listeners, which are executed when the application is shutting down.
 
 ```typescript

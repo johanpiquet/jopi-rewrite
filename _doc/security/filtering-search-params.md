@@ -1,3 +1,5 @@
+# Filtering Search Params
+
 When building a cache, it is essential to control the search params (the part after the *?* in the URL).
 If you allow any value, it becomes easy to write a script that will poison your cache.
 

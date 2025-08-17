@@ -11,7 +11,7 @@ The first step to working with Jopi Rewrite is therefore to install Bun.js.
 > For Linux & MacOS: `curl -fsSL https://bun.sh/install | bash`.  
 > For Windows: `powershell -c "irm bun.sh/install.ps1 | iex"`.
 
-> [!NOTE]  
+> [!TIP]  
 >Bun.js is highly compatible with Node.js and many things are similar.
 >* You use `bun` where you used to use `node`.  
 >  For example: `bun install` and `bun run start`.

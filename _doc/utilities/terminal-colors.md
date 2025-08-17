@@ -1,3 +1,7 @@
+# Terminal Colors
+
+> TODO: is now migrated to Jopi-Node-Space. Doc must be updated.
+
 Jopi Rewrite provides a set of tools to write colored text in the terminal.
 
 ```typescript title="Writing colored text in the terminal"

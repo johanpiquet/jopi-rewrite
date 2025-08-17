@@ -1,3 +1,5 @@
+# Using JWT Token
+
 ## What is a JWT token?
 
 When a user logs in to your website with a username/password, you need to do three things:
