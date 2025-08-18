@@ -1,6 +1,6 @@
 {
   "name": "jopi-rewrite",
-  "version": "1.0.7",
+  "version": "1.0.10",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
@@ -15,8 +15,11 @@
   "type": "module",
   "scripts": {
     "tsc": "tsc",
-    "bun-install": "bun install",
-    "bun-publish": "tsc; bun publish",
+    "bun-install": "bun install --registry http://localhost:4873/",
+    "bun-update": "bun update --registry http://localhost:4873/",
+
+    "npm-publish": "npm publish --registry http://localhost:4873/",
+    "npm-unpublish": "npm unpublish --registry http://localhost:4873/",
 
     "bun-link": "bun link"
   },

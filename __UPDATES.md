@@ -1,4 +1,4 @@
-**2025-08-18**                                                  --> npm 1.0.7
+**2025-08-18**                                                  --> npm 1.0.8
 * Page wrapper for React SSR.
 * Inject CSS module into the page.
 * Bundle CSS into loader.css + add hash.
