@@ -1,9 +1,14 @@
 import React from "react";
-import {createServer} from "./createServer.ts";
-
+import {JopiServer, WebSite} from "jopi-rewrite";
 import ComponentA from "./myHydrateComp/ComponentA.tsx";
 
-await createServer(async req => {
+const server = new JopiServer();
+const myWebSite = new WebSite("http://127.0.0.1");
+
+server.addWebsite(myWebSite);
+server.startServer();
+
+myWebSite.onGET("/", async req => {
     if (req.urlInfos.pathname==="/favicon.ico") {
         return req.error404Response();
     }

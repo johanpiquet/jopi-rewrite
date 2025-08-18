@@ -6,9 +6,6 @@ import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
 //
 import styles from "./mybutton.module.scss";
 
-// For test, must be included in the es-build bundle.
-import "./ComponentA.scss";
-
 function Component({name}: {name: string}) {
     function doClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         e.preventDefault();
