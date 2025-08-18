@@ -2,7 +2,7 @@ import path from "node:path";
 
 import React from "react";
 import {type JopiRequest, WebSite} from "./core.ts";
-import {setNewHydrateListener} from "jopi-rewrite-ui";
+import {setNewHydrateListener, useCssModule} from "jopi-rewrite-ui";
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
 
@@ -198,7 +198,7 @@ export function getHydrateComponents() {
 
 interface JopiHydrateProps {
     Child: React.FunctionComponent;
-    args: any,
+    args: any;
     id: string;
     asSpan: boolean;
 }
@@ -221,7 +221,7 @@ function useHydrateComponent(importMeta: { filename: string }): string {
     return "";
 }
 
-function JopiHydrate({id, args, asSpan, Child,}: JopiHydrateProps) {
+function JopiHydrate({id, args, asSpan, Child}: JopiHydrateProps) {
     const props = {"jopi-hydrate": JSON.stringify({id, args})};
 
     if (asSpan) {
@@ -231,12 +231,15 @@ function JopiHydrate({id, args, asSpan, Child,}: JopiHydrateProps) {
     return <div {...props}><Child {...args}>{}</Child></div>;
 }
 
-function onNewHydrate(importMeta: {filename: string}, f: React.FunctionComponent, isSpan: boolean): React.FunctionComponent {
+function onNewHydrate(importMeta: {filename: string}, f: React.FunctionComponent, isSpan: boolean, cssModules?: Record<string, string>): React.FunctionComponent {
     // Register the component.
     const id = useHydrateComponent(importMeta);
 
     // Wrap our component.
-    return (p:any) => <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent} />;
+    return (p: any) => {
+        useCssModule(cssModules);
+        return <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent}/>;
+    }
 }
 
 const gHydrateComponents: {[key: string]: string} = {};

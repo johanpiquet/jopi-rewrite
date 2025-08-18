@@ -11,14 +11,78 @@ export function isBrowserSide(): boolean {
     return nWhat.isBrowser;
 }
 
-export type OnNewHydrateListener = (importMeta: any, f: React.FunctionComponent, isSpan: boolean) => React.FunctionComponent;
+const CssModule: React.FC<{module: any}> = ({module}) => {
+    return <style>{module.__CSS__}</style>;
+};
+
+export class PageController<T> {
+    readonly data: T = {} as unknown as T;
+
+    pageTitle?: string;
+
+    readonly head: React.ReactNode[] = [];
+
+    readonly htmlProps: Record<string, any> = {};
+    readonly bodyProps: Record<string, any> = {};
+    readonly headProps: Record<string, any> = {};
+}
+
+// Use undefined, otherwise the value is commun for all requests when doing SSR.
+const PageContext = React.createContext<PageController<unknown>|undefined>(undefined);
+
+export function usePageContext<T>(): PageController<T> {
+    let res = React.useContext(PageContext) as PageController<T>;
+
+    // Not wrapped inside a PageContext?
+    if (!res) {
+        console.warn("usePageContext require wrapping your page inside the Page component");
+        res = new PageController<T>();
+    }
+
+    return res;
+}
+
+export const Page: React.FC<{children: React.ReactNode|React.ReactNode[]}> = ({children}) => {
+    const controller = new PageController<unknown>();
+
+    return <PageContext.Provider value={controller}>
+        <html {...controller.htmlProps}>
+        <head {...controller.headProps}>{controller.head}<title>{controller.pageTitle}</title></head>
+        <body {...controller.bodyProps}>{children}</body>
+        </html>
+    </PageContext.Provider>;
+}
+
+interface UseCssModuleContextProps {
+    jopiUseCssModule?: Record<string, any>;
+}
+
+export function useCssModule(cssModule: undefined | Record<string, string>) {
+    if (!cssModule) return;
+
+    if (nWhat.isServerSide) {
+        if (typeof(cssModule)==="object") {
+            const ctx = usePageContext<UseCssModuleContextProps>();
+            if (!ctx.data.jopiUseCssModule) ctx.data.jopiUseCssModule = {};
+
+            const fileHash = cssModule.__FILE_HASH__;
+
+            if (fileHash && !ctx.data.jopiUseCssModule[fileHash]) {
+                ctx.data.jopiUseCssModule![fileHash] = true;
+                ctx.head.push(<CssModule key={fileHash} module={cssModule} />);
+            }
+        }
+    }
+}
+
+export type OnNewHydrateListener = (importMeta: any, f: React.FunctionComponent, isSpan: boolean, cssModule?: Record<string, string>) => React.FunctionComponent;
 
 export function setNewHydrateListener(listener: OnNewHydrateListener) {
     gListener = listener;
 }
 
-export function mustHydrate<T>(importMeta: any, f: React.FunctionComponent<T>): React.FunctionComponent<T> {
-    return gListener(importMeta, f as React.FunctionComponent, false) as  React.FunctionComponent<T>;
+export function mustHydrate<T>(importMeta: any, f: React.FunctionComponent<T>, cssModule?: Record<string, string>): React.FunctionComponent<T> {
+    return gListener(importMeta, f as React.FunctionComponent, false, cssModule) as  React.FunctionComponent<T>;
 }
 
 export function mustHydrateSpan<T>(f: React.FunctionComponent<T>, importMeta: any): React.FunctionComponent<T> {

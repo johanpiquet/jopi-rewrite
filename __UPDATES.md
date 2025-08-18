@@ -1,7 +1,10 @@
+**2025-08-18**
+* Page wrapper for React SSR.
+
 **2025-08-17**
 * Loader is moved to project jopi-loader.
 * Added support of CSS module for Node.js (bunjs don't support currently).
-* Now EsBuild share the same css-module loader with bun.js and node.js. 
+* Now EsBuild shares the same css-module loader with bun.js and node.js. 
 
 **2025-08-16**
 * Improved nodejs loader.

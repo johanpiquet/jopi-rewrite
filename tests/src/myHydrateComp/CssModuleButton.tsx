@@ -1,13 +1,15 @@
 import React from "react";
 import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
 
-// Return the css-module and note the path of the source file.
 // With node.js, it requires doing "node --import jopi-loader".
 // With bun.js, it requires doing "bun --preload jopi-loader".
 //
 import styles from "./mybutton.module.scss";
 
-const Component = function({name}: {name: string}) {
+// For test, must be included in the es-build bundle.
+import "./ComponentA.scss";
+
+function Component({name}: {name: string}) {
     function doClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         e.preventDefault();
         alert("click !");
@@ -20,7 +22,9 @@ const Component = function({name}: {name: string}) {
     return <div className={styles.myLocalStyle} onClick={doClick}>
         <div className="welcome">{text}</div>
     </div>;
-};
+}
 
-export default mustHydrate(import.meta, Component);
+// Here we add "styles" which allow automatically exporting the CSS module if used.
+export default mustHydrate(import.meta, Component, styles);
+
 //export default Component;
