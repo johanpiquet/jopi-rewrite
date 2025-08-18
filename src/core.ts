@@ -768,8 +768,10 @@ export class JopiRequest {
     private postProcessHtml(html: string): string {
         if (hasHydrateComponents()) {
             const bundleUrl = getBundleUrl(this.webSite);
-            //html += `\n<link rel="stylesheet" href="${bundleUrl}/loader.css" />`;
-            html += `\n<script type="module" src="${bundleUrl}/loader.js"></script>`;
+            const hash = this.webSite.data["jopiLoaderHash"];
+
+            html += `\n<link rel="stylesheet" href="${bundleUrl}/loader.css?${hash.css}" />`;
+            html += `\n<script type="module" src="${bundleUrl}/loader.js?${hash.js}"></script>`;
         }
 
         return html;
@@ -1029,6 +1031,8 @@ export class WebSite {
     private jwtSigInOptions?: jwt.SignOptions;
     private authHandler?: AuthHandler<any>;
     private jwtTokenStore?: JwtTokenStore;
+
+    public readonly data: any = {};
 
     public readonly loadBalancer = new LoadBalancer();
 

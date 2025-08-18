@@ -5,6 +5,8 @@ import {type JopiRequest, WebSite} from "./core.ts";
 import {setNewHydrateListener, useCssModule} from "jopi-rewrite-ui";
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
+import fs from "node:fs/promises";
+import {scssToCss} from "jopi-loader";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
@@ -90,8 +92,6 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         //
         return createBundle_esbuild_external(webSite);
     }
-
-    //return createBundle_esbuild(webSite);
 }
 
 async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
@@ -101,12 +101,11 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
     const outputDir = path.join(gTempDirPath, webSite.hostName);
     const publicUrl = webSite.welcomeUrl + '/_bundle/';
 
-    // Empty the dir, this make tests easier.
+    // Empty the dir, this makes tests easier.
     await nFS.rmDir(gTempDirPath);
     await nFS.mkDir(gTempDirPath);
 
     const entryPoint = await generateScript(outputDir, components);
-
 
     await esBuildBundleExternal({
         entryPoint, outputDir,
@@ -121,6 +120,8 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
             splitting: true
         }
     });
+
+    await postProcessCreateBundle(webSite, outputDir);
 }
 
 async function createBundle_esbuild(webSite: WebSite): Promise<void> {
@@ -144,6 +145,58 @@ async function createBundle_esbuild(webSite: WebSite): Promise<void> {
             splitting: true
         }
     });
+
+    await postProcessCreateBundle(webSite, outputDir);
+}
+
+async function postProcessCreateBundle(webSite: WebSite, outputDir: string) {
+    //region Creates the CSS bundle.
+
+    // Jopi Loader hooks the CSS. It's why EsBuild can't automatically catch the CSS.
+    // And why, here we bundle it manually.
+
+    const outFilePath = path.join(outputDir, "loader.css");
+
+    if (await nFS.isFile(outFilePath)) {
+        await nFS.unlink(outFilePath);
+    }
+
+    // Assure the file exists.
+    await fs.appendFile(outFilePath, "", "utf-8");
+    
+    for (const cssFilePath of gAllCssFiles) {
+        let css: string;
+
+        if (cssFilePath.endsWith(".scss")) {
+            // Is synchrone.
+            css = scssToCss(cssFilePath);
+        } else {
+            css = await nFS.readTextFromFile(cssFilePath);
+        }
+
+        await fs.appendFile(outFilePath, css, "utf-8");
+    }
+
+    //endregion
+
+    const loaderHash: any = {};
+    webSite.data["jopiLoaderHash"] = loaderHash;
+
+    // Calculate the hash.
+    loaderHash.css = NodeSpace.crypto.md5(await nFS.readTextFromFile(path.join(outputDir, "loader.css")));
+
+    // The file doesn't exist if we don't use hydrate components.
+    //
+    let jsFilePath = path.join(outputDir, "loader.js");
+    if (!await nFS.isFile(path.join(outputDir, "loader.js"))) await nFS.writeTextToFile(jsFilePath, "");
+    loaderHash.js = NodeSpace.crypto.md5(await nFS.readTextFromFile(path.join(outputDir, "loader.js")));
+}
+
+const gAllCssFiles: string[] = [];
+
+// @ts-ignore Is called by jopi-loader when found a CSS/SCSS file which isn't a module.
+global.jopiOnCssImported = function(cssFilePath: string) {
+    gAllCssFiles.push(cssFilePath);
 }
 
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
@@ -162,20 +215,8 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
 
     try {
         let content = await nFS.readTextFromFile(filePath);
-
-        if (isJS) {
-            content = content.replaceAll("import.meta", "''");
-        }
-
-        return new Response(
-            content,
-            {
-                status: 200,
-                headers: {
-                    "content-type": contentType,
-                    // "content-length": "" + file.size
-                }
-            });
+        if (isJS) content = content.replaceAll("import.meta", "''");
+        return new Response(content, {status: 200, headers: {"content-type": contentType}});
     }
     catch {
         return new Response("", {status: 404});

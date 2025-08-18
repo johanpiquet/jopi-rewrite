@@ -1,5 +1,7 @@
 **2025-08-18**
 * Page wrapper for React SSR.
+* Inject CSS module into the page.
+* Bundle CSS into loader.css + add hash.
 
 **2025-08-17**
 * Loader is moved to project jopi-loader.
