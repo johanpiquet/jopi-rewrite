@@ -3,24 +3,20 @@
   "version": "1.0.6",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
-  "keywords": [
-    "express.js",
-    "nextjs",
-    "react",
-    "react-ssr",
-    "react-hydrate"
-  ],
+  "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
-  "engines": {
-    "bun": "^1.2.18"
-  },
+  "engines": {"bun": "^1.2.18", "node": ">=22.18.0"},
+
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+
   "scripts": {
     "tsc": "tsc",
     "npm-publish": "npm publish --access public"
   },
+
   "devDependencies": {
     "@types/bun": "^1.2.13",
     "@types/react": "^19.1.8",
@@ -29,6 +25,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "jopi-loader": "workspace:*"
   },
+
   "dependencies": {
     "@types/acme-client": "^3.3.4",
     "acme-client": "^5.4.0",
@@ -42,10 +39,5 @@
     "react": ">19.0.0",
     "react-dom": ">19.0.0",
     "rou3": "^0.7.3"
-  },
-  "nodeSwitch": {
-    "node": "dist",
-    "bun": "src"
-  },
-  "types": "dist/index.d.ts"
+  }
 }
