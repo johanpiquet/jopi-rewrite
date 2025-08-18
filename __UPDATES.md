@@ -1,9 +1,11 @@
-**2025-08-18**
+**2025-08-18**                                                  --> npm 1.0.7
 * Page wrapper for React SSR.
 * Inject CSS module into the page.
 * Bundle CSS into loader.css + add hash.
 * req.reactResponse now wrap response inside a Page.
 * Add LetsEncrypt certificate signing.
+* Moving UI et Tests project in another git, du to typescript anomalies.
+* Corrections for typescript modules.
 
 **2025-08-17**
 * Loader is moved to project jopi-loader.

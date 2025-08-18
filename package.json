@@ -1,46 +1,45 @@
 {
   "name": "jopi-rewrite",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
-  "engines": {"bun": "^1.2.18", "node": ">=22.18.0"},
-
+  "engines": {
+    "bun": "^1.2.18",
+    "node": ">=22.18.0"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
-
   "scripts": {
     "tsc": "tsc",
     "bun-install": "bun install",
-    "bun-publish": "tsc; bun publish"
-  },
+    "bun-publish": "tsc; bun publish",
 
+    "bun-link": "bun link"
+  },
   "devDependencies": {
-    "@types/bun": "^1.2.13",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "typescript": "^5",
+    "@types/bun": "^1.2.20",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "typescript": "^5.9.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/acme-client": "^3.3.4"
   },
-
   "dependencies": {
     "acme-client": "^5.4.0",
-    "cheerio": "^1.1.0",
+    "cheerio": "^1.1.2",
     "css-url-parser": "^1.1.4",
-    "esbuild": "^0.25.6",
+    "esbuild": "^0.25.9",
     "esbuild-plugin-sass": "latest",
     "jsonwebtoken": "^9.0.2",
-    "react": ">19.0.0",
-    "react-dom": ">19.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "rou3": "^0.7.3",
-
     "jopi-node-space": "latest",
     "jopi-loader": "latest",
-
-    "jopi-rewrite-ui": "workspace:*"
+    "jopi-rewrite-ui": "latest"
   }
 }

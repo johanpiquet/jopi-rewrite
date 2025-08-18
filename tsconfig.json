@@ -22,8 +22,7 @@
     "verbatimModuleSyntax": true,
     "allowJs": false,
 
-    "allowSyntheticDefaultImports": true,
-    "types": ["jopi-loader"]
+    "allowSyntheticDefaultImports": true
   },
 
   "include": [
