@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import React from "react";
-import {type JopiRequest, WebSite} from "./core.ts";
+import {type JopiRequest, WebSite} from "./core.tsx";
 import {setNewHydrateListener, useCssModule} from "jopi-rewrite-ui";
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
@@ -278,8 +278,10 @@ function onNewHydrate(importMeta: {filename: string}, f: React.FunctionComponent
 
     // Wrap our component.
     return (p: any) => {
-        useCssModule(cssModules);
-        return <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent}/>;
+        return <>
+            {useCssModule(cssModules)}
+            <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent}/>
+        </>;
     }
 }
 

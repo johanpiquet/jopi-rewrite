@@ -1,6 +1,6 @@
 import "jopi-node-space";
 
-export * from "./core.ts";
+export * from "./core.tsx";
 export * from "./searchParamFilter.ts";
 export * from "./serverFetch.ts";
 export * from "./caches/InMemoryCache.ts";

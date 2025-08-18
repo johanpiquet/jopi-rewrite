@@ -6,6 +6,7 @@ import {ServerFetch} from "./serverFetch.ts";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import * as ReactServer from 'react-dom/server';
 import React, {type ReactNode} from "react";
+import {Page} from "jopi-rewrite-ui";
 
 import {createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents} from "./hydrate.tsx";
 import * as cheerio from "cheerio";
@@ -738,7 +739,7 @@ export class JopiRequest {
     //region ReactJS
 
     reactResponse(element: ReactNode) {
-        return this.htmlResponse(ReactServer.renderToStaticMarkup(element));
+        return this.htmlResponse(ReactServer.renderToStaticMarkup(<Page>{element}</Page>));
     }
 
     reactToString(element: ReactNode): string {

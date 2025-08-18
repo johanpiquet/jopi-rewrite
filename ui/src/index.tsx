@@ -25,6 +25,9 @@ export class PageController<T> {
     readonly htmlProps: Record<string, any> = {};
     readonly bodyProps: Record<string, any> = {};
     readonly headProps: Record<string, any> = {};
+
+    constructor(public readonly isDetached = false) {
+    }
 }
 
 // Use undefined, otherwise the value is commun for all requests when doing SSR.
@@ -34,10 +37,7 @@ export function usePageContext<T>(): PageController<T> {
     let res = React.useContext(PageContext) as PageController<T>;
 
     // Not wrapped inside a PageContext?
-    if (!res) {
-        console.warn("usePageContext require wrapping your page inside the Page component");
-        res = new PageController<T>();
-    }
+    if (!res) res = new PageController<T>(true);
 
     return res;
 }
@@ -57,8 +57,8 @@ interface UseCssModuleContextProps {
     jopiUseCssModule?: Record<string, any>;
 }
 
-export function useCssModule(cssModule: undefined | Record<string, string>) {
-    if (!cssModule) return;
+export function useCssModule(cssModule: undefined | Record<string, string>): undefined|React.ReactElement {
+    if (!cssModule) return undefined;
 
     if (nWhat.isServerSide) {
         if (typeof(cssModule)==="object") {
@@ -69,10 +69,22 @@ export function useCssModule(cssModule: undefined | Record<string, string>) {
 
             if (fileHash && !ctx.data.jopiUseCssModule[fileHash]) {
                 ctx.data.jopiUseCssModule![fileHash] = true;
-                ctx.head.push(<CssModule key={fileHash} module={cssModule} />);
+
+                if (ctx.isDetached) {
+                    // The component is not wrapped inside a Page.
+                    // Here the style is directly emitted and not added to the header.
+                    //
+                    return <CssModule key={fileHash} module={cssModule} />
+                }
+                else {
+                    // Will allow adding the style to the Header.
+                    ctx.head.push(<CssModule key={fileHash} module={cssModule} />);
+                }
             }
         }
     }
+
+    return undefined;
 }
 
 export type OnNewHydrateListener = (importMeta: any, f: React.FunctionComponent, isSpan: boolean, cssModule?: Record<string, string>) => React.FunctionComponent;

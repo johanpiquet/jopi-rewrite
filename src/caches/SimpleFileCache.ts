@@ -5,7 +5,7 @@ import {
     MetaUpdaterResult,
     type PageCache,
     responseToCacheEntry
-} from "../core.ts";
+} from "../core.tsx";
 
 import {gzipFile} from "../gzip.ts";
 

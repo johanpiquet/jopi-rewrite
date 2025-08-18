@@ -2,6 +2,7 @@
 * Page wrapper for React SSR.
 * Inject CSS module into the page.
 * Bundle CSS into loader.css + add hash.
+* req.reactResponse now wrap response inside a Page.
 
 **2025-08-17**
 * Loader is moved to project jopi-loader.

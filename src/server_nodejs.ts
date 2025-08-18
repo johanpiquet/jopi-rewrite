@@ -1,4 +1,3 @@
-// server.js
 import http from "node:http";
 import https from "node:https";
 import type {ServerInstance, ServerSocketAddress, StartServerOptions} from "./server.ts";

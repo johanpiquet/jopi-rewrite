@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {JopiRequest, type SendingBody} from "./core.ts";
+import {JopiRequest, type SendingBody} from "./core.tsx";
 import type {LoadBalancer} from "./loadBalancing.ts";
 
 export interface ServerDownResult<T> {

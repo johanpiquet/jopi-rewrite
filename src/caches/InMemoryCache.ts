@@ -9,7 +9,7 @@ import {
     type PageCache,
     readContentLength,
     responseToCacheEntry
-} from "../core.ts";
+} from "../core.tsx";
 
 import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
 

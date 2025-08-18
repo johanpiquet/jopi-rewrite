@@ -1,4 +1,4 @@
-import {getServerStartOptions, type JopiMiddleware, type JopiRequest} from "../core.ts";
+import {getServerStartOptions, type JopiMiddleware, type JopiRequest} from "../core.tsx";
 
 const newInterval = NodeSpace.timer.newInterval;
 const applyDefaults = NodeSpace.applyDefaults;

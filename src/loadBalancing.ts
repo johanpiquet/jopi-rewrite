@@ -1,5 +1,5 @@
 import type {ServerFetch} from "./serverFetch.ts";
-import {JopiRequest, type SendingBody} from "./core.ts";
+import {JopiRequest, type SendingBody} from "./core.tsx";
 
 const newInterval = NodeSpace.timer.newInterval;
 

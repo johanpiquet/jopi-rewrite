@@ -16,9 +16,8 @@ myWebSite.onGET("/", async req => {
         return req.error404Response();
     }
 
-    let cp = <Page>
-        <MyButton name="jopi" />
-    </Page>;
+    //let cp = <Page><MyButton name="jopi" /></Page>;
+    let cp = <MyButton name="jopi" />;
 
     return req.reactResponse(cp);
 });
