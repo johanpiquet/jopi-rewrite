@@ -1356,6 +1356,25 @@ export class WebSite {
             return res;
         }
     }
+
+    createHttpDirectWebsite(): WebSite {
+        if (this.port===80) return this;
+
+        let urlInfos = new URL(this.welcomeUrl);
+        urlInfos.port = "";
+        urlInfos.protocol = "http";
+
+        const webSite = new WebSite(urlInfos.href);
+
+        webSite.onGET("/**", req => {
+            req.urlInfos.port = "";
+            req.urlInfos.protocol = "https";
+
+            return req.redirectResponse(true, req.urlInfos.href);
+        });
+
+        return webSite;
+    }
 }
 
 export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;

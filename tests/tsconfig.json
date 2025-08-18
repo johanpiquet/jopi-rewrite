@@ -28,9 +28,7 @@
 
   "include": [
     "./src/**/*.ts",
-    "./src/**/*.tsx",
-    "./src/**/*.scss",
-    "./src/**/*.css"
+    "./src/**/*.tsx"
   ],
 
   "exclude": [

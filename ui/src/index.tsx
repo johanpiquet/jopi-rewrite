@@ -33,7 +33,7 @@ export class PageController<T> {
 // Use undefined, otherwise the value is commun for all requests when doing SSR.
 const PageContext = React.createContext<PageController<unknown>|undefined>(undefined);
 
-export function usePageContext<T>(): PageController<T> {
+export function usePage<T>(): PageController<T> {
     let res = React.useContext(PageContext) as PageController<T>;
 
     // Not wrapped inside a PageContext?
@@ -62,7 +62,7 @@ export function useCssModule(cssModule: undefined | Record<string, string>): und
 
     if (nWhat.isServerSide) {
         if (typeof(cssModule)==="object") {
-            const ctx = usePageContext<UseCssModuleContextProps>();
+            const ctx = usePage<UseCssModuleContextProps>();
             if (!ctx.data.jopiUseCssModule) ctx.data.jopiUseCssModule = {};
 
             const fileHash = cssModule.__FILE_HASH__;

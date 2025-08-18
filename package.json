@@ -30,6 +30,8 @@
     "jopi-loader": "workspace:*"
   },
   "dependencies": {
+    "@types/acme-client": "^3.3.4",
+    "acme-client": "^5.4.0",
     "cheerio": "^1.1.0",
     "css-url-parser": "^1.1.4",
     "esbuild": "^0.25.6",

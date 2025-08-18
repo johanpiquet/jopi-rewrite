@@ -3,6 +3,7 @@
 * Inject CSS module into the page.
 * Bundle CSS into loader.css + add hash.
 * req.reactResponse now wrap response inside a Page.
+* Add LetsEncrypt certificate signing.
 
 **2025-08-17**
 * Loader is moved to project jopi-loader.

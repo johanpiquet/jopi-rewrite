@@ -8,9 +8,9 @@
 
 //region React
 
-//import "./test_react_hydrate.tsx";
+import "./test_react_hydrate.tsx";
 //import "./test_react_useJQuery.tsx";
-import "./test_react_cssModule.tsx";
+//import "./test_react_cssModule.tsx";
 
 //endregion
 
@@ -37,5 +37,7 @@ import "./test_react_cssModule.tsx";
 //import "./test_replace";
 //import "./test_startStopManager";
 //import "./test_fileServer"
+
+import "./test_letsencrypt.ts";
 
 //endregion
