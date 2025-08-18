@@ -14,7 +14,8 @@
 
   "scripts": {
     "tsc": "tsc",
-    "npm-publish": "npm publish --access public"
+    "bun-install": "bun install",
+    "bun-publish": "tsc; bun publish"
   },
 
   "devDependencies": {
@@ -23,21 +24,23 @@
     "@types/react-dom": "^19.1.6",
     "typescript": "^5",
     "@types/jsonwebtoken": "^9.0.10",
-    "jopi-loader": "workspace:*"
+    "@types/acme-client": "^3.3.4"
   },
 
   "dependencies": {
-    "@types/acme-client": "^3.3.4",
     "acme-client": "^5.4.0",
     "cheerio": "^1.1.0",
     "css-url-parser": "^1.1.4",
     "esbuild": "^0.25.6",
     "esbuild-plugin-sass": "latest",
-    "jopi-node-space": "workspace:*",
-    "jopi-rewrite-ui": "workspace:*",
     "jsonwebtoken": "^9.0.2",
     "react": ">19.0.0",
     "react-dom": ">19.0.0",
-    "rou3": "^0.7.3"
+    "rou3": "^0.7.3",
+
+    "jopi-node-space": "latest",
+    "jopi-loader": "latest",
+
+    "jopi-rewrite-ui": "workspace:*"
   }
 }
