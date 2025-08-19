@@ -97,19 +97,19 @@ export class ServerFetch<T> {
      */
     static fromTo<T>(sPublicUrl: string, sTargerUrl: string, hostName?: string, options?: ServerFetchOptions<T>): ServerFetch<T> {
         const publicUrl = new URL(sPublicUrl);
-        const targerUrl = new URL(sTargerUrl);
-        sTargerUrl = targerUrl.toString().slice(0, -1);
+        const targetUrl = new URL(sTargerUrl);
+        sTargerUrl = targetUrl.toString().slice(0, -1);
 
-        if (!hostName) hostName = targerUrl.hostname;
+        if (!hostName) hostName = targetUrl.hostname;
 
         return new ServerFetch<T>({
             ...options,
 
             rewriteUrl(url: string, headers: Headers) {
                 const urlInfos = new URL(url);
-                urlInfos.port = targerUrl.port;
-                urlInfos.protocol = targerUrl.protocol;
-                urlInfos.hostname = targerUrl.hostname;
+                urlInfos.port = targetUrl.port;
+                urlInfos.protocol = targetUrl.protocol;
+                urlInfos.hostname = targetUrl.hostname;
 
                 if (hostName) {
                     headers.set('Host', hostName);
@@ -242,7 +242,7 @@ export class ServerFetch<T> {
     }
 
     /**
-     * Allow to directly proxy a request as is we were directly asking the target server.
+     * Allow directly proxy a request as-if we were directly asking the target server.
      */
     async directProxy(req: JopiRequest): Promise<Response> {
         return this.doFetch(req.method, req.urlInfos.href, req.body, req.headers);
@@ -268,7 +268,7 @@ export class ServerFetch<T> {
     }
 
     /**
-     * Allow fetching a some content.
+     * Allow fetching some content.
      */
     private async doFetch(method: string, url: string, body?: SendingBody, headers?: Headers): Promise<Response> {
         const bckURL = url;

@@ -1,3 +1,6 @@
+**2025-08-19**  
+* Started JopiEasy lib.
+
 **2025-08-18**                                                  --> npm 1.0.8c
 * Page wrapper for React SSR.
 * Inject CSS module into the page.

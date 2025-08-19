@@ -1086,74 +1086,42 @@ export class WebSite {
         return matched.data;
     }
 
-    onGET(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onVerb(verb: HttpMethod, path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
             return this.addSharedRoute("GET", path, handler);
         }
 
-        return this.addRoute("GET", path, handler);
+        return this.addRoute(verb, path, handler);
+    }
+
+    onGET(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+        return this.onVerb("GET", path, handler);
     }
 
     onPOST(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
-        handler = this.applyMiddlewares(handler);
-
-        if (Array.isArray(path)) {
-            return this.addSharedRoute("POST", path, handler);
-        }
-
-        return this.addRoute("POST", path, handler);
+        return this.onVerb("POST", path, handler);
     }
 
     onPUT(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
-        handler = this.applyMiddlewares(handler);
-
-        if (Array.isArray(path)) {
-            return this.addSharedRoute("PUT", path, handler);
-        }
-
-        return this.addRoute("PUT", path, handler);
+        return this.onVerb("PUT", path, handler);
     }
 
     onDELETE(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
-        handler = this.applyMiddlewares(handler);
-
-        if (Array.isArray(path)) {
-            return this.addSharedRoute("DELETE", path, handler);
-        }
-
-        return this.addRoute("DELETE", path, handler);
+        return this.onVerb("DELETE", path, handler);
     }
 
     onPATCH(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
-        handler = this.applyMiddlewares(handler);
-
-        if (Array.isArray(path)) {
-            return this.addSharedRoute("PATCH", path, handler);
-        }
-
-        return this.addRoute("PATCH", path, handler);
+        return this.onVerb("PATCH", path, handler);
     }
 
     onHEAD(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
-        handler = this.applyMiddlewares(handler);
-
-        if (Array.isArray(path)) {
-            return this.addSharedRoute("HEAD", path, handler);
-        }
-
-        return this.addRoute("HEAD", path, handler);
+        return this.onVerb("HEAD", path, handler);
     }
 
     onOPTIONS(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
-        handler = this.applyMiddlewares(handler);
-
-        if (Array.isArray(path)) {
-            return this.addSharedRoute("OPTIONS", path, handler);
-        }
-
-        return this.addRoute("OPTIONS", path, handler);
+        return this.onVerb("OPTIONS", path, handler);
     }
 
     onNotFound(handler: JopiRouteHandler) {
@@ -1480,8 +1448,8 @@ export class JopiServer {
      * Require "mkcert" to be installed.
      * See: https://github.com/FiloSottile/mkcert
      */
-    async createDevCertificate(hostName: string): Promise<SslCertificatePath>  {
-        const sslDirPath = path.resolve(path.join(process.cwd(), "certs", hostName));
+    async createDevCertificate(hostName: string, certsDir: string = "certs"): Promise<SslCertificatePath>  {
+        const sslDirPath = path.resolve(certsDir, hostName);
         const keyFilePath = path.join(sslDirPath, "certificate.key");
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
 
@@ -1806,5 +1774,7 @@ export function octetToMo(size: number) {
 
 export const ONE_KILO_OCTET = 1024;
 export const ONE_MEGA_OCTET = 1024 * ONE_KILO_OCTET;
+
+export const HTTP_VERBS: HttpMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 
 //endregion
