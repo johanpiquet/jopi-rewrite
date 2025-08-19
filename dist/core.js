@@ -1,183 +1,115 @@
+import { jsx as _jsx } from "react/jsx-runtime";
 // noinspection JSUnusedGlobalSymbols
-
 import * as path from "node:path";
-import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
-import {ServerFetch} from "./serverFetch.ts";
-import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
+import { addRoute, createRouter, findRoute } from "rou3";
+import { ServerFetch } from "./serverFetch.js";
 import * as ReactServer from 'react-dom/server';
-import React, {type ReactNode} from "react";
-import {Page} from "jopi-rewrite-ui";
-
-import {createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents} from "./hydrate.tsx";
+import React, {} from "react";
+import { Page } from "jopi-rewrite-ui";
+import { createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents } from "./hydrate.js";
 import * as cheerio from "cheerio";
-import {LoadBalancer} from "./loadBalancing.ts";
+import { LoadBalancer } from "./loadBalancing.js";
 import fs from "node:fs/promises";
 // noinspection ES6PreferShortImport
-import {PostMiddlewares} from "./middlewares/index.ts";
+import { PostMiddlewares } from "./middlewares/index.js";
 import * as jwt from 'jsonwebtoken';
-import {
-    type ServerInstance,
-    type ServerSocketAddress,
-    startServer,
-    type StartServerCoreOptions,
-    type StartServerOptions
-} from "./server.ts";
-
+import { startServer } from "./server.js";
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
-
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
-
-export type JopiRouter = RouterContext<WebSiteRoute>;
-export type JopiRouteHandler = (req: JopiRequest) => Response|Promise<Response>;
-export type JopiErrorHandler = (req: JopiRequest, error?: Error|string) => Response|Promise<Response>;
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
-export type RequestBody = ReadableStream<Uint8Array> | null;
-export type SendingBody = ReadableStream<Uint8Array> | string | FormData | null;
-
-type WebSiteMap = {[hostname: string]: WebSite};
-
-export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Promise<Response>;
-export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
-export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
-
 export class NotAuthorizedException extends Error {
 }
-
-export interface CookieOptions {
-    maxAge?: number;
-}
-
-export interface UserInfos {
-    roles?: string[];
-
-    id?: string;
-    email?: string;
-
-    fullName?: string;
-    nickName?: string;
-
-    firstName?: string;
-    lastName?: string;
-
-    avatarUrl?: string;
-
-    [key: string]: any;
-}
-
-export interface AuthResult {
-    isOk: boolean;
-    errorMessage?: string;
-    authToken?: string;
-    userInfos?: UserInfos;
-}
-
-export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
-
 export class JopiRequest {
-    public cache: PageCache;
-    public readonly mainCache: PageCache;
-    private cookies?: {[name: string]: string};
-    private _headers: Headers;
-
-    constructor(public readonly webSite: WebSite,
-                public readonly urlInfos: URL,
-                public coreRequest: Request,
-                public readonly coreServer: ServerInstance,
-                public readonly route: WebSiteRoute)
-    {
+    webSite;
+    urlInfos;
+    coreRequest;
+    coreServer;
+    route;
+    cache;
+    mainCache;
+    cookies;
+    _headers;
+    constructor(webSite, urlInfos, coreRequest, coreServer, route) {
+        this.webSite = webSite;
+        this.urlInfos = urlInfos;
+        this.coreRequest = coreRequest;
+        this.coreServer = coreServer;
+        this.route = route;
         this.cache = webSite.mainCache;
         this.mainCache = webSite.mainCache;
         this._headers = this.coreRequest.headers;
     }
-
     //region Properties
-
-    private _customData?: any;
-
-    get customData(): any {
-        if (!this._customData) this._customData = {};
+    _customData;
+    get customData() {
+        if (!this._customData)
+            this._customData = {};
         return this._customData;
     }
-
     /**
      * Return the verb used for the request (GET, POST, PUT, DELETE, ...)
      */
-    get method(): HttpMethod {
-        return this.coreRequest.method as HttpMethod;
+    get method() {
+        return this.coreRequest.method;
     }
-
     /**
      * Return the content type of the request.
      */
-    get reqContentType(): string|null {
+    get reqContentType() {
         return this.coreRequest.headers.get("content-type");
     }
-
-    get url(): string {
+    get url() {
         return this.coreRequest.url;
     }
-
-    get body(): RequestBody {
+    get body() {
         return this.coreRequest.body;
     }
-
-    get headers(): Headers {
+    get headers() {
         return this._headers;
     }
-
-    set headers(value: Headers) {
+    set headers(value) {
         this._headers = value;
     }
-
     /**
      * The part of the url.
      * if : https://mywebsite/product-name/list
      * and route http://mywebsite/{productName}/list
      * then urlParts contains {productName: "product-name"}
      */
-    urlParts?: any;
-
+    urlParts;
     /**
      * Returns the url search params.
      * For "https://my-site/?sort=asc&filter=jopi", it returns {sort: "asc", filter: "jopi"}.
      */
-    get urlSearchParams(): any {
+    get urlSearchParams() {
         const sp = this.urlInfos.searchParams;
-        if (!sp.size) return {};
-
-        const res: any = {};
+        if (!sp.size)
+            return {};
+        const res = {};
         sp.forEach((value, key) => res[key] = value);
         return res;
     }
-
     /**
      * Returns information on the caller IP.
      */
-    get requestIP(): ServerSocketAddress|null {
+    get requestIP() {
         return this.coreServer.requestIP(this.coreRequest);
     }
-
     get isFromLocalhost() {
         const ip = this.requestIP;
-        if (!ip) return false;
-
+        if (!ip)
+            return false;
         const address = ip.address;
-
         switch (address) {
             case "::1":
             case "127.0.0.1":
             case "::ffff:127.0.0.1":
                 return true;
         }
-
         return false;
     }
-
     //endregion
-
     //region Body transforming
-
     /**
      * Returns all the data about the request.
      * It's concat all data source.
@@ -185,25 +117,22 @@ export class JopiRequest {
      * - The search param (query string).
      * - The POST/PUT data if available.
      */
-    async getReqData<T>(ignoreUrl=false): Promise<T> {
-        let res: any = {};
-
+    async getReqData(ignoreUrl = false) {
+        let res = {};
         if (!ignoreUrl) {
             const searchParams = this.urlInfos.searchParams;
-
             if (searchParams.size) {
                 searchParams.forEach((value, key) => res[key] = value);
             }
-
             if (this.urlParts) {
-                res = {...res, ...this.urlParts};
+                res = { ...res, ...this.urlParts };
             }
         }
-
         if (this.isReqBodyJson) {
             try {
                 const asJson = await this.reqBodyAsJson();
-                if (asJson) res = {...res, ...asJson};
+                if (asJson)
+                    res = { ...res, ...asJson };
             }
             catch {
                 // If JSON is invalid.
@@ -227,27 +156,21 @@ export class JopiRequest {
                 // If FormData is invalid.
             }
         }
-
-        return res as T;
+        return res;
     }
-
     /**
      * Returns all the data about the request, organized by category.
      */
-    async getReqDataInfos(): Promise<any> {
-        let res: any = {};
-
+    async getReqDataInfos() {
+        let res = {};
         const searchParams = this.urlInfos.searchParams;
-
         if (searchParams.size) {
-            const t: any = res.searchParams = {};
-            searchParams.forEach((value, key) =>t[key] = value);
+            const t = res.searchParams = {};
+            searchParams.forEach((value, key) => t[key] = value);
         }
-
         if (this.urlParts) {
-            res.urlParts = {...this.urlParts};
+            res.urlParts = { ...this.urlParts };
         }
-
         if (this.isReqBodyJson) {
             try {
                 res.body = await this.reqBodyAsJson();
@@ -258,161 +181,136 @@ export class JopiRequest {
         }
         else if (this.isReqBodyFormData) {
             try {
-                const t: any = res.formData = {};
+                const t = res.formData = {};
                 const asFormData = await this.reqBodyAsFormData();
                 asFormData.forEach((value, key) => t[key] = value);
             }
             catch {
                 // If FormData is invalid.
             }
-        } else if (this.isReqBodyXFormUrlEncoded) {
+        }
+        else if (this.isReqBodyXFormUrlEncoded) {
             try {
                 let data = await this.reqBodyAsText();
-                const t: any = res.formUrlEncoded = {};
+                const t = res.formUrlEncoded = {};
                 new URLSearchParams(data).forEach((value, key) => t[key] = value);
             }
             catch {
                 // If invalid.
             }
         }
-
         return res;
     }
-
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/bodyUsed
      */
-    get isReqBodyUsed(): boolean {
+    get isReqBodyUsed() {
         return this.coreRequest.bodyUsed;
     }
-
-    get isReqBodyJson(): boolean {
+    get isReqBodyJson() {
         const ct = this.reqContentType;
-        if (ct===null) return false;
+        if (ct === null)
+            return false;
         return ct.startsWith("application/json");
     }
-
-    get isReqBodyFormData(): boolean {
+    get isReqBodyFormData() {
         const ct = this.reqContentType;
-        if (ct===null) return false;
+        if (ct === null)
+            return false;
         return ct.startsWith("multipart/form-data");
     }
-
-    get isReqBodyXFormUrlEncoded(): boolean {
+    get isReqBodyXFormUrlEncoded() {
         const ct = this.reqContentType;
-        if (ct===null) return false;
+        if (ct === null)
+            return false;
         return ct.startsWith("application/x-www-form-urlencoded");
     }
-
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/text
      */
-    reqBodyAsText(): Promise<string> {
+    reqBodyAsText() {
         return this.coreRequest.text();
     }
-
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/json
      */
-    reqBodyAsJson<T>(): Promise<T> {
-        return this.coreRequest.json() as Promise<T>;
+    reqBodyAsJson() {
+        return this.coreRequest.json();
     }
-
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/arrayBuffer
      */
-    reqBodyAsArrayBuffer(): Promise<ArrayBuffer> {
+    reqBodyAsArrayBuffer() {
         return this.coreRequest.arrayBuffer();
     }
-
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/blob
      */
-    reqBodyAsBlob(): Promise<Blob> {
+    reqBodyAsBlob() {
         return this.coreRequest.blob();
     }
-
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/bytes
      */
-    reqBodyAsBytes(): Promise<Uint8Array> {
+    reqBodyAsBytes() {
         return this.coreRequest.bytes();
     }
-
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/formData
      */
-    reqBodyAsFormData(): Promise<FormData> {
+    reqBodyAsFormData() {
         return this.coreRequest.formData();
     }
-
     //endregion
-
     //region Request timeout
-
     /**
      * When DDOS protection is enabled, the request has a timeout of 60 seconds.
      * Here it'd allow you to extend this time for a request you knew was slow.
      */
-    extendTimeout_sec(sec: number) {
+    extendTimeout_sec(sec) {
         this.coreServer.timeout(this.coreRequest, sec);
     }
-
     //endregion
-
     //region Response helpers
-
-    redirectResponse(permanent: boolean = false, url?: string|URL) {
-        if (!url) url = this.urlInfos;
-        return new Response(null, {status: permanent ? 301 : 302, headers:{"location": url.toString()}});
+    redirectResponse(permanent = false, url) {
+        if (!url)
+            url = this.urlInfos;
+        return new Response(null, { status: permanent ? 301 : 302, headers: { "location": url.toString() } });
     }
-
-    textResponse(text: string, statusCode: number = 200) {
-        return new Response(text, {status: statusCode, headers:{"content-type": "text/plain;charset=utf-8"}});
+    textResponse(text, statusCode = 200) {
+        return new Response(text, { status: statusCode, headers: { "content-type": "text/plain;charset=utf-8" } });
     }
-
-    htmlResponse(html: string, statusCode: number = 200) {
+    htmlResponse(html, statusCode = 200) {
         html = this.postProcessHtml(html);
-        return new Response(html, {status: statusCode, headers:{"content-type": "text/html;charset=utf-8"}});
+        return new Response(html, { status: statusCode, headers: { "content-type": "text/html;charset=utf-8" } });
     }
-
-    jsonResponse(json: any, statusCode: number = 200) {
-        return new Response(JSON.stringify(json), {status: statusCode, headers:{"content-type": "application/json;charset=utf-8"}});
+    jsonResponse(json, statusCode = 200) {
+        return new Response(JSON.stringify(json), { status: statusCode, headers: { "content-type": "application/json;charset=utf-8" } });
     }
-
-    jsonStringResponse(json: string, statusCode: number = 200) {
-        return new Response(json, {status: statusCode, headers:{"content-type": "application/json;charset=utf-8"}});
+    jsonStringResponse(json, statusCode = 200) {
+        return new Response(json, { status: statusCode, headers: { "content-type": "application/json;charset=utf-8" } });
     }
-
-    error404Response(): Response|Promise<Response> {
+    error404Response() {
         return this.webSite.return404(this);
     }
-
-    error500Response(error?: Error|string): Response|Promise<Response> {
+    error500Response(error) {
         return this.webSite.return500(this, error);
     }
-
     //endregion
-
     //region Fetch / Proxy
-
-    directProxyToServer(): Promise<Response> {
+    directProxyToServer() {
         return this.webSite.loadBalancer.directProxy(this);
     }
-
-    directProxyWith(server: ServerFetch<any>): Promise<Response> {
+    directProxyWith(server) {
         return server.directProxy(this);
     }
-
-    fetchServer(headers?: Headers, method: string="GET", url?: URL, body?: RequestBody): Promise<Response> {
-        if (!url) url = this.urlInfos;
+    fetchServer(headers, method = "GET", url, body) {
+        if (!url)
+            url = this.urlInfos;
         return this.webSite.loadBalancer.fetch(method, url, body, headers);
     }
-
     //endregion
-
     //region Cache
-
     /**
      * Get from the cache the entry corresponding to the curent url.
      *
@@ -422,15 +320,13 @@ export class JopiRequest {
      * @param metaUpdater
      *      Allow updating the meta of the cache entry.
      */
-    async getFromCache(useGzippedVersion: boolean = true, metaUpdater?: MetaUpdater<unknown>): Promise<Response|undefined> {
+    async getFromCache(useGzippedVersion = true, metaUpdater) {
         return await this.cache.getFromCache(this.urlInfos, useGzippedVersion, metaUpdater);
     }
-
-    async hasInCache(useGzippedVersion?: boolean|undefined): Promise<boolean> {
+    async hasInCache(useGzippedVersion) {
         return await this.cache.hasInCache(this.urlInfos, useGzippedVersion);
     }
-
-    removeFromCache(url?: URL): Promise<void> {
+    removeFromCache(url) {
         // Avoid doublons.
         //
         if (!url) {
@@ -438,215 +334,184 @@ export class JopiRequest {
             url.hostname = url.hostname.toLowerCase();
             url.pathname = url.pathname.toLowerCase();
         }
-
         return this.cache.removeFromCache(url || this.urlInfos);
     }
-
-    addToCache_Compressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
+    addToCache_Compressed(response, metaUpdater) {
         return this.cache.addToCache(this.urlInfos, response, this.webSite.getHeadersToCache(), false, metaUpdater);
     }
-
-    addToCache_Uncompressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
+    addToCache_Uncompressed(response, metaUpdater) {
         return this.cache.addToCache(this.urlInfos, response, this.webSite.getHeadersToCache(), true, metaUpdater);
     }
-
     /**
      * Allow using a sub-cache.
      * For example, a cache dedicated per user.
      */
-    useCache(cache: PageCache) {
+    useCache(cache) {
         this.cache = cache;
     }
-
-    getSubCache(name: string): PageCache {
+    getSubCache(name) {
         return this.cache.createSubCache(name);
     }
-
     //endregion
-
     //region Test type / React on type
-
-    getContentTypeCategory(response: Response): ContentTypeCategory {
+    getContentTypeCategory(response) {
         const contentType = response.headers.get("content-type");
-        if (!contentType) return ContentTypeCategory.OTHER;
-
+        if (!contentType)
+            return ContentTypeCategory.OTHER;
         if (contentType.startsWith("text/")) {
             if (contentType.startsWith("html", 5)) {
                 return ContentTypeCategory.TEXT_HTML;
-            } else if (contentType.startsWith("css")) {
+            }
+            else if (contentType.startsWith("css")) {
                 return ContentTypeCategory.TEXT_CSS;
-            } else if (contentType.startsWith("javascript", 5)) {
+            }
+            else if (contentType.startsWith("javascript", 5)) {
                 return ContentTypeCategory.TEXT_JAVASCRIPT;
-            } else if (contentType.startsWith("json")) {
+            }
+            else if (contentType.startsWith("json")) {
                 return ContentTypeCategory.TEXT_JSON;
             }
-        } else if (contentType.startsWith("image")) {
+        }
+        else if (contentType.startsWith("image")) {
             return ContentTypeCategory.IMAGE;
-        } else if (contentType.startsWith("application")) {
+        }
+        else if (contentType.startsWith("application")) {
             if (contentType.startsWith("x-www-form-urlencoded", 12)) {
                 return ContentTypeCategory.FORM_URL_ENCODED;
-            } else if (contentType.startsWith("json", 12)) {
+            }
+            else if (contentType.startsWith("json", 12)) {
                 return ContentTypeCategory.TEXT_JSON;
-            } else if (contentType.startsWith("javascript", 12)) {
+            }
+            else if (contentType.startsWith("javascript", 12)) {
                 return ContentTypeCategory.TEXT_JAVASCRIPT;
             }
-        } else if (contentType.startsWith("multipart/form-data")) {
+        }
+        else if (contentType.startsWith("multipart/form-data")) {
             return ContentTypeCategory.FORM_MULTIPART;
         }
-
         return ContentTypeCategory.OTHER;
     }
-
-    isHtml(response: Response): boolean {
+    isHtml(response) {
         const contentType = response.headers.get("content-type");
-        if (contentType===null) return false;
+        if (contentType === null)
+            return false;
         return contentType.startsWith("text/html");
     }
-
-    isCss(response: Response): boolean {
+    isCss(response) {
         const contentType = response.headers.get("content-type");
-        if (contentType===null) return false;
+        if (contentType === null)
+            return false;
         return contentType.startsWith("text/css");
     }
-
-    isJavascript(response: Response): boolean {
+    isJavascript(response) {
         const contentType = response.headers.get("content-type");
-        if (contentType===null) return false;
+        if (contentType === null)
+            return false;
         return contentType.startsWith("application/javascript") || contentType.startsWith("text/javascript");
     }
-
-    isJson(response: Response): boolean {
+    isJson(response) {
         const contentType = response.headers.get("content-type");
-        if (contentType===null) return false;
+        if (contentType === null)
+            return false;
         return contentType.startsWith("application/json");
     }
-
-    isXFormUrlEncoded(response: Response): boolean {
+    isXFormUrlEncoded(response) {
         const contentType = response.headers.get("content-type");
-        if (contentType===null) return false;
+        if (contentType === null)
+            return false;
         return contentType.startsWith("x-www-form-urlencoded");
     }
-
-    async hookIfHtml(res: Response, ...hooks: TextModifier[]): Promise<Response> {
+    async hookIfHtml(res, ...hooks) {
         if (this.isHtml(res)) {
-            return new Response(
-                await this.applyTextModifiers(res, hooks),
-                {status: res.status, headers: res.headers}
-            );
+            return new Response(await this.applyTextModifiers(res, hooks), { status: res.status, headers: res.headers });
         }
-
         return Promise.resolve(res);
     }
-
-    async hookIfCss(res: Response, ...hooks: TextModifier[]): Promise<Response> {
+    async hookIfCss(res, ...hooks) {
         if (this.isCss(res)) {
-            return new Response(
-                await this.applyTextModifiers(res, hooks),
-                {status: res.status, headers: res.headers}
-            );
+            return new Response(await this.applyTextModifiers(res, hooks), { status: res.status, headers: res.headers });
         }
-
         return Promise.resolve(res);
     }
-
-    async hookIfJavascript(res: Response, ...hooks: TextModifier[]): Promise<Response> {
+    async hookIfJavascript(res, ...hooks) {
         if (this.isJavascript(res)) {
-            return new Response(
-                await this.applyTextModifiers(res, hooks),
-                {status: res.status, headers: res.headers}
-            );
+            return new Response(await this.applyTextModifiers(res, hooks), { status: res.status, headers: res.headers });
         }
-
         return Promise.resolve(res);
     }
-
-    async applyTextModifiers(res: Response, hooks: TextModifier[]): Promise<string> {
-        let text = await res.text() as string;
-
+    async applyTextModifiers(res, hooks) {
+        let text = await res.text();
         for (const hook of hooks) {
             const hRes = hook(text, this);
             text = hRes instanceof Promise ? await hRes : hRes;
         }
-
         return text;
     }
-
-    async executeModifiers(res: Response, hooks: ResponseModifier[]): Promise<Response> {
+    async executeModifiers(res, hooks) {
         for (const hook of hooks) {
             const hRes = hook(res, this);
             res = hRes instanceof Promise ? await hRes : hRes;
         }
-
         return res;
     }
-
     //endregion
-
     //region Spy
-
-    async duplicateReadableStream(stream: ReadableStream | null): Promise<(ReadableStream<any> | null)[]> {
-        if (!stream) return [null, null];
+    async duplicateReadableStream(stream) {
+        if (!stream)
+            return [null, null];
         return stream.tee();
     }
-
-    async duplicateRawRequest(raw: Request): Promise<[Request, Request]> {
+    async duplicateRawRequest(raw) {
         const [str1, str2] = await this.duplicateReadableStream(raw.body);
-
         const res1 = new Request(raw.url, {
             body: str1,
             headers: raw.headers,
             method: raw.method
         });
-
         const res2 = new Request(raw.url, {
             body: str2,
             headers: raw.headers,
             method: raw.method
         });
-
         return [res1, res2];
     }
-
-    async duplicateResponse(raw: Response): Promise<[Response, Response]> {
+    async duplicateResponse(raw) {
         const [str1, str2] = await this.duplicateReadableStream(raw.body);
-
         const res1 = new Response(str1, {
             status: raw.status,
             headers: raw.headers
         });
-
         const res2 = new Response(str2, {
             status: raw.status,
             headers: raw.headers
         });
-
         return [res1, res2];
     }
-
-    async spyRequest(handleRequest: (req: JopiRequest) => Response|Promise<Response>): Promise<Response> {
+    async spyRequest(handleRequest) {
         return this.spyRequestData(handleRequest, (data) => {
             this.printSpyRequestData(data);
         });
     }
-
-    async printSpyRequestData(data: JopiRequestSpyData) {
+    async printSpyRequestData(data) {
         const term = NodeSpace.term;
         const headerColor = term.buildWriter(term.C_RED);
         const titleColor = term.buildWriter(term.C_ORANGE);
-
         let resAsText = "";
         //
         try {
             if (data.res) {
                 let res = data.res();
-                if (!res) resAsText = "[NO SET]";
-                else resAsText = await res.text()
-            } else {
+                if (!res)
+                    resAsText = "[NO SET]";
+                else
+                    resAsText = await res.text();
+            }
+            else {
                 resAsText = "[NO SET]";
             }
-        } catch {
         }
-
+        catch {
+        }
         console.log();
         console.log(headerColor(this.method, this.url));
         console.log(titleColor("|- referer: "), data.reqReferer);
@@ -658,168 +523,129 @@ export class JopiRequest {
         console.log(titleColor("|- resHeaders:"), data.resHeaders);
         console.log(titleColor("|- resData:"), resAsText);
     }
-
-    async spyRequestData(handleRequest: JopiRouteHandler, onSpy: JopiRequestSpy): Promise<Response> {
+    async spyRequestData(handleRequest, onSpy) {
         const [bunNewReq, spyReq] = await this.duplicateRawRequest(this.coreRequest);
-
         // Required because the body is already consumed.
         this.coreRequest = bunNewReq;
-
         let res = handleRequest(this);
-        if (res instanceof Promise) res = await res;
+        if (res instanceof Promise)
+            res = await res;
         const [bunNewRes, spyRes] = await this.duplicateResponse(res);
-
         // Required because the body is already consumed.
         this.coreRequest = spyReq;
-
         onSpy({
             method: this.method,
-            res: ()=>spyRes,
-
+            res: () => spyRes,
             reqUrl: this.url,
             reqReferer: this.headers.get("referer"),
             reqContentType: this.reqContentType,
             reqData: await this.getReqDataInfos(),
             resContentType: res.headers.get("content-type"),
             resContentTypeCat: this.getContentTypeCategory(res),
-
             reqCookies: this.headers.get("cookie"),
             resCookieSet: spyRes.headers.getSetCookie(),
-
             resStatus: spyRes.status,
             resLocation: spyRes.headers.get("location"),
             resHeaders: spyRes.headers
         }, this);
-
         return bunNewRes;
     }
-
     //endregion
-
     //region Cookies
-
-    hasCookie(name: string, value?: string): boolean {
-        if (!this.cookies) this.cookies = parseCookies(this.coreRequest.headers);
-        if (value) return this.cookies[name] === value;
+    hasCookie(name, value) {
+        if (!this.cookies)
+            this.cookies = parseCookies(this.coreRequest.headers);
+        if (value)
+            return this.cookies[name] === value;
         return this.cookies[name] !== undefined;
     }
-
-    getCookie(name: string): string|undefined {
-        if (!this.cookies) this.cookies = parseCookies(this.coreRequest.headers);
+    getCookie(name) {
+        if (!this.cookies)
+            this.cookies = parseCookies(this.coreRequest.headers);
         return this.cookies[name];
     }
-
-    async hookIfCookie(res: Response, name: string, testCookieValue: null | undefined | TestCookieValue, ...hooks: TextModifier[]): Promise<Response> {
+    async hookIfCookie(res, name, testCookieValue, ...hooks) {
         const cookieValue = this.getCookie(name);
-
         if (cookieValue) {
             if (testCookieValue && !testCookieValue(cookieValue)) {
                 return Promise.resolve(res);
             }
-
             return this.htmlResponse(await this.applyTextModifiers(res, hooks));
         }
-
         return Promise.resolve(res);
     }
-
-    addCookie(res: Response, cookieName: string, cookieValue: string, options?: CookieOptions) {
+    addCookie(res, cookieName, cookieValue, options) {
         let cookie = `${cookieName}=${cookieValue};`;
-
         if (options) {
             if (options.maxAge) {
-                 cookie += ` Max-Age=${options.maxAge};`;
+                cookie += ` Max-Age=${options.maxAge};`;
             }
         }
-
         res.headers.append("set-cookie", cookie);
     }
     //endregion
-
     //region ReactJS
-
-    reactResponse(element: ReactNode) {
-        return this.htmlResponse(ReactServer.renderToStaticMarkup(<Page>{element}</Page>));
+    reactResponse(element) {
+        return this.htmlResponse(ReactServer.renderToStaticMarkup(_jsx(Page, { children: element })));
     }
-
-    reactToString(element: ReactNode): string {
+    reactToString(element) {
         return ReactServer.renderToStaticMarkup(element);
     }
-
     //endregion
-
     //region JQuery
-
-    asJquery(html: string) {
+    asJquery(html) {
         const res = cheerio.load(html);
         initCheerio(res);
         return res;
     }
-
-    $(html: string) {
+    $(html) {
         const res = cheerio.load(html);
         initCheerio(res);
         return res;
     }
-
     //endregion
-
     //region Post processing
-
-    private postProcessHtml(html: string): string {
+    postProcessHtml(html) {
         if (hasHydrateComponents()) {
             const bundleUrl = getBundleUrl(this.webSite);
             const hash = this.webSite.data["jopiLoaderHash"];
-
             html += `\n<link rel="stylesheet" href="${bundleUrl}/loader.css?${hash.css}" />`;
             html += `\n<script type="module" src="${bundleUrl}/loader.js?${hash.js}"></script>`;
         }
-
         return html;
     }
-
     //endregion
-
     //region JWT Tokens
-
     /**
      * Create a JWT token with the data.
      */
-    createJwtToken(data: UserInfos): string|undefined {
+    createJwtToken(data) {
         return this.userJwtToken = this.webSite.createJwtToken(data);
     }
-
     /**
      * Extract the JWT token from the Authorization header.
      */
-    getJwtToken(): string|undefined {
+    getJwtToken() {
         if (this.userJwtToken) {
             return this.userJwtToken;
         }
-
         if (this.hasNoUserInfos) {
             return undefined;
         }
-
         let authHeader = this.headers.get("authorization");
-
         if (authHeader) {
             if (authHeader.startsWith("Bearer ")) {
                 return this.userJwtToken = authHeader.slice(7);
             }
         }
-
         let authCookie = this.getCookie("authorization");
-
         if (authCookie) {
             if (authCookie.startsWith("jwt ")) {
                 return this.userJwtToken = authCookie.slice(4);
             }
         }
-
         return undefined;
     }
-
     /**
      * Try to sign in the user with information you provide.
      * Return true if he is signed in, false otherwise.
@@ -830,590 +656,452 @@ export class JopiRequest {
      *      Information with things like login/password-hash/...
      *      Must match with you have used with webSite.setUserLoginManager.
      */
-    async tryAuthWithJWT(loginInfo: any): Promise<AuthResult> {
+    async tryAuthWithJWT(loginInfo) {
         const authResult = await this.webSite.tryAuthUser(loginInfo);
-
         if (authResult.isOk) {
-            if (!authResult.authToken) authResult.authToken = this.createJwtToken(authResult.userInfos!);
-
+            if (!authResult.authToken)
+                authResult.authToken = this.createJwtToken(authResult.userInfos);
             // The token will be added to cookie "authorization" in the post-process step.
             this.userJwtToken = authResult.authToken;
-            this.userInfos = authResult.userInfos!;
-
+            this.userInfos = authResult.userInfos;
             return authResult;
         }
-
         this.userInfos = undefined;
-        this.userJwtToken = undefined
+        this.userJwtToken = undefined;
         return authResult;
     }
-
     /**
      * Verify and decode the JWT token.
      * Once done, the data is saved and can be read through req.userTokenData.
      */
-    private decodeJwtToken(): UserInfos|undefined {
+    decodeJwtToken() {
         const token = this.getJwtToken();
-        if (!token) return undefined;
+        if (!token)
+            return undefined;
         return this.webSite.decodeJwtToken(token);
     }
-
-    public getUserInfos(): UserInfos|undefined {
-        if (this.userInfos) return this.userInfos;
-        if (this.hasNoUserInfos) return undefined;
-
+    getUserInfos() {
+        if (this.userInfos)
+            return this.userInfos;
+        if (this.hasNoUserInfos)
+            return undefined;
         const userInfos = this.decodeJwtToken();
-
         if (userInfos) {
             this.userInfos = userInfos;
             return userInfos;
         }
-
         this.hasNoUserInfos = true;
         return undefined;
     }
-
-    private hasNoUserInfos: boolean = false;
-    private userInfos?: UserInfos;
-    private userJwtToken?: string;
-
+    hasNoUserInfos = false;
+    userInfos;
+    userJwtToken;
     //endregion
-
     //region User roles
-
     /**
      * Returns the roles of the user.
      */
-    public getUserRoles(): string[] {
+    getUserRoles() {
         const userInfos = this.getUserInfos();
-        if (!userInfos || !userInfos.roles) return [];
+        if (!userInfos || !userInfos.roles)
+            return [];
         return userInfos.roles;
     }
-
     /**
      * Check if the user has all these roles.
      * Return true if ok, false otherwise.
      */
-    public userHasRoles(...requiredRoles: string[]): boolean {
+    userHasRoles(...requiredRoles) {
         const userInfos = this.getUserInfos();
-        if (!userInfos) return false;
-
+        if (!userInfos)
+            return false;
         const userRoles = userInfos.roles;
-        if (!userRoles) return false;
-
+        if (!userRoles)
+            return false;
         for (let role of requiredRoles) {
-            if (!userRoles.includes(role)) return false;
+            if (!userRoles.includes(role))
+                return false;
         }
-
         return true;
     }
-
-    public assertUserHasRoles(...requiredRoles: string[]) {
+    assertUserHasRoles(...requiredRoles) {
         if (!this.userHasRoles(...requiredRoles)) {
             throw new NotAuthorizedException();
         }
     }
-
     //endregion
-
-    filterSearchParams(filter: SearchParamFilterFunction) {
+    filterSearchParams(filter) {
         filter(this.urlInfos);
     }
-
-    getContentTypeOf(response: Response): string|null {
+    getContentTypeOf(response) {
         return response.headers.get("content-type");
     }
-
     /**
      * Allow serving a file as a response.
      */
-    async serveFile(filesRootPath: string, options?: ServeFileOptions): Promise<Response> {
+    async serveFile(filesRootPath, options) {
         options = options || gEmptyObject;
-
-        if (options.replaceIndexHtml!==false) {
+        if (options.replaceIndexHtml !== false) {
             if (this.urlInfos.pathname.endsWith("/index.html")) {
                 this.urlInfos.pathname = this.urlInfos.pathname.slice(0, -10);
                 return this.redirectResponse(false);
             }
-
             if (this.urlInfos.pathname.endsWith("/")) {
                 this.urlInfos.pathname += "index.html";
             }
         }
-
         const sfc = new WebSiteMirrorCache(filesRootPath);
         const fromCache = await sfc.getFromCache(this.urlInfos);
-        if (fromCache) return fromCache;
-
+        if (fromCache)
+            return fromCache;
         if (options.onNotFound) {
             return options.onNotFound(this);
         }
-
         return this.error404Response();
     }
 }
-
-export interface JopiRequestSpyData {
-    method: string;
-
-    reqUrl: string;
-    reqReferer: string|null;
-    reqContentType: string|null;
-    reqData: any;
-
-    // Allow avoiding printing the response content.
-    res: (()=>Response)|undefined|null;
-
-    resContentType: string|null;
-    resContentTypeCat: ContentTypeCategory;
-
-    resStatus: number;
-    resLocation: string|null;
-    resHeaders: Headers|undefined|null;
-
-    reqCookies: string|null;
-    resCookieSet: string[]|null;
-}
-
-export type JopiRequestSpy = (data: JopiRequestSpyData, req: JopiRequest) => void;
-
 const gEmptyObject = {};
-
-export interface ServeFileOptions {
-    /*
-        If true, then /index.html is replaced by / in the browser nav bar.
-        Default is true.
-     */
-    replaceIndexHtml?: boolean;
-
-    /**
-     * If the request file is not found, then call this function.
-     * If undefined, then will directly return a 404 error.
-     */
-    onNotFound?: (req: JopiRequest) => Response|Promise<Response>;
-}
-
 export class WebSiteOptions {
     /**
      * The TLS certificate to use;
      */
-    certificate?: SslCertificatePath;
-
+    certificate;
     /**
      * Allow defining our own cache for this website and don't use the common one.
      */
-    cache?: PageCache;
+    cache;
 }
-
-export interface WebSiteRoute {
-    handler: JopiRouteHandler;
-    searchParamFilter?: SearchParamFilterFunction;
-}
-
 export class WebSite {
-    readonly port: number;
-    readonly hostName: string;
-    readonly welcomeUrl: string;
-    readonly isHttps?: boolean = false;
-
-    readonly certificate?: SslCertificatePath;
-    readonly mainCache: PageCache;
-
-    private readonly router: JopiRouter;
-    private _onNotFound?: JopiRouteHandler;
-    private _on404?: JopiRouteHandler;
-    private _on500?: JopiErrorHandler;
-
-    private headersToCache: string[] = ["content-type", "etag", "last-modified"];
-    private middlewares?: JopiMiddleware[];
-    private postMiddlewares?: JopiPostMiddleware[];
-
-    private JWT_SECRET?: string;
-    private jwtSigInOptions?: jwt.SignOptions;
-    private authHandler?: AuthHandler<any>;
-    private jwtTokenStore?: JwtTokenStore;
-
-    public readonly data: any = {};
-
-    public readonly loadBalancer = new LoadBalancer();
-
-    constructor(url: string, options?: WebSiteOptions) {
-        if (!options) options = {};
-
+    port;
+    hostName;
+    welcomeUrl;
+    isHttps = false;
+    certificate;
+    mainCache;
+    router;
+    _onNotFound;
+    _on404;
+    _on500;
+    headersToCache = ["content-type", "etag", "last-modified"];
+    middlewares;
+    postMiddlewares;
+    JWT_SECRET;
+    jwtSigInOptions;
+    authHandler;
+    jwtTokenStore;
+    data = {};
+    loadBalancer = new LoadBalancer();
+    constructor(url, options) {
+        if (!options)
+            options = {};
         url = url.trim().toLowerCase();
-
         this.welcomeUrl = url;
         this.certificate = options.certificate;
-
         const urlInfos = new URL(url);
         this.welcomeUrl = urlInfos.protocol + "//" + urlInfos.hostname;
-
-        if (urlInfos.protocol === "https:") this.isHttps = true;
-        else if (urlInfos.protocol!=="http:") throw new Error("invalid url");
-
+        if (urlInfos.protocol === "https:")
+            this.isHttps = true;
+        else if (urlInfos.protocol !== "http:")
+            throw new Error("invalid url");
         if (urlInfos.port) {
             this.port = parseInt(urlInfos.port);
             this.welcomeUrl += ':' + this.port;
-        } else {
-            if (this.isHttps) this.port = 443;
-            else this.port = 80;
         }
-
+        else {
+            if (this.isHttps)
+                this.port = 443;
+            else
+                this.port = 80;
+        }
         this.hostName = urlInfos.hostname;
         this.mainCache = options.cache || gVoidCache;
-        this.router = createRouter<WebSiteRoute>();
-
+        this.router = createRouter();
         if (hasHydrateComponents()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
     }
-
-    addRoute(method: HttpMethod, path: string, handler: JopiRouteHandler) {
-        const webSiteRoute: WebSiteRoute = {handler};
+    addRoute(method, path, handler) {
+        const webSiteRoute = { handler };
         addRoute(this.router, method, path, webSiteRoute);
         return webSiteRoute;
     }
-
-    addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler) {
-        const webSiteRoute: WebSiteRoute = {handler};
+    addSharedRoute(method, allPath, handler) {
+        const webSiteRoute = { handler };
         allPath.forEach(path => addRoute(this.router, method, path, webSiteRoute));
         return webSiteRoute;
     }
-
-    getWebSiteRoute(method:string, url: string): WebSiteRoute|undefined {
-        const matched = findRoute(this.router!, method, url);
-        if (!matched) return undefined;
+    getWebSiteRoute(method, url) {
+        const matched = findRoute(this.router, method, url);
+        if (!matched)
+            return undefined;
         return matched.data;
     }
-
-    onVerb(verb: HttpMethod, path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onVerb(verb, path, handler) {
         handler = this.applyMiddlewares(handler);
-
         if (Array.isArray(path)) {
             return this.addSharedRoute("GET", path, handler);
         }
-
         return this.addRoute(verb, path, handler);
     }
-
-    onGET(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onGET(path, handler) {
         return this.onVerb("GET", path, handler);
     }
-
-    onPOST(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onPOST(path, handler) {
         return this.onVerb("POST", path, handler);
     }
-
-    onPUT(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onPUT(path, handler) {
         return this.onVerb("PUT", path, handler);
     }
-
-    onDELETE(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onDELETE(path, handler) {
         return this.onVerb("DELETE", path, handler);
     }
-
-    onPATCH(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onPATCH(path, handler) {
         return this.onVerb("PATCH", path, handler);
     }
-
-    onHEAD(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onHEAD(path, handler) {
         return this.onVerb("HEAD", path, handler);
     }
-
-    onOPTIONS(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onOPTIONS(path, handler) {
         return this.onVerb("OPTIONS", path, handler);
     }
-
-    onNotFound(handler: JopiRouteHandler) {
+    onNotFound(handler) {
         this._onNotFound = handler;
     }
-
-    on404(handler: JopiRouteHandler) {
+    on404(handler) {
         this._on404 = handler;
     }
-
-    on500(handler: JopiRouteHandler) {
+    on500(handler) {
         this._on500 = handler;
     }
-
-    getRouteFor(url: string, method: string = "GET"): WebSiteRoute|undefined {
-        const matched = findRoute(this.router!, method, url);
-        if (!matched) return undefined;
+    getRouteFor(url, method = "GET") {
+        const matched = findRoute(this.router, method, url);
+        if (!matched)
+            return undefined;
         return matched.data;
     }
-
-    processRequest(urlInfos: URL, bunRequest: Request, bunServer: ServerInstance): Response|Promise<Response> {
+    processRequest(urlInfos, bunRequest, bunServer) {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
-
-        const matched = findRoute(this.router!, bunRequest.method, urlInfos.pathname);
-        const req = new JopiRequest(this, urlInfos, bunRequest, bunServer, (matched?.data)!);
-
+        const matched = findRoute(this.router, bunRequest.method, urlInfos.pathname);
+        const req = new JopiRequest(this, urlInfos, bunRequest, bunServer, (matched?.data));
         if (matched) {
             req.urlParts = matched.params;
-
             try {
                 return matched.data.handler(req);
-            } catch (e) {
+            }
+            catch (e) {
                 if (e instanceof NotAuthorizedException) {
                     return req.textResponse(e.message, 401);
                 }
-
                 console.error(e);
-                return this.return500(req, e as Error|string);
+                return this.return500(req, e);
             }
         }
-
         // Doing this allows CORS options to be sent.
-        if (req.method==="OPTIONS") {
+        if (req.method === "OPTIONS") {
             return req.htmlResponse("");
         }
-
         return this.ifRouteNotFound(req);
     }
-
-    return404(req: JopiRequest): Response|Promise<Response> {
+    return404(req) {
         if (this._on404) {
             return this._on404(req);
         }
-
-        return new Response("", {status: 404});
+        return new Response("", { status: 404 });
     }
-
-    return500(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
+    return500(req, error) {
         if (this._on500) {
             return this._on500(req, error);
         }
-
-        return new Response("", {status: 404});
+        return new Response("", { status: 404 });
     }
-
     onServerStarted() {
         if (this.welcomeUrl) {
             console.log("Website started:", this.welcomeUrl);
         }
     }
-
-    getHeadersToCache(): string[] {
+    getHeadersToCache() {
         return this.headersToCache;
     }
-
-    addHeaderToCache(header: string) {
+    addHeaderToCache(header) {
         header = header.trim().toLowerCase();
-        if (!this.headersToCache.includes(header)) this.headersToCache.push(header);
+        if (!this.headersToCache.includes(header))
+            this.headersToCache.push(header);
     }
-
-    addMiddleware(middleware: JopiMiddleware) {
-        if (!this.middlewares) this.middlewares = [];
+    addMiddleware(middleware) {
+        if (!this.middlewares)
+            this.middlewares = [];
         this.middlewares.push(middleware);
     }
-
-    addPostMiddleware(middleware: JopiPostMiddleware) {
-        if (!this.postMiddlewares) this.postMiddlewares = [];
+    addPostMiddleware(middleware) {
+        if (!this.postMiddlewares)
+            this.postMiddlewares = [];
         this.postMiddlewares.push(middleware);
     }
-
-    addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number) {
-        this.loadBalancer.addServer<T>(serverFetch, weight);
+    addSourceServer(serverFetch, weight) {
+        this.loadBalancer.addServer(serverFetch, weight);
     }
-
-    enableCors(allows?: string[]) {
-        if (!allows) allows = [this.welcomeUrl];
-        this.addPostMiddleware(PostMiddlewares.cors({accessControlAllowOrigin: allows}));
+    enableCors(allows) {
+        if (!allows)
+            allows = [this.welcomeUrl];
+        this.addPostMiddleware(PostMiddlewares.cors({ accessControlAllowOrigin: allows }));
     }
-
     /**
      * Create a JWT token with the data.
      */
-    createJwtToken(data: UserInfos): string|undefined {
+    createJwtToken(data) {
         try {
-            return jwt.sign(data as object, this.JWT_SECRET!, this.jwtSigInOptions);
-        } catch (e) {
+            return jwt.sign(data, this.JWT_SECRET, this.jwtSigInOptions);
+        }
+        catch (e) {
             return undefined;
         }
     }
-
     /**
      * Verify and decode the JWT token.
      * Returns the data this token contains, or undefined if the token is invalid.
      */
-    decodeJwtToken(token: string): UserInfos|undefined {
-        if (!this.JWT_SECRET) return undefined;
-
-        try { return jwt.verify(token, this.JWT_SECRET) as UserInfos; }
-        catch { return undefined; }
+    decodeJwtToken(token) {
+        if (!this.JWT_SECRET)
+            return undefined;
+        try {
+            return jwt.verify(token, this.JWT_SECRET);
+        }
+        catch {
+            return undefined;
+        }
     }
-
-    setJwtSecret(secret: string) {
+    setJwtSecret(secret) {
         this.JWT_SECRET = secret;
     }
-
-    async tryAuthUser(loginInfo: any): Promise<AuthResult> {
+    async tryAuthUser(loginInfo) {
         if (this.authHandler) {
             const res = this.authHandler(loginInfo);
-            if (res instanceof Promise) return await res;
+            if (res instanceof Promise)
+                return await res;
             return res;
         }
-
         console.warn("Your JWT secret phrase isn't configured. Please use webSite.setJwtSecret to configure it.");
-        return {isOk: false};
+        return { isOk: false };
     }
-
-    setAuthHandler<T>(authHandler: AuthHandler<T>) {
+    setAuthHandler(authHandler) {
         this.authHandler = authHandler;
     }
-
-    private ifRouteNotFound(req: JopiRequest) {
+    ifRouteNotFound(req) {
         if (this._onNotFound) {
             return this._onNotFound(req);
         }
-
         return this.return404(req);
     }
-
-    public storeJwtToken(req: JopiRequest, res: Response) {
+    storeJwtToken(req, res) {
         const token = req.getJwtToken();
-
         if (this.jwtTokenStore) {
-            this.jwtTokenStore(req.getJwtToken()!, "jwt " + token, req, res);
-        } else {
-            req.addCookie(res, "authorization", "jwt " + token, {maxAge: ONE_DAY * 7});
+            this.jwtTokenStore(req.getJwtToken(), "jwt " + token, req, res);
+        }
+        else {
+            req.addCookie(res, "authorization", "jwt " + token, { maxAge: ONE_DAY * 7 });
         }
     }
-
     /**
      * Allow hooking how the JWT token is stored in the user response.
      */
-    public setJwtTokenStore(store: JwtTokenStore) {
+    setJwtTokenStore(store) {
         this.jwtTokenStore = store;
     }
-
-    private applyMiddlewares(handler: JopiRouteHandler): JopiRouteHandler {
-        return async function(req) {
+    applyMiddlewares(handler) {
+        return async function (req) {
             const mdw = req.webSite.middlewares;
-
             if (mdw) {
                 const count = mdw.length;
-
                 // Use a simple loop, which allow us to add/remove middleware at runtime.
                 // For example, it allows enabling / disabling logging requests.
                 //
                 for (let i = 0; i < count; i++) {
                     const res = mdw[i](req);
-                    if (res) return res;
+                    if (res)
+                        return res;
                 }
             }
-
             const pRes = handler(req);
             let res = pRes instanceof Promise ? await pRes : pRes;
-
             if (req.getJwtToken()) {
                 req.webSite.storeJwtToken(req, res);
             }
-
             if (req.webSite.postMiddlewares) {
                 const pMdw = req.webSite.postMiddlewares;
                 const count = pMdw.length;
-
                 for (let i = 0; i < count; i++) {
                     const mRes = pMdw[i](req, res);
                     res = mRes instanceof Promise ? await mRes : mRes;
                 }
             }
-
             return res;
-        }
+        };
     }
-
-    getOrCreateHttpRedirectWebsite(): WebSite {
-        if (this.port===80) return this;
-
+    getOrCreateHttpRedirectWebsite() {
+        if (this.port === 80)
+            return this;
         let urlInfos = new URL(this.welcomeUrl);
         urlInfos.port = "";
         urlInfos.protocol = "http";
-
         const webSite = new WebSite(urlInfos.href);
-
         webSite.onGET("/**", req => {
             req.urlInfos.port = "";
             req.urlInfos.protocol = "https";
-
             return req.redirectResponse(true, req.urlInfos.href);
         });
-
         return webSite;
     }
 }
-
-export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
-
-export interface WithRoles {
-    roles?: string[];
-}
-
-export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response> | null;
-export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response | Promise<Response>;
-export type JopiMiddlewareBuilder<T> = (options?: T) => JopiMiddleware;
-
-export interface SslCertificatePath {
-    key: string;
-    cert: string;
-}
-
 export class ServerAlreadyStartedError extends Error {
     constructor() {
         super("the server is already");
     }
 }
-
 export class JopiServer {
-    private readonly webSites: WebSiteMap = {};
-    private readonly servers: ServerInstance[] = [];
-    private _isStarted = false;
-
-    addWebsite(webSite: WebSite): WebSite {
-        if (this._isStarted) throw new ServerAlreadyStartedError();
+    webSites = {};
+    servers = [];
+    _isStarted = false;
+    addWebsite(webSite) {
+        if (this._isStarted)
+            throw new ServerAlreadyStartedError();
         this.webSites[webSite.hostName] = webSite;
         return webSite;
     }
-
-    async stopServer(): Promise<void> {
-        if (!this._isStarted) return;
+    async stopServer() {
+        if (!this._isStarted)
+            return;
         await Promise.all(this.servers.map(server => server.stop(false)));
     }
-
     startServer() {
-        if (this._isStarted) return;
+        if (this._isStarted)
+            return;
         this._isStarted = true;
-
         /**
          * Allow avoiding a bug where returning an array with only one certificate throws an error.
          */
-        function selectCertificate(certificates: any[]) {
-            if (certificates.length===0) return undefined;
-            if (certificates.length===1) return certificates[0];
+        function selectCertificate(certificates) {
+            if (certificates.length === 0)
+                return undefined;
+            if (certificates.length === 1)
+                return certificates[0];
             return certificates;
         }
-
         // Create hydrate bundle.
         Object.values(this.webSites).forEach(webSite => createBundle(webSite));
-
-        const byPorts: { [port: number]: WebSiteMap } = {};
-
+        const byPorts = {};
         Object.values(this.webSites).forEach(e => {
-            if (!byPorts[e.port]) byPorts[e.port] = {};
+            if (!byPorts[e.port])
+                byPorts[e.port] = {};
             byPorts[e.port][e.hostName] = e;
         });
-
         for (let port in byPorts) {
-            const hostNameMap = byPorts[port]!;
-            const certificates: any[] = [];
-
+            const hostNameMap = byPorts[port];
+            const certificates = [];
             Object.values(hostNameMap).forEach(webSite => {
                 if (webSite.certificate) {
                     const keyFile = path.resolve(webSite.certificate.key);
                     const certFile = path.resolve(webSite.certificate.cert);
-
                     certificates.push({
                         key: nFS.readTextSyncFromFile(keyFile),
                         cert: nFS.readTextSyncFromFile(certFile),
@@ -1421,285 +1109,198 @@ export class JopiServer {
                     });
                 }
             });
-            
-            const myServerOptions: StartServerOptions = {
+            const myServerOptions = {
                 ...gServerStartGlobalOptions,
-
                 port,
                 tls: selectCertificate(certificates),
-
                 fetch: req => {
                     const urlInfos = new URL(req.url);
                     const webSite = hostNameMap[urlInfos.hostname];
-                    if (!webSite) return new Response("", {status: 404});
+                    if (!webSite)
+                        return new Response("", { status: 404 });
                     return webSite.processRequest(urlInfos, req, myServerInstance);
                 }
             };
-
             const myServerInstance = startServer(myServerOptions);
-
             Object.values(hostNameMap).forEach(webSite => webSite.onServerStarted());
             this.servers.push(myServerInstance);
         }
     }
-
     /**
      * Generate a certificat for dev test.
      * Require "mkcert" to be installed.
      * See: https://github.com/FiloSottile/mkcert
      */
-    async createDevCertificate(hostName: string, certsDir: string = "certs"): Promise<SslCertificatePath>  {
+    async createDevCertificate(hostName, certsDir = "certs") {
         const sslDirPath = path.resolve(certsDir, hostName);
         const keyFilePath = path.join(sslDirPath, "certificate.key");
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
-
         if (!await nFS.isFile(certFilePath)) {
-            await fs.mkdir(sslDirPath, {recursive: true});
+            await fs.mkdir(sslDirPath, { recursive: true });
             await nOS.exec(`cd ${sslDirPath}; mkcert -install; mkcert --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
         }
-
-        return {key: keyFilePath, cert: certFilePath};
+        return { key: keyFilePath, cert: certFilePath };
     }
 }
-
-const gServerStartGlobalOptions: StartServerCoreOptions = {};
-
-export function getServerStartOptions(): StartServerCoreOptions {
+const gServerStartGlobalOptions = {};
+export function getServerStartOptions() {
     return gServerStartGlobalOptions;
 }
-
-/**
- * Update the meta-data.
- * Return true if a change has been done, false otherwise.
- */
-export interface MetaUpdater<T> {
-    updateMeta(meta: any | undefined, data: T): MetaUpdaterResult;
-    requireCurrentMeta?: boolean;
-    data?: T;
-}
-
-export enum MetaUpdaterResult { IS_NOT_UPDATED, IS_UPDATED, MUST_DELETE}
-
-export interface CacheRole {
-    isUserCache?: boolean;
-    isMobileCache?: boolean;
-}
-
-export interface PageCache {
-    cacheRole?: CacheRole;
-
-    getFromCache(url: URL, getGzippedVersion: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response | undefined>;
-
-    addToCache(url: URL, response: Response, headersToInclude: string[] | undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response>;
-
-    hasInCache(url: URL, requireUncompressedVersion?: boolean | undefined): Promise<boolean>;
-
-    removeFromCache(url: URL): Promise<void>;
-
-    getMeta<T>(url: URL): Promise<T | undefined>;
-
-    createSubCache(name: string): PageCache;
-}
-
-export class WebSiteMirrorCache implements PageCache {
-    public readonly rootDir: string;
-
-    constructor(rootDir: string) {
-        if (!rootDir) rootDir = ".";
-        if (!path.isAbsolute(rootDir)) rootDir = path.resolve(process.cwd(), rootDir);
+export var MetaUpdaterResult;
+(function (MetaUpdaterResult) {
+    MetaUpdaterResult[MetaUpdaterResult["IS_NOT_UPDATED"] = 0] = "IS_NOT_UPDATED";
+    MetaUpdaterResult[MetaUpdaterResult["IS_UPDATED"] = 1] = "IS_UPDATED";
+    MetaUpdaterResult[MetaUpdaterResult["MUST_DELETE"] = 2] = "MUST_DELETE";
+})(MetaUpdaterResult || (MetaUpdaterResult = {}));
+export class WebSiteMirrorCache {
+    rootDir;
+    constructor(rootDir) {
+        if (!rootDir)
+            rootDir = ".";
+        if (!path.isAbsolute(rootDir))
+            rootDir = path.resolve(process.cwd(), rootDir);
         this.rootDir = rootDir;
     }
-
-    private calKey(url: URL): string {
+    calKey(url) {
         url = new URL(url);
         url.hostname = "localhost";
         url.port = "";
         url.protocol = "file:";
-
         const sURL = url.toString();
         return nFS.fileURLToPath(sURL);
     }
-
-    private calcFilePath(url: URL): string {
+    calcFilePath(url) {
         let fp = path.join(this.rootDir, this.calKey(url));
-
         if (fp.endsWith("/")) {
             fp += "index.html";
-        } else {
-            const ext = path.extname(fp);
-            if (!ext) fp += "/index.html";
         }
-
+        else {
+            const ext = path.extname(fp);
+            if (!ext)
+                fp += "/index.html";
+        }
         return fp;
     }
-
-    async addToCache(url: URL, response: Response): Promise<Response> {
+    async addToCache(url, response) {
         // We don't store 404 and others.
-        if (response.status !== 200) return response;
-
+        if (response.status !== 200)
+            return response;
         const filePath = this.calcFilePath(url);
-        await fs.mkdir(path.dirname(filePath), {recursive: true});
-
+        await fs.mkdir(path.dirname(filePath), { recursive: true });
         try {
-            if (!response.body) return response;
-
+            if (!response.body)
+                return response;
             const [bodyRes, bodySaveFile] = response.body.tee();
             await nFS.writeResponseToFile(new Response(bodySaveFile), filePath);
-
-            const headers: any = {
+            const headers = {
                 "content-type": nFS.getMimeTypeFromName(filePath),
                 "content-length": await nFS.getFileSize(filePath)
             };
-
-            return new Response(bodyRes, {status: 200, headers});
+            return new Response(bodyRes, { status: 200, headers });
         }
         catch (e) {
             console.error(e);
-            return new Response("", {status: 500});
+            return new Response("", { status: 500 });
         }
     }
-
-    async removeFromCache(url: URL): Promise<void> {
+    async removeFromCache(url) {
         const filePath = this.calcFilePath(url);
         await fs.unlink(filePath);
     }
-
-    async hasInCache(url: URL): Promise<boolean> {
+    async hasInCache(url) {
         const filePath = this.calcFilePath(url);
         const stats = await nFS.getFileStat(filePath);
         return !!stats && stats.isFile();
     }
-
-    async getFromCache(url: URL): Promise<Response|undefined> {
+    async getFromCache(url) {
         const filePath = this.calcFilePath(url);
         const stats = await nFS.getFileStat(filePath);
-
         if (stats && stats.isFile()) {
             let contentType = nFS.getMimeTypeFromName(filePath);
             const contentLength = stats.size;
-
-            const headers: any = {
+            const headers = {
                 "content-type": contentType,
                 "content-length": contentLength.toString()
             };
-
             return nFS.createResponseFromFile(filePath, 200, headers);
         }
-
         return undefined;
     }
-
-    async getMeta<T>(url: URL): Promise<T|undefined> {
+    async getMeta(url) {
         const filePath = this.calcFilePath(url);
-
         try {
             const text = await nFS.readTextFromFile(filePath + " meta");
-            return JSON.parse(text) as T;
+            return JSON.parse(text);
         }
         catch {
             // We are here if the meta doesn't exist.
             return Promise.resolve(undefined);
         }
     }
-
-    createSubCache(name: string): PageCache {
+    createSubCache(name) {
         const newDir = path.join(this.rootDir, "_ subCaches", name);
         return new WebSiteMirrorCache(newDir);
     }
 }
-
-export class VoidPageCache implements PageCache {
-    getFromCache(): Promise<Response | undefined> {
+export class VoidPageCache {
+    getFromCache() {
         return Promise.resolve(undefined);
     }
-
-    addToCache(_url: URL, response: Response): Promise<Response> {
+    addToCache(_url, response) {
         return Promise.resolve(response);
     }
-
-    hasInCache(): Promise<boolean> {
+    hasInCache() {
         return Promise.resolve(false);
     }
-
-    removeFromCache(_url: URL): Promise<void> {
+    removeFromCache(_url) {
         return Promise.resolve();
     }
-
-    getMeta<T>(_url: URL): Promise<T | undefined> {
+    getMeta(_url) {
         return Promise.resolve(undefined);
     }
-
-    createSubCache(): PageCache {
+    createSubCache() {
         return this;
     }
 }
-
 const gVoidCache = new VoidPageCache();
-
-export interface CacheEntry {
-    binary?: ArrayBuffer;
-    binarySize?: number;
-    isGzipped?: boolean;
-
-    headers?: {[key:string]: string};
-
-    meta?: any;
-    status?: number;
-
-    _refCount?: number;
-    _refCountSinceGC?: number;
-}
-
-export enum ContentTypeCategory {
-    OTHER,
-
-    _TEXT_              = 10,
-    TEXT_HTML           = 11,
-    TEXT_CSS            = 12,
-    TEXT_JAVASCRIPT     = 13,
-    TEXT_JSON           = 14,
-
-    _FORM_              = 20,
-    FORM_MULTIPART      = 20,
-    FORM_URL_ENCODED    = 21,
-
-    _BINARY_            = 30,
-    IMAGE
-}
-
+export var ContentTypeCategory;
+(function (ContentTypeCategory) {
+    ContentTypeCategory[ContentTypeCategory["OTHER"] = 0] = "OTHER";
+    ContentTypeCategory[ContentTypeCategory["_TEXT_"] = 10] = "_TEXT_";
+    ContentTypeCategory[ContentTypeCategory["TEXT_HTML"] = 11] = "TEXT_HTML";
+    ContentTypeCategory[ContentTypeCategory["TEXT_CSS"] = 12] = "TEXT_CSS";
+    ContentTypeCategory[ContentTypeCategory["TEXT_JAVASCRIPT"] = 13] = "TEXT_JAVASCRIPT";
+    ContentTypeCategory[ContentTypeCategory["TEXT_JSON"] = 14] = "TEXT_JSON";
+    ContentTypeCategory[ContentTypeCategory["_FORM_"] = 20] = "_FORM_";
+    ContentTypeCategory[ContentTypeCategory["FORM_MULTIPART"] = 20] = "FORM_MULTIPART";
+    ContentTypeCategory[ContentTypeCategory["FORM_URL_ENCODED"] = 21] = "FORM_URL_ENCODED";
+    ContentTypeCategory[ContentTypeCategory["_BINARY_"] = 30] = "_BINARY_";
+    ContentTypeCategory[ContentTypeCategory["IMAGE"] = 31] = "IMAGE";
+})(ContentTypeCategory || (ContentTypeCategory = {}));
 //region JQuery
-
 /**
  * Add our own function to cheerio.
  * Note: the definition type has directly been added to cheerio.d.ts.
  */
-function initCheerio($: cheerio.Root) {
-    $.prototype.reactReplaceWith = function (this: cheerio.Cheerio, node: React.ReactElement): cheerio.Cheerio {
+function initCheerio($) {
+    $.prototype.reactReplaceWith = function (node) {
         // Note: "this: cheerio.Cheerio" allows casting the value of this.
-
         this.replaceWith(ReactServer.renderToStaticMarkup(node));
         return this;
     };
-
-    $.prototype.reactReplaceContentWith = function (this: cheerio.Cheerio, node: React.ReactElement): cheerio.Cheerio {
+    $.prototype.reactReplaceContentWith = function (node) {
         // Note: "this: cheerio.Cheerio" allows casting the value of this.
-
         return this.html(ReactServer.renderToStaticMarkup(node));
     };
 }
-
 //endregion
-
 //region Tools
-
-export function parseCookies(headers: Headers): { [name: string]: string } {
-    const cookies: { [name: string]: string } = {};
+export function parseCookies(headers) {
+    const cookies = {};
     const cookieHeader = headers.get('Cookie');
-
     if (!cookieHeader) {
         return cookies;
     }
-
     cookieHeader.split(';').forEach(cookie => {
         const parts = cookie.split('=');
         if (parts.length >= 2) {
@@ -1707,74 +1308,60 @@ export function parseCookies(headers: Headers): { [name: string]: string } {
             cookies[name] = parts.slice(1).join('=').trim();
         }
     });
-
     return cookies;
 }
-
-export function readContentLength(headers: Headers): number {
+export function readContentLength(headers) {
     const cl = headers.get("content-length");
-    if (!cl) return -1;
+    if (!cl)
+        return -1;
     return parseInt(cl);
 }
-
-export function cacheEntryToResponse(entry: CacheEntry) {
+export function cacheEntryToResponse(entry) {
     if (entry.binary) {
         let headers = entry.headers;
-        if (!headers) headers = {};
-
+        if (!headers)
+            headers = {};
         if (entry.isGzipped) {
             headers["content-encoding"] = "gzip";
         }
         else {
-            delete(headers["content-encoding"]);
+            delete (headers["content-encoding"]);
         }
-
         return new Response(entry.binary, {
-            status: entry.status||200,
+            status: entry.status || 200,
             headers: headers
         });
     }
-
-    return new Response("", {status: entry.status, headers: entry.headers});
+    return new Response("", { status: entry.status, headers: entry.headers });
 }
-
-const gDefaultHeadersToCache: string[] = [ "content-type", "etag", "last-modified"];
-
-export function responseToCacheEntry(response: Response, headersToInclude: string[]|undefined, meta: any, isGzipped: boolean): CacheEntry {
+const gDefaultHeadersToCache = ["content-type", "etag", "last-modified"];
+export function responseToCacheEntry(response, headersToInclude, meta, isGzipped) {
     const status = response.status;
-    const entry: CacheEntry = {meta, isGzipped, status};
-
-    if (status===200) {
+    const entry = { meta, isGzipped, status };
+    if (status === 200) {
         const headers = {};
         entry.headers = headers;
-
         // "content-type", "etag", "last-modified"
-        if (!headersToInclude) headersToInclude = gDefaultHeadersToCache;
-
+        if (!headersToInclude)
+            headersToInclude = gDefaultHeadersToCache;
         headersToInclude.forEach(header => addHeaderIfExist(headers, header, response.headers));
     }
-
-    if ((status>=300)&&(status<400)) {
+    if ((status >= 300) && (status < 400)) {
         entry.headers = {};
-        addHeaderIfExist(entry.headers!, "Location", response.headers);
+        addHeaderIfExist(entry.headers, "Location", response.headers);
     }
-
     return entry;
 }
-
-export function addHeaderIfExist(headers: {[key: string]: string}, headerName: string, source: Headers) {
+export function addHeaderIfExist(headers, headerName, source) {
     const v = source.get(headerName);
-    if (v!==null) headers[headerName] = v;
+    if (v !== null)
+        headers[headerName] = v;
 }
-
-export function octetToMo(size: number) {
+export function octetToMo(size) {
     const res = size / ONE_MEGA_OCTET;
     return Math.trunc(res * 100) / 100;
 }
-
 export const ONE_KILO_OCTET = 1024;
 export const ONE_MEGA_OCTET = 1024 * ONE_KILO_OCTET;
-
-export const HTTP_VERBS: HttpMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
-
-//endregion
+export const HTTP_VERBS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
+//# sourceMappingURL=core.js.map

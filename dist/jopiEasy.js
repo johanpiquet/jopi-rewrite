@@ -1,53 +1,33 @@
-import {HTTP_VERBS, JopiRequest, type JopiRouteHandler, JopiServer, WebSite, WebSiteOptions} from "./core.ts";
+import { HTTP_VERBS, JopiRequest, JopiServer, WebSite, WebSiteOptions } from "./core.js";
 import path from "node:path";
 import fsc from "node:fs";
-import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
-import {getLetsEncryptCertificate, type LetsEncryptParams} from "./letsEncrypt.ts";
-
+import { ServerFetch } from "./serverFetch.js";
+import { getLetsEncryptCertificate } from "./letsEncrypt.js";
 class JopiEasy {
-    new_webSite(url: string): JopiEasy_CoreWebSite {
+    new_webSite(url) {
         return new JopiEasy_CoreWebSite(url);
     }
-
-    new_reverseProxy(url: string): JopiEasy_ReverseProxy {
+    new_reverseProxy(url) {
         return new JopiEasy_ReverseProxy(url);
     }
-
-    new_fileServer(url: string): FileServerBuilder<JopiEasy_CoreWebSite> {
+    new_fileServer(url) {
         const w = new JopiEasy_FileServerBuilder(url);
         return w.add_fileServer();
     }
 }
-
-interface CoreWebSiteInternal {
-    origin: string;
-    hostName: string;
-    options: WebSiteOptions;
-
-    afterHook: ((webSite: WebSite) => void)[];
-    beforeHook: (() => Promise<void>)[];
-
-    onHookWebSite?: (webSite: WebSite) => void;
-}
-
 class JopiEasy_CoreWebSite {
-    protected readonly origin: string;
-    protected readonly hostName: string;
-    private webSite?: WebSite;
-    protected readonly options: WebSiteOptions = {};
-
-    protected readonly afterHook: ((webSite: WebSite)=>void)[] = [];
-    protected readonly beforeHook: (()=>Promise<void>)[] = [];
-
-    protected readonly internals: CoreWebSiteInternal;
-
-    constructor(url: string) {
-        setTimeout(() => { this.initWebSiteInstance().then() }, 1);
-
+    origin;
+    hostName;
+    webSite;
+    options = {};
+    afterHook = [];
+    beforeHook = [];
+    internals;
+    constructor(url) {
+        setTimeout(() => { this.initWebSiteInstance().then(); }, 1);
         const urlInfos = new URL(url);
         this.hostName = urlInfos.hostname; // 127.0.0.1
         this.origin = urlInfos.origin; // https://127.0.0.1
-
         this.internals = {
             options: this.options,
             origin: this.origin,
@@ -55,57 +35,42 @@ class JopiEasy_CoreWebSite {
             afterHook: this.afterHook,
             beforeHook: this.beforeHook
         };
-
         this.initialize();
     }
-
-    protected initialize() {
+    initialize() {
         // Allow overriding init.
     }
-
-    private async initWebSiteInstance(): Promise<void> {
+    async initWebSiteInstance() {
         if (!this.webSite) {
-            for (let hook of this.beforeHook) await hook();
+            for (let hook of this.beforeHook)
+                await hook();
             this.webSite = new WebSite(this.origin, this.options);
-            this.afterHook.forEach(c => c(this.webSite!));
-
+            this.afterHook.forEach(c => c(this.webSite));
             myServer.addWebsite(this.webSite);
             autoStartServer();
         }
-
         if (this.internals.onHookWebSite) {
             this.internals.onHookWebSite(this.webSite);
         }
     }
-
-    hook_webSite(hook: (webSite: WebSite) => void) {
+    hook_webSite(hook) {
         this.internals.onHookWebSite = hook;
         return this;
     }
-
-    done(): JopiEasy {
+    done() {
         return jopiEasy;
     }
-
     add_httpCertificate() {
         return new CertificateBuilder(this, this.internals);
     }
 }
-
-interface FileServerOptions {
-    rootDir: string;
-    replaceIndexHtml: boolean,
-    onNotFound: (req: JopiRequest) => Response|Promise<Response>
-}
-
 class JopiEasy_FileServerBuilder extends JopiEasy_CoreWebSite {
     add_fileServer() {
-        const options: FileServerOptions = {
+        const options = {
             rootDir: "www",
             replaceIndexHtml: true,
-            onNotFound:  req => req.error404Response()
+            onNotFound: req => req.error404Response()
         };
-
         this.afterHook.push(webSite => {
             webSite.onGET("/**", req => {
                 return req.serveFile(options.rootDir, {
@@ -114,141 +79,131 @@ class JopiEasy_FileServerBuilder extends JopiEasy_CoreWebSite {
                 });
             });
         });
-
-        return new FileServerBuilder<JopiEasy_CoreWebSite>(this, this.internals, options);
+        return new FileServerBuilder(this, this.internals, options);
     }
 }
-
 //region JopiEasy_ReverseProxy
-
-class ReverseProxyTarget<T> {
-    protected weight: number = 1;
-    protected origin: string;
-    protected hostName: string;
-    protected publicUrl: string;
-
-    constructor(private readonly parent: T, url: string) {
+class ReverseProxyTarget {
+    parent;
+    weight = 1;
+    origin;
+    hostName;
+    publicUrl;
+    constructor(parent, url) {
+        this.parent = parent;
         const urlInfos = new URL(url);
         this.publicUrl = url;
         this.origin = urlInfos.origin;
         this.hostName = urlInfos.hostname;
     }
-
     done() {
         return this.parent;
     }
-
-    useIp(ip: string) {
+    useIp(ip) {
         let urlInfos = new URL(this.origin);
         urlInfos.host = ip;
         this.origin = urlInfos.href;
-
         return this;
     }
-
-    setWeight(weight: number) {
-        if (weight < 0) this.weight = 0;
-        else if (weight > 1) this.weight = 1;
-        else this.weight = weight;
-
+    setWeight(weight) {
+        if (weight < 0)
+            this.weight = 0;
+        else if (weight > 1)
+            this.weight = 1;
+        else
+            this.weight = weight;
         return this;
     }
-
     set_isMainServer() {
         this.weight = 1;
         return this;
     }
-
     set_isBackupServer() {
         this.weight = 0;
         return this;
     }
 }
-
-class ReverseProxyTarget2<T> extends ReverseProxyTarget<T> {
-    public compile(): ServerFetch<any> {
-        let options: ServerFetchOptions<any> = {
+class ReverseProxyTarget2 extends ReverseProxyTarget {
+    compile() {
+        let options = {
             userDefaultHeaders: true,
             publicUrl: this.publicUrl
         };
-
         return ServerFetch.useOrigin(this.origin, this.hostName, options);
     }
 }
-
 class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
-    private readonly targets: ReverseProxyTarget2<JopiEasy_ReverseProxy>[] = [];
-
-    protected override initialize() {
+    targets = [];
+    initialize() {
         this.afterHook.push(webSite => {
             this.targets.forEach(target => {
                 let sf = target.compile();
                 webSite.addSourceServer(sf);
             });
-
-            const handler: JopiRouteHandler = req => {
+            const handler = req => {
                 req.headers.set('X-Forwarded-Proto', req.urlInfos.protocol.replace(':', ''));
-                req.headers.set('X-Forwarded-Host', req.urlInfos.host)
-
+                req.headers.set('X-Forwarded-Host', req.urlInfos.host);
                 const clientIp = req.coreServer.requestIP(req.coreRequest)?.address;
-                req.headers.set("X-Forwarded-For", clientIp!);
-
+                req.headers.set("X-Forwarded-For", clientIp);
                 return req.directProxyToServer();
             };
-
             HTTP_VERBS.forEach(verb => {
                 webSite.onVerb(verb, "/**", handler);
             });
         });
     }
-
-    add_target(url: string): ReverseProxyTarget<JopiEasy_ReverseProxy> {
-        const target = new ReverseProxyTarget2<JopiEasy_ReverseProxy>(this, url);
+    add_target(url) {
+        const target = new ReverseProxyTarget2(this, url);
         this.targets.push(target);
-        return target as ReverseProxyTarget<JopiEasy_ReverseProxy>;
+        return target;
     }
 }
-
 //endregion
-
 //region FileServerBuilder
-
-class FileServerBuilder<T> {
-    constructor(private readonly parent: T, private readonly internals: CoreWebSiteInternal, private readonly options: FileServerOptions ) {
+class FileServerBuilder {
+    parent;
+    internals;
+    options;
+    constructor(parent, internals, options) {
+        this.parent = parent;
+        this.internals = internals;
+        this.options = options;
     }
-
-    done(): T {
+    done() {
         return this.parent;
     }
-
     webSite() {
         return this.parent;
     }
-
-    set_rootDir(rootDir: string) {
+    set_rootDir(rootDir) {
         this.options.rootDir = rootDir;
         return this;
     }
-
-    set_onNotFound(handler: (req: JopiRequest) => Response|Promise<Response>) {
+    set_onNotFound(handler) {
         this.options.onNotFound = handler;
         return this;
     }
-}
-
-//endregion
-
-//region CertificateBuilder
-
-class CertificateBuilder<T> {
-    constructor(private readonly parent: T, private readonly internals: CoreWebSiteInternal) {
+    add_httpCertificate() {
+        return new CertificateBuilder(this, this.internals);
     }
-
-    done(): T {
+    hook_webSite(hook) {
+        this.internals.onHookWebSite = hook;
+        return this;
+    }
+}
+//endregion
+//region CertificateBuilder
+class CertificateBuilder {
+    parent;
+    internals;
+    constructor(parent, internals) {
+        this.parent = parent;
+        this.internals = internals;
+    }
+    done() {
         return this.parent;
     }
-
-    generate_localDevCert(saveInDir: string = "certs") {
+    generate_localDevCert(saveInDir = "certs") {
         this.internals.beforeHook.push(async () => {
             try {
                 this.internals.options.certificate = await myServer.createDevCertificate(this.internals.hostName, saveInDir);
@@ -257,106 +212,84 @@ class CertificateBuilder<T> {
                 console.error(`Can't create ssl certificate for ${this.internals.hostName}. Is mkcert tool installed ?`);
             }
         });
-
-        return this as OnlyDone<T>;
+        return this;
     }
-
-    use_dirStore(dirPath: string) {
+    use_dirStore(dirPath) {
         dirPath = path.join(dirPath, this.internals.hostName);
-
-        let cert:string = "";
-        let key: string = "";
-
+        let cert = "";
+        let key = "";
         try {
-            cert = path.resolve(dirPath, "certificate.crt.key")
-            fsc.statfsSync(cert)
-        } catch {
+            cert = path.resolve(dirPath, "certificate.crt.key");
+            fsc.statfsSync(cert);
+        }
+        catch {
             console.error("Certificat file not found: ", cert);
         }
-
         try {
-            key = path.resolve(dirPath, "certificate.key")
-            fsc.statfsSync(key)
-        } catch {
+            key = path.resolve(dirPath, "certificate.key");
+            fsc.statfsSync(key);
+        }
+        catch {
             console.error("Certificat key file not found: ", key);
         }
-
-        this.internals.options.certificate = {key, cert};
-        return this as OnlyDone<T>;
+        this.internals.options.certificate = { key, cert };
+        return this;
     }
-
-    generate_letsEncryptCert(email: string) {
-        const params: LetsEncryptParams = {email};
-
-        this.internals.afterHook.push(async webSite => {
+    generate_letsEncryptCert(email) {
+        const params = { email };
+        this.internals.afterHook.push(async (webSite) => {
             // ACME challenge requires port 80 of the server.
             const webSiteHttp = webSite.getOrCreateHttpRedirectWebsite();
             await getLetsEncryptCertificate(webSiteHttp, params);
         });
-
         return new LetsEncryptCertificateBuilder(this.parent, params);
     }
 }
-
 //endregion
-
 //region LetsEncryptCertificateBuilder
-
-class LetsEncryptCertificateBuilder<T> {
-    constructor(private readonly parent: T, private readonly params: LetsEncryptParams) {
+class LetsEncryptCertificateBuilder {
+    parent;
+    params;
+    constructor(parent, params) {
+        this.parent = parent;
+        this.params = params;
     }
-
     done() {
         return this.parent;
     }
-
-    enable_production(value: boolean = true) {
+    enable_production(value = true) {
         this.params.isProduction = value;
         return this;
     }
-
     disable_log() {
         this.params.log = false;
         return this;
     }
-
-    set_certificateDir(dirPath: string) {
+    set_certificateDir(dirPath) {
         this.params.certificateDir = dirPath;
         return this;
     }
-
-    force_expireAfter_days(dayCount: number) {
+    force_expireAfter_days(dayCount) {
         this.params.expireAfter_days = dayCount;
         return this;
     }
-
-    force_timout_sec(value: number) {
+    force_timout_sec(value) {
         this.params.timout_sec = value;
         return this;
     }
 }
-
-//endregion
-
-interface OnlyDone<T> {
-    done(): T
-}
-
 //region Server
-
 let gIsAutoStartDone = false;
-
 function autoStartServer() {
-    if (gIsAutoStartDone) return;
+    if (gIsAutoStartDone)
+        return;
     gIsAutoStartDone = true;
-
-    setTimeout(()=>{
-        myServer.startServer()
+    setTimeout(() => {
+        myServer.startServer();
     }, 5);
 }
-
 const myServer = new JopiServer();
-
 //endregion
-
 export const jopiEasy = new JopiEasy();
+;
+//# sourceMappingURL=jopiEasy.js.map
