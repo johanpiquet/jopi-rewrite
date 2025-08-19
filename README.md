@@ -22,7 +22,11 @@ to process them, and in the same time the new version will process the new incom
 
 ✓ **Hot-reload is like with PHP**: you can update your server without breaking what he is currently doing.  
 ✓ Server update can be done safely, and when you want.  
-✓ This without latencies: important things can be kept in memory, like caches.  
+✓ This without latencies: important things can be kept in memory, like caches.
+
+✓ Integration of **LetEncrypts free HTTPS certificats** with auto re-new.  
+✓ Allow **hot-updating of HTTPS certificats** without restarting the server, nor loosing connections.
+
 
 # Tutorials
 
