@@ -1,3 +1,3 @@
-import type { ServerInstance, StartServerOptions } from "./server.ts";
-export default function startServer(options: StartServerOptions): ServerInstance;
-export declare function updateSslCertificate(server: ServerInstance, key: string, cert: string): void;
+import type { ServerImpl } from "./server.ts";
+declare const serverImpl: ServerImpl;
+export default serverImpl;

@@ -270,7 +270,7 @@ export declare class WebSite {
     readonly hostName: string;
     readonly welcomeUrl: string;
     readonly isHttps?: boolean;
-    readonly certificate?: SslCertificatePath;
+    certificate?: SslCertificatePath;
     readonly mainCache: PageCache;
     private readonly router;
     private _onNotFound?;
@@ -332,6 +332,7 @@ export declare class WebSite {
     private applyMiddlewares;
     private http80WebSite?;
     getOrCreateHttpRedirectWebsite(): WebSite;
+    _onRebuildCertificate?: () => void;
     updateSslCertificate(certificate: SslCertificatePath): void;
 }
 export type AuthHandler<T> = (loginInfo: T) => AuthResult | Promise<AuthResult>;

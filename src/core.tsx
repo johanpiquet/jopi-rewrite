@@ -15,10 +15,9 @@ import fs from "node:fs/promises";
 // noinspection ES6PreferShortImport
 import {PostMiddlewares} from "./middlewares/index.ts";
 import * as jwt from 'jsonwebtoken';
-import {
+import serverImpl, {
     type ServerInstance,
     type ServerSocketAddress,
-    startServer,
     type StartServerCoreOptions,
     type StartServerOptions
 } from "./server.ts";
@@ -1016,7 +1015,7 @@ export class WebSite {
     readonly welcomeUrl: string;
     readonly isHttps?: boolean = false;
 
-    readonly certificate?: SslCertificatePath;
+    certificate?: SslCertificatePath;
     readonly mainCache: PageCache;
 
     private readonly router: JopiRouter;
@@ -1348,8 +1347,11 @@ export class WebSite {
         return webSite;
     }
 
+    _onRebuildCertificate?: () => void;
+
     updateSslCertificate(certificate: SslCertificatePath) {
-        // TODO
+        this.certificate = certificate;
+        if (this._onRebuildCertificate) this._onRebuildCertificate();
     }
 }
 
@@ -1397,7 +1399,7 @@ export class JopiServer {
         /**
          * Allow avoiding a bug where returning an array with only one certificate throws an error.
          */
-        function selectCertificate(certificates: any[]) {
+        function selectCertificate(certificates: any[]): any|any[]|undefined {
             if (certificates.length===0) return undefined;
             if (certificates.length===1) return certificates[0];
             return certificates;
@@ -1414,20 +1416,34 @@ export class JopiServer {
         });
 
         for (let port in byPorts) {
+            function rebuildCertificates() {
+                certificates = [];
+
+                Object.values(hostNameMap).forEach(webSite => {
+                    if (webSite.certificate) {
+                        const keyFile = path.resolve(webSite.certificate.key);
+                        const certFile = path.resolve(webSite.certificate.cert);
+
+                        certificates.push({
+                            key: nFS.readTextSyncFromFile(keyFile),
+                            cert: nFS.readTextSyncFromFile(certFile),
+                            serverName: webSite.hostName
+                        });
+                    }
+                });
+            }
+
             const hostNameMap = byPorts[port]!;
-            const certificates: any[] = [];
+            let certificates: any[] = [];
 
-            Object.values(hostNameMap).forEach(webSite => {
-                if (webSite.certificate) {
-                    const keyFile = path.resolve(webSite.certificate.key);
-                    const certFile = path.resolve(webSite.certificate.cert);
+            rebuildCertificates();
 
-                    certificates.push({
-                        key: nFS.readTextSyncFromFile(keyFile),
-                        cert: nFS.readTextSyncFromFile(certFile),
-                        serverName: webSite.hostName
-                    });
-                }
+            Object.values(hostNameMap).forEach(webSite => webSite._onRebuildCertificate = () => {
+                rebuildCertificates();
+
+                let certificate = selectCertificate(certificates);
+                serverImpl.updateSslCertificate(myServerInstance, certificate)
+                //myServerInstance.
             });
             
             const myServerOptions: StartServerOptions = {
@@ -1444,7 +1460,7 @@ export class JopiServer {
                 }
             };
 
-            const myServerInstance = startServer(myServerOptions);
+            const myServerInstance = serverImpl.startServer(myServerOptions);
 
             Object.values(hostNameMap).forEach(webSite => webSite.onServerStarted());
             this.servers.push(myServerInstance);

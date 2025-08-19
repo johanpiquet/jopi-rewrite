@@ -1,9 +1,13 @@
-import type {ServerInstance, StartServerOptions} from "./server";
+import type {ServerInstance, StartServerOptions, ServerImpl} from "./server.ts";
 
-export default function startServer(options: StartServerOptions): ServerInstance {
-    return Bun.serve(options);
+const impl: ServerImpl = {
+    startServer(options: StartServerOptions): ServerInstance {
+        return Bun.serve(options);
+    },
+
+    updateSslCertificate(server: ServerInstance, sslCertificate: any|any[]|undefined): void {
+
+    }
 }
 
-export function updateSslCertificate(server: ServerInstance, key: string, cert: string) {
-
-}
+export default impl;

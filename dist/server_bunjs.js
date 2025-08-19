@@ -1,6 +1,9 @@
-export default function startServer(options) {
-    return Bun.serve(options);
-}
-export function updateSslCertificate(server, key, cert) {
-}
+const impl = {
+    startServer(options) {
+        return Bun.serve(options);
+    },
+    updateSslCertificate(server, sslCertificate) {
+    }
+};
+export default impl;
 //# sourceMappingURL=server_bunjs.js.map

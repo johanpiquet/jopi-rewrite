@@ -13,7 +13,7 @@ import fs from "node:fs/promises";
 // noinspection ES6PreferShortImport
 import { PostMiddlewares } from "./middlewares/index.js";
 import * as jwt from 'jsonwebtoken';
-import { startServer } from "./server.js";
+import serverImpl, {} from "./server.js";
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
@@ -1056,8 +1056,11 @@ export class WebSite {
         });
         return webSite;
     }
+    _onRebuildCertificate;
     updateSslCertificate(certificate) {
-        // TODO
+        this.certificate = certificate;
+        if (this._onRebuildCertificate)
+            this._onRebuildCertificate();
     }
 }
 export class ServerAlreadyStartedError extends Error {
@@ -1103,18 +1106,28 @@ export class JopiServer {
             byPorts[e.port][e.hostName] = e;
         });
         for (let port in byPorts) {
+            function rebuildCertificates() {
+                certificates = [];
+                Object.values(hostNameMap).forEach(webSite => {
+                    if (webSite.certificate) {
+                        const keyFile = path.resolve(webSite.certificate.key);
+                        const certFile = path.resolve(webSite.certificate.cert);
+                        certificates.push({
+                            key: nFS.readTextSyncFromFile(keyFile),
+                            cert: nFS.readTextSyncFromFile(certFile),
+                            serverName: webSite.hostName
+                        });
+                    }
+                });
+            }
             const hostNameMap = byPorts[port];
-            const certificates = [];
-            Object.values(hostNameMap).forEach(webSite => {
-                if (webSite.certificate) {
-                    const keyFile = path.resolve(webSite.certificate.key);
-                    const certFile = path.resolve(webSite.certificate.cert);
-                    certificates.push({
-                        key: nFS.readTextSyncFromFile(keyFile),
-                        cert: nFS.readTextSyncFromFile(certFile),
-                        serverName: webSite.hostName
-                    });
-                }
+            let certificates = [];
+            rebuildCertificates();
+            Object.values(hostNameMap).forEach(webSite => webSite._onRebuildCertificate = () => {
+                rebuildCertificates();
+                let certificate = selectCertificate(certificates);
+                serverImpl.updateSslCertificate(myServerInstance, certificate);
+                //myServerInstance.
             });
             const myServerOptions = {
                 ...gServerStartGlobalOptions,
@@ -1128,7 +1141,7 @@ export class JopiServer {
                     return webSite.processRequest(urlInfos, req, myServerInstance);
                 }
             };
-            const myServerInstance = startServer(myServerOptions);
+            const myServerInstance = serverImpl.startServer(myServerOptions);
             Object.values(hostNameMap).forEach(webSite => webSite.onServerStarted());
             this.servers.push(myServerInstance);
         }

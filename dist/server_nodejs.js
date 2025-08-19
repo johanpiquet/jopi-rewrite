@@ -68,11 +68,13 @@ class NodeServer {
         this.server.listen(this.options.port);
     }
 }
-export default function startServer(options) {
+function startServer(options) {
     const server = new NodeServer(options);
     server.start();
     return server;
 }
-export function updateSslCertificate(server, key, cert) {
+function updateSslCertificate(server, sslCertificate) {
 }
+const serverImpl = { startServer, updateSslCertificate };
+export default serverImpl;
 //# sourceMappingURL=server_nodejs.js.map

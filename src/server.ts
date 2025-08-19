@@ -31,10 +31,10 @@ export interface TlsCertificate {
     serverName: string;
 }
 
-type StartServerFunction = (options: StartServerOptions) => ServerInstance;
-const serverImpl: StartServerFunction = NodeSpace.what.isBunJs ?  bunJsServer : nodeJsServer;
-
-export const startServer = serverImpl;
+export interface ServerImpl {
+    startServer(options: StartServerOptions): ServerInstance
+    updateSslCertificate(server: ServerInstance, sslCertificate: any|any[]|undefined): void;
+}
 
 export interface ServerInstance {
     requestIP(req: Request): ServerSocketAddress|null;
@@ -56,3 +56,7 @@ export interface ServerSocketAddress {
      */
     family: "IPv4" | "IPv6";
 }
+
+const serverImpl: ServerImpl = NodeSpace.what.isBunJs ?  bunJsServer : nodeJsServer;
+
+export default serverImpl;

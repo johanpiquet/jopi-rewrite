@@ -23,8 +23,10 @@ export interface TlsCertificate {
     cert: string;
     serverName: string;
 }
-type StartServerFunction = (options: StartServerOptions) => ServerInstance;
-export declare const startServer: StartServerFunction;
+export interface ServerImpl {
+    startServer(options: StartServerOptions): ServerInstance;
+    updateSslCertificate(server: ServerInstance, sslCertificate: any | any[] | undefined): void;
+}
 export interface ServerInstance {
     requestIP(req: Request): ServerSocketAddress | null;
     timeout(req: Request, seconds: number): void;
@@ -44,4 +46,5 @@ export interface ServerSocketAddress {
      */
     family: "IPv4" | "IPv6";
 }
-export {};
+declare const serverImpl: ServerImpl;
+export default serverImpl;

@@ -1,6 +1,6 @@
 import http from "node:http";
 import https from "node:https";
-import type {ServerInstance, ServerSocketAddress, StartServerOptions} from "./server.ts";
+import type {ServerImpl, ServerInstance, ServerSocketAddress, StartServerOptions} from "./server.ts";
 
 const nFS = NodeSpace.fs;
 
@@ -85,12 +85,14 @@ class NodeServer implements ServerInstance {
     }
 }
 
-export default function startServer(options: StartServerOptions): ServerInstance {
+function startServer(options: StartServerOptions): ServerInstance {
     const server = new NodeServer(options);
     server.start();
     return server;
 }
 
-export function updateSslCertificate(server: ServerInstance, key: string, cert: string) {
-
+function updateSslCertificate(server: ServerInstance, sslCertificate: any|any[]|undefined) {
 }
+
+const serverImpl : ServerImpl = {startServer, updateSslCertificate};
+export default serverImpl;
