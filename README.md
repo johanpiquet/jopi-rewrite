@@ -24,9 +24,10 @@ to process them, and in the same time the new version will process the new incom
 ✓ Server update can be done safely, and when you want.  
 ✓ This without latencies: important things can be kept in memory, like caches.
 
-✓ Integration of **LetEncrypts free HTTPS certificats** with auto re-new.  
-✓ Allow **hot-updating of HTTPS certificats** without restarting the server, nor loosing connections.
-
+✓ LetsEncrypt support
+  * For free https certificats.
+  * With automatic certificat renew.
+  * And this, without a server restart required!
 
 # Tutorials
 
