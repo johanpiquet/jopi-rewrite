@@ -1038,19 +1038,26 @@ export class WebSite {
             return res;
         };
     }
+    http80WebSite;
     getOrCreateHttpRedirectWebsite() {
+        if (this.http80WebSite)
+            return this.http80WebSite;
         if (this.port === 80)
             return this;
         let urlInfos = new URL(this.welcomeUrl);
         urlInfos.port = "";
         urlInfos.protocol = "http";
         const webSite = new WebSite(urlInfos.href);
+        this.http80WebSite = webSite;
         webSite.onGET("/**", req => {
             req.urlInfos.port = "";
             req.urlInfos.protocol = "https";
             return req.redirectResponse(true, req.urlInfos.href);
         });
         return webSite;
+    }
+    updateSslCertificate(certificate) {
+        // TODO
     }
 }
 export class ServerAlreadyStartedError extends Error {

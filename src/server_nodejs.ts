@@ -90,3 +90,7 @@ export default function startServer(options: StartServerOptions): ServerInstance
     server.start();
     return server;
 }
+
+export function updateSslCertificate(server: ServerInstance, key: string, cert: string) {
+
+}

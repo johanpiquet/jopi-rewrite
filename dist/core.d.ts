@@ -330,7 +330,9 @@ export declare class WebSite {
      */
     setJwtTokenStore(store: JwtTokenStore): void;
     private applyMiddlewares;
+    private http80WebSite?;
     getOrCreateHttpRedirectWebsite(): WebSite;
+    updateSslCertificate(certificate: SslCertificatePath): void;
 }
 export type AuthHandler<T> = (loginInfo: T) => AuthResult | Promise<AuthResult>;
 export interface WithRoles {

@@ -2,7 +2,7 @@ import {HTTP_VERBS, JopiRequest, type JopiRouteHandler, JopiServer, WebSite, Web
 import path from "node:path";
 import fsc from "node:fs";
 import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
-import {getLetsEncryptCertificate, type LetsEncryptParams} from "./letsEncrypt.ts";
+import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
 
 class JopiEasy {
     new_webSite(url: string): JopiEasy_CoreWebSite {
@@ -289,9 +289,7 @@ class CertificateBuilder<T> {
         const params: LetsEncryptParams = {email};
 
         this.internals.afterHook.push(async webSite => {
-            // ACME challenge requires port 80 of the server.
-            const webSiteHttp = webSite.getOrCreateHttpRedirectWebsite();
-            await getLetsEncryptCertificate(webSiteHttp, params);
+            await getLetsEncryptCertificate(webSite, params);
         });
 
         return new LetsEncryptCertificateBuilder(this.parent, params);
@@ -332,6 +330,11 @@ class LetsEncryptCertificateBuilder<T> {
 
     force_timout_sec(value: number) {
         this.params.timout_sec = value;
+        return this;
+    }
+
+    if_timeOutError(handler: OnTimeoutError) {
+        this.params.onTimeoutError = handler;
         return this;
     }
 }

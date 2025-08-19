@@ -1,24 +1,34 @@
 import * as acme from 'acme-client';
 import path from "node:path";
 const nFS = NodeSpace.fs;
-async function isCertificatePerempted(certPaths, params) {
+const nTimer = NodeSpace.timer;
+var CertificateState;
+(function (CertificateState) {
+    CertificateState[CertificateState["DontExist"] = 0] = "DontExist";
+    CertificateState[CertificateState["IsExpired"] = 1] = "IsExpired";
+    CertificateState[CertificateState["IsOk"] = 2] = "IsOk";
+})(CertificateState || (CertificateState = {}));
+async function getCertificateState(certPaths, params) {
     if (!await nFS.isFile(certPaths.cert))
-        return true;
+        return CertificateState.DontExist;
     if (!await nFS.isFile(certPaths.key))
-        return true;
+        return CertificateState.DontExist;
     let proofFile = path.join(path.dirname(certPaths.cert), "_updateDate.txt");
     if (!await nFS.isFile(proofFile))
-        return true;
+        return CertificateState.DontExist;
     // Using a file allows copying/paste the file or store it in GitHub.
     // It's better than checking his update date.
     //
     const sDate = await nFS.readTextFromFile(proofFile);
     if (!sDate)
-        return false;
+        return CertificateState.DontExist;
     const now = new Date();
     let updateDate = parseInt(sDate);
     const diffDays = (now.getTime() - updateDate) / (1000 * 60 * 60 * 24);
-    return diffDays > params.expireAfter_days;
+    if (diffDays > params.expireAfter_days) {
+        return CertificateState.IsExpired;
+    }
+    return CertificateState.IsOk;
 }
 function getCertificateDir(certDirPath, hostName) {
     const sslDirPath = path.resolve(certDirPath, hostName);
@@ -38,18 +48,21 @@ async function saveCertificate(certPaths, key, cert) {
  * Download a LetsEncrypt certificate.
  * Will be renewed if no current certificat or if the current one is perempted.
  */
-export async function getLetsEncryptCertificate(webSite, params) {
+export async function getLetsEncryptCertificate(httpsWebSite, params) {
+    return checkWebSite(httpsWebSite, params, false);
+}
+export async function checkWebSite(httpsWebSite, params, isFromCron) {
     /**
      * Write a proof.
      */
-    async function challengeCreateFn(_authz, challenge, keyAuthorization) {
+    async function challengeCreateFn(_auth, challenge, keyAuthorization) {
         vChallengeToken = challenge.token;
         vKeyAuthorization = keyAuthorization;
     }
     /**
      * Remove the proof.
      */
-    async function challengeRemoveFn(_authz, challenge, keyAuthorization) {
+    async function challengeRemoveFn(_auth, _challenge, _keyAuthorization) {
         if (canLog)
             console.log("LetsEncrypt - removing challenge");
     }
@@ -57,8 +70,9 @@ export async function getLetsEncryptCertificate(webSite, params) {
         params.certificateDir = "certs";
     if (params.log === undefined)
         params.log = true;
+    // Use 80 and not 90, to have a grace period.
     if (!params.expireAfter_days)
-        params.expireAfter_days = 90;
+        params.expireAfter_days = 80;
     if (!params.timout_sec)
         params.timout_sec = 30;
     if (!params.isProduction === undefined) {
@@ -68,10 +82,18 @@ export async function getLetsEncryptCertificate(webSite, params) {
     if (!params.isProduction) {
         console.warn("LetsEncrypt - Requesting as development");
     }
-    const certPaths = getCertificateDir(params.certificateDir, webSite.hostName);
+    // Will allow checking and replacing the certificate.
+    //
+    if (!isFromCron) {
+        registerToCron(httpsWebSite, params);
+    }
+    // ACME challenge requires port 80 of the server.
+    const webSite80 = httpsWebSite.getOrCreateHttpRedirectWebsite();
+    const certPaths = getCertificateDir(params.certificateDir, webSite80.hostName);
     let canLog = params.log;
-    if (!params.forceRenew) {
-        if (!await isCertificatePerempted(certPaths, params)) {
+    let certState = await getCertificateState(certPaths, params);
+    if (certState === CertificateState.IsOk) {
+        if (!params.forceRenew) {
             if (canLog)
                 console.log("LetsEncrypt - certificat is already valid");
             return;
@@ -79,11 +101,15 @@ export async function getLetsEncryptCertificate(webSite, params) {
     }
     let vChallengeToken = "";
     let vKeyAuthorization = "";
-    const host = new URL(webSite.welcomeUrl).host;
-    if (canLog)
-        console.log("LetsEncrypt - Requesting certificate for", host);
+    const host = new URL(webSite80.welcomeUrl).host;
+    if (canLog) {
+        if (certState == CertificateState.IsExpired)
+            console.log("LetsEncrypt - Will renew certificate for", host);
+        else
+            console.log("LetsEncrypt - Requesting initial certificate for", host);
+    }
     // Must be on port 80.
-    webSite.onGET("/.well-known/acme-challenge/**", req => {
+    webSite80.onGET("/.well-known/acme-challenge/**", req => {
         console.log("LetsEncrypt - requested ", req.url);
         if (req.url.endsWith(vChallengeToken)) {
             console.log("LetsEncrypt - returning the auth", vKeyAuthorization);
@@ -127,12 +153,36 @@ export async function getLetsEncryptCertificate(webSite, params) {
     }
     catch (error) {
         if (error.code === "TIME_OUT") {
-            if (canLog)
-                console.error("LetsEncrypt - Request timed out");
-            throw error;
+            if (params.onTimeoutError) {
+                params.onTimeoutError(httpsWebSite, isFromCron);
+            }
+            else {
+                if (canLog)
+                    console.error("LetsEncrypt - Request is time-out");
+                throw error;
+            }
         }
         // Re-lancer l'erreur originale si ce n'est pas un timeout
         throw error;
     }
+    if (isFromCron) {
+        webSite80.updateSslCertificate(certPaths);
+    }
+}
+let gIsCronStarted = false;
+const gWebsiteToCheck = [];
+function startCron(interval_days) {
+    if (gIsCronStarted)
+        return;
+    gIsCronStarted = true;
+    nTimer.newInterval(nTimer.ONE_DAY, () => {
+        gWebsiteToCheck.forEach(ce => checkWebSite(ce.webSite, ce.params, true));
+    });
+}
+function registerToCron(webSite, params) {
+    if (!gIsCronStarted) {
+        startCron(params.expireAfter_days);
+    }
+    gWebsiteToCheck.push({ webSite, params });
 }
 //# sourceMappingURL=letsEncrypt.js.map

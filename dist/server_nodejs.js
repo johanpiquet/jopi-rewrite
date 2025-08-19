@@ -73,4 +73,6 @@ export default function startServer(options) {
     server.start();
     return server;
 }
+export function updateSslCertificate(server, key, cert) {
+}
 //# sourceMappingURL=server_nodejs.js.map

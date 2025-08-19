@@ -1,5 +1,5 @@
 import { JopiRequest, WebSite, WebSiteOptions } from "./core.ts";
-import { type LetsEncryptParams } from "./letsEncrypt.ts";
+import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
 declare class JopiEasy {
     new_webSite(url: string): JopiEasy_CoreWebSite;
     new_reverseProxy(url: string): JopiEasy_ReverseProxy;
@@ -60,8 +60,6 @@ declare class FileServerBuilder<T> {
     webSite(): T;
     set_rootDir(rootDir: string): this;
     set_onNotFound(handler: (req: JopiRequest) => Response | Promise<Response>): this;
-    add_httpCertificate(): CertificateBuilder<this>;
-    hook_webSite(hook: (webSite: WebSite) => void): this;
 }
 declare class CertificateBuilder<T> {
     private readonly parent;
@@ -82,6 +80,7 @@ declare class LetsEncryptCertificateBuilder<T> {
     set_certificateDir(dirPath: string): this;
     force_expireAfter_days(dayCount: number): this;
     force_timout_sec(value: number): this;
+    if_timeOutError(handler: OnTimeoutError): this;
 }
 interface OnlyDone<T> {
     done(): T;

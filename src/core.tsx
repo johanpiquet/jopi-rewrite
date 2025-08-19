@@ -1325,7 +1325,10 @@ export class WebSite {
         }
     }
 
+    private http80WebSite?: WebSite;
+
     getOrCreateHttpRedirectWebsite(): WebSite {
+        if (this.http80WebSite) return this.http80WebSite;
         if (this.port===80) return this;
 
         let urlInfos = new URL(this.welcomeUrl);
@@ -1333,6 +1336,7 @@ export class WebSite {
         urlInfos.protocol = "http";
 
         const webSite = new WebSite(urlInfos.href);
+        this.http80WebSite = webSite;
 
         webSite.onGET("/**", req => {
             req.urlInfos.port = "";
@@ -1342,6 +1346,10 @@ export class WebSite {
         });
 
         return webSite;
+    }
+
+    updateSslCertificate(certificate: SslCertificatePath) {
+        // TODO
     }
 }
 

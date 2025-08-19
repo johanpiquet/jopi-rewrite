@@ -183,13 +183,6 @@ class FileServerBuilder {
         this.options.onNotFound = handler;
         return this;
     }
-    add_httpCertificate() {
-        return new CertificateBuilder(this, this.internals);
-    }
-    hook_webSite(hook) {
-        this.internals.onHookWebSite = hook;
-        return this;
-    }
 }
 //endregion
 //region CertificateBuilder
@@ -238,9 +231,7 @@ class CertificateBuilder {
     generate_letsEncryptCert(email) {
         const params = { email };
         this.internals.afterHook.push(async (webSite) => {
-            // ACME challenge requires port 80 of the server.
-            const webSiteHttp = webSite.getOrCreateHttpRedirectWebsite();
-            await getLetsEncryptCertificate(webSiteHttp, params);
+            await getLetsEncryptCertificate(webSite, params);
         });
         return new LetsEncryptCertificateBuilder(this.parent, params);
     }
@@ -277,6 +268,10 @@ class LetsEncryptCertificateBuilder {
         this.params.timout_sec = value;
         return this;
     }
+    if_timeOutError(handler) {
+        this.params.onTimeoutError = handler;
+        return this;
+    }
 }
 //region Server
 let gIsAutoStartDone = false;
@@ -291,5 +286,4 @@ function autoStartServer() {
 const myServer = new JopiServer();
 //endregion
 export const jopiEasy = new JopiEasy();
-;
 //# sourceMappingURL=jopiEasy.js.map
