@@ -1,5 +1,6 @@
 **2025-08-19**  
 * Started JopiEasy lib.
+* Improving LetsEncrypt support.
 
 **2025-08-18**                                                  --> npm 1.0.8c
 * Page wrapper for React SSR.

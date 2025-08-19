@@ -13,6 +13,12 @@ export interface LetsEncryptParams {
     forceRenew?: boolean;
     
     expireAfter_days?: number;
+
+    /**
+     * Allow stopping if the certificate isn't renewed after this delay.
+     * Will to an error with error.code="TIME_OUT".
+     */
+    timout_sec?: number;
 }
 
 async function isCertificatePerempted(certPaths: SslCertificatePath, params: LetsEncryptParams) {
@@ -76,6 +82,7 @@ export async function getLetsEncryptCertificate(webSite: WebSite, params: LetsEn
     if (!params.certificateDir) params.certificateDir = "certs";
     if (params.log===undefined) params.log = true;
     if (!params.expireAfter_days) params.expireAfter_days = 90;
+    if (!params.timout_sec) params.timout_sec = 30;
 
     if (!params.isProduction===undefined) {
         // Need: NODE_ENV=production node app.js
@@ -102,7 +109,7 @@ export async function getLetsEncryptCertificate(webSite: WebSite, params: LetsEn
     const host = new URL(webSite.welcomeUrl).host;
 
     if (canLog) console.log("LetsEncrypt - Requesting certificate for", host);
-
+    
     // Must be on port 80.
     webSite.onGET("/.well-known/acme-challenge/**", req => {
         console.log("LetsEncrypt - requested ", req.url);
@@ -133,9 +140,34 @@ export async function getLetsEncryptCertificate(webSite: WebSite, params: LetsEn
         challengeRemoveFn,
     };
 
-    const cert = await client.auto(options);
+    let isResolved = false;
 
-    if (canLog) console.log("LetsEncrypt - Certificate received for", host);
-    
-    await saveCertificate(certPaths, key.toString(), cert);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+            if (isResolved) return;
+
+            const error = new Error(`Let's Encrypt certificate request timed out after ${params.timout_sec} seconds`);
+            (error as any).code = "TIME_OUT";
+            reject(error);
+        }, params.timout_sec! * 1000);
+    });
+
+    try {
+        const cert = await Promise.race([
+            client.auto(options),
+            timeoutPromise
+        ]);
+
+        isResolved = true;
+        if (canLog) console.log("LetsEncrypt - Certificate received for", host);
+        
+        await saveCertificate(certPaths, key.toString(), cert);
+    } catch (error: any) {
+        if (error.code === "TIME_OUT") {
+            if (canLog) console.error("LetsEncrypt - Request timed out");
+            throw error;
+        }
+        // Re-lancer l'erreur originale si ce n'est pas un timeout
+        throw error;
+    }
 }
