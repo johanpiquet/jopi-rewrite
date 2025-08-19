@@ -1325,7 +1325,7 @@ export class WebSite {
         }
     }
 
-    createHttpDirectWebsite(): WebSite {
+    createHttpRedirectWebsite(): WebSite {
         if (this.port===80) return this;
 
         let urlInfos = new URL(this.welcomeUrl);
