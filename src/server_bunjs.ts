@@ -5,8 +5,12 @@ const impl: ServerImpl = {
         return Bun.serve(options);
     },
 
-    updateSslCertificate(server: ServerInstance, sslCertificate: any|any[]|undefined): void {
+    updateSslCertificate(server: ServerInstance, options: StartServerOptions, newSslCertificate: any|any[]|undefined): void {
+        const bunServer = server as Bun.Server
+        options.tls = newSslCertificate;
 
+        // Will reload without breaking the current connections.
+        bunServer.reload(options);
     }
 }
 

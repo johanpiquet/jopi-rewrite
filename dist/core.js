@@ -1126,8 +1126,8 @@ export class JopiServer {
             Object.values(hostNameMap).forEach(webSite => webSite._onRebuildCertificate = () => {
                 rebuildCertificates();
                 let certificate = selectCertificate(certificates);
-                serverImpl.updateSslCertificate(myServerInstance, certificate);
-                //myServerInstance.
+                myServerOptions.tls = certificate;
+                serverImpl.updateSslCertificate(myServerInstance, myServerOptions, certificate);
             });
             const myServerOptions = {
                 ...gServerStartGlobalOptions,

@@ -91,7 +91,8 @@ function startServer(options: StartServerOptions): ServerInstance {
     return server;
 }
 
-function updateSslCertificate(server: ServerInstance, sslCertificate: any|any[]|undefined) {
+function updateSslCertificate(server: ServerInstance, options: StartServerOptions, newSslCertificate: any|any[]|undefined) {
+    // Not supported ...
 }
 
 const serverImpl : ServerImpl = {startServer, updateSslCertificate};

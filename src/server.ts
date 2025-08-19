@@ -33,7 +33,7 @@ export interface TlsCertificate {
 
 export interface ServerImpl {
     startServer(options: StartServerOptions): ServerInstance
-    updateSslCertificate(server: ServerInstance, sslCertificate: any|any[]|undefined): void;
+    updateSslCertificate(server: ServerInstance, options: StartServerOptions, sslCertificate: any|any[]|undefined): void;
 }
 
 export interface ServerInstance {

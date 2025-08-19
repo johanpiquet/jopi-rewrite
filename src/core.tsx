@@ -1442,8 +1442,8 @@ export class JopiServer {
                 rebuildCertificates();
 
                 let certificate = selectCertificate(certificates);
-                serverImpl.updateSslCertificate(myServerInstance, certificate)
-                //myServerInstance.
+                myServerOptions.tls = certificate;
+                serverImpl.updateSslCertificate(myServerInstance, myServerOptions, certificate);
             });
             
             const myServerOptions: StartServerOptions = {
