@@ -15,13 +15,7 @@
   "type": "module",
   "scripts": {
     "tsc": "tsc",
-    "bun-install": "bun install --registry http://localhost:4873/",
-    "bun-update": "bun update --registry http://localhost:4873/",
-
-    "npm-publish": "npm publish --registry http://localhost:4873/",
-    "npm-unpublish": "npm unpublish --registry http://localhost:4873/",
-
-    "bun-link": "bun link"
+    "bun-publish": "tsc; bun publish"
   },
   "devDependencies": {
     "@types/bun": "^1.2.20",
@@ -41,8 +35,8 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "rou3": "^0.7.3",
-    "jopi-node-space": "latest",
-    "jopi-loader": "latest",
-    "jopi-rewrite-ui": "latest"
+    "jopi-node-space": "workspace:*",
+    "jopi-loader": "workspace:*",
+    "jopi-rewrite-ui": "workspace:*"
   }
 }

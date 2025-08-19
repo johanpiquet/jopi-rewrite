@@ -8,4 +8,5 @@ export * from "./loadBalancing.js";
 export * from "./automaticStartStop.js";
 export * from "./middlewares/index.js";
 export * from "./letsEncrypt.js";
+export * from "./jopiEasy.js";
 //# sourceMappingURL=index.js.map

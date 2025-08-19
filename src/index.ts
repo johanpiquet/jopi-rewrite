@@ -10,3 +10,4 @@ export * from "./automaticStartStop.ts";
 export * from "./middlewares/index.ts";
 
 export * from "./letsEncrypt.ts";
+export * from "./jopiEasy.ts";
