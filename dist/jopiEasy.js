@@ -1,3 +1,4 @@
+// noinspection JSUnusedGlobalSymbols
 import { HTTP_VERBS, JopiRequest, JopiServer, WebSite, WebSiteOptions } from "./core.js";
 import path from "node:path";
 import fsc from "node:fs";
@@ -15,6 +16,7 @@ class JopiEasy {
         return w.add_fileServer();
     }
 }
+export const jopiEasy = new JopiEasy();
 class JopiEasy_CoreWebSite {
     origin;
     hostName;
@@ -63,26 +65,26 @@ class JopiEasy_CoreWebSite {
     add_httpCertificate() {
         return new CertificateBuilder(this, this.internals);
     }
-}
-class JopiEasy_FileServerBuilder extends JopiEasy_CoreWebSite {
-    add_fileServer() {
-        const options = {
-            rootDir: "www",
-            replaceIndexHtml: true,
-            onNotFound: req => req.error404Response()
+    add_jwtTokenAuth() {
+        const builder = new JwtTokenAuth_Builder(this, this.internals);
+        return {
+            step_setPrivateKey: (privateKey) => builder.setPrivateKey_STEP(privateKey)
         };
-        this.afterHook.push(webSite => {
-            webSite.onGET("/**", req => {
-                return req.serveFile(options.rootDir, {
-                    replaceIndexHtml: options.replaceIndexHtml,
-                    onNotFound: options.onNotFound
-                });
-            });
-        });
-        return new FileServerBuilder(this, this.internals, options);
     }
 }
-//region JopiEasy_ReverseProxy
+//region Server starting
+let gIsAutoStartDone = false;
+function autoStartServer() {
+    if (gIsAutoStartDone)
+        return;
+    gIsAutoStartDone = true;
+    setTimeout(() => {
+        myServer.startServer();
+    }, 5);
+}
+const myServer = new JopiServer();
+//endregion
+//region Reverse proxy
 class ReverseProxyTarget {
     parent;
     weight = 1;
@@ -158,8 +160,24 @@ class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
         return target;
     }
 }
-//endregion
-//region FileServerBuilder
+class JopiEasy_FileServerBuilder extends JopiEasy_CoreWebSite {
+    add_fileServer() {
+        const options = {
+            rootDir: "www",
+            replaceIndexHtml: true,
+            onNotFound: req => req.error404Response()
+        };
+        this.afterHook.push(webSite => {
+            webSite.onGET("/**", req => {
+                return req.serveFile(options.rootDir, {
+                    replaceIndexHtml: options.replaceIndexHtml,
+                    onNotFound: options.onNotFound
+                });
+            });
+        });
+        return new FileServerBuilder(this, this.internals, options);
+    }
+}
 class FileServerBuilder {
     parent;
     internals;
@@ -185,6 +203,7 @@ class FileServerBuilder {
     }
 }
 //endregion
+//region TLS Certificats
 //region CertificateBuilder
 class CertificateBuilder {
     parent;
@@ -273,17 +292,94 @@ class LetsEncryptCertificateBuilder {
         return this;
     }
 }
-//region Server
-let gIsAutoStartDone = false;
-function autoStartServer() {
-    if (gIsAutoStartDone)
-        return;
-    gIsAutoStartDone = true;
-    setTimeout(() => {
-        myServer.startServer();
-    }, 5);
+class JwtTokenAuth_Builder {
+    parent;
+    internals;
+    privateKey;
+    constructor(parent, internals) {
+        this.parent = parent;
+        this.internals = internals;
+    }
+    FINISH() {
+        return {
+            DONE_add_jwtTokenAuth: () => this.parent
+        };
+    }
+    //region setPrivateKey_STEP (BEGIN / root)
+    setPrivateKey_STEP(privateKey) {
+        this.privateKey = privateKey;
+        return {
+            step_setUserStore: () => this.setUserStore_STEP()
+        };
+    }
+    //endregion
+    //region setUserStore_STEP
+    setUserStore_STEP() {
+        return {
+            use_simpleLoginPassword: () => this.useSimpleLoginPassword_BEGIN(),
+            use_customStore: (store) => this.useCustomStore_BEGIN(store)
+        };
+    }
+    _setUserStore_NEXT() {
+        return {
+            stepOptional_setTokenStore: () => this.setTokenStore_STEP(),
+            DONE_add_jwtTokenAuth: () => this.FINISH,
+        };
+    }
+    //region useCustomStore
+    useCustomStore_BEGIN(store) {
+        return {
+            DONE_use_customStore: () => this.useCustomStore_DONE()
+        };
+    }
+    useCustomStore_DONE() {
+        return this._setUserStore_NEXT();
+    }
+    //endregion
+    //region useSimpleLoginPassword
+    useSimpleLoginPassword_BEGIN() {
+        return this._useSimpleLoginPassword_REPEAT();
+    }
+    useSimpleLoginPassword_DONE() {
+        return this._setUserStore_NEXT();
+    }
+    _useSimpleLoginPassword_REPEAT() {
+        return {
+            addOne: (login, password, userInfos) => this.useSimpleLoginPassword_addOne(login, password, userInfos),
+            addMany: (users) => this.useSimpleLoginPassword_addMany(users),
+            DONE_use_simpleLoginPassword: () => this.useSimpleLoginPassword_DONE()
+        };
+    }
+    useSimpleLoginPassword_addOne(login, password, userInfos) {
+        //TODO
+        return this._useSimpleLoginPassword_REPEAT();
+    }
+    useSimpleLoginPassword_addMany(users) {
+        //TODO
+        return this._useSimpleLoginPassword_REPEAT();
+    }
+    //endregion
+    //endregion
+    //region setTokenStore
+    setTokenStore_STEP() {
+        return {
+            use_cookie: (name, expirationDuration_days = 3600) => this.setTokenStore_useCookie(name, expirationDuration_days),
+            use_authentificationHeader: () => this.setTokenStore_useAuthentificationHeader()
+        };
+    }
+    setTokenStore_useCookie(name, expirationDuration_days = 3600) {
+        return this.FINISH();
+    }
+    setTokenStore_useAuthentificationHeader() {
+        return this.FINISH();
+    }
 }
-const myServer = new JopiServer();
+class GoToWebSite {
+    parent;
+    constructor(parent) {
+        this.parent = parent;
+    }
+    goTo_webSite() { return this.parent; }
+}
 //endregion
-export const jopiEasy = new JopiEasy();
 //# sourceMappingURL=jopiEasy.js.map

@@ -6,18 +6,22 @@
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
+
   "engines": {
     "bun": "^1.2.18",
     "node": ">=22.18.0"
   },
+
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+
   "scripts": {
     "tscgo": "npx tsgo",
-    "tsc-trace": "npx tsc --traceResolution > out.log.txt",
+    "tsc": "npx tsc",
     "bun-publish": "tsc; bun publish"
   },
+
   "devDependencies": {
     "@types/bun": "^1.2.20",
     "@types/react": "^19.1.10",
@@ -25,6 +29,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/acme-client": "^3.3.4"
   },
+
   "dependencies": {
     "acme-client": "^5.4.0",
     "cheerio": "^1.1.2",

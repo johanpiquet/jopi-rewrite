@@ -1,10 +1,14 @@
 import { JopiRequest, WebSite, WebSiteOptions } from "./core.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
+interface OnlyDone<T> {
+    done(): T;
+}
 declare class JopiEasy {
     new_webSite(url: string): JopiEasy_CoreWebSite;
     new_reverseProxy(url: string): JopiEasy_ReverseProxy;
     new_fileServer(url: string): FileServerBuilder<JopiEasy_CoreWebSite>;
 }
+export declare const jopiEasy: JopiEasy;
 interface CoreWebSiteInternal {
     origin: string;
     hostName: string;
@@ -27,11 +31,44 @@ declare class JopiEasy_CoreWebSite {
     hook_webSite(hook: (webSite: WebSite) => void): this;
     done(): JopiEasy;
     add_httpCertificate(): CertificateBuilder<this>;
-}
-interface FileServerOptions {
-    rootDir: string;
-    replaceIndexHtml: boolean;
-    onNotFound: (req: JopiRequest) => Response | Promise<Response>;
+    add_jwtTokenAuth(): {
+        step_setPrivateKey: (privateKey: string) => {
+            step_setUserStore: () => {
+                use_simpleLoginPassword: () => {
+                    addOne: (login: string, password: string, userInfos?: UserInfos) => /*elided*/ any;
+                    addMany: (users: UserInfos_WithLoginPassword[]) => /*elided*/ any;
+                    DONE_use_simpleLoginPassword: () => {
+                        stepOptional_setTokenStore: () => {
+                            use_cookie: (name: string, expirationDuration_days?: number) => {
+                                DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                            };
+                            use_authentificationHeader: () => {
+                                DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                            };
+                        };
+                        DONE_add_jwtTokenAuth: () => () => {
+                            DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                        };
+                    };
+                };
+                use_customStore: (store: JwtTokenCustomStore) => {
+                    DONE_use_customStore: () => {
+                        stepOptional_setTokenStore: () => {
+                            use_cookie: (name: string, expirationDuration_days?: number) => {
+                                DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                            };
+                            use_authentificationHeader: () => {
+                                DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                            };
+                        };
+                        DONE_add_jwtTokenAuth: () => () => {
+                            DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                        };
+                    };
+                };
+            };
+        };
+    };
 }
 declare class ReverseProxyTarget<T> {
     private readonly parent;
@@ -50,6 +87,11 @@ declare class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
     private readonly targets;
     protected initialize(): void;
     add_target(url: string): ReverseProxyTarget<JopiEasy_ReverseProxy>;
+}
+interface FileServerOptions {
+    rootDir: string;
+    replaceIndexHtml: boolean;
+    onNotFound: (req: JopiRequest) => Response | Promise<Response>;
 }
 declare class FileServerBuilder<T> {
     private readonly parent;
@@ -82,8 +124,13 @@ declare class LetsEncryptCertificateBuilder<T> {
     force_timout_sec(value: number): this;
     if_timeOutError(handler: OnTimeoutError): this;
 }
-interface OnlyDone<T> {
-    done(): T;
+export interface UserInfos {
+    userId: string;
+    [key: string]: any;
 }
-export declare const jopiEasy: JopiEasy;
+export interface UserInfos_WithLoginPassword extends UserInfos {
+    login: string;
+    password: string;
+}
+type JwtTokenCustomStore = (login: string, password: string, passwordHash: string) => Promise<UserInfos | undefined | null | void>;
 export {};

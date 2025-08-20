@@ -1,8 +1,14 @@
+// noinspection JSUnusedGlobalSymbols
+
 import {HTTP_VERBS, JopiRequest, type JopiRouteHandler, JopiServer, WebSite, WebSiteOptions} from "./core.ts";
 import path from "node:path";
 import fsc from "node:fs";
 import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
+
+interface OnlyDone<T> {
+    done(): T
+}
 
 class JopiEasy {
     new_webSite(url: string): JopiEasy_CoreWebSite {
@@ -18,6 +24,8 @@ class JopiEasy {
         return w.add_fileServer();
     }
 }
+
+export const jopiEasy = new JopiEasy();
 
 interface CoreWebSiteInternal {
     origin: string;
@@ -90,36 +98,34 @@ class JopiEasy_CoreWebSite {
     add_httpCertificate() {
         return new CertificateBuilder(this, this.internals);
     }
-}
 
-interface FileServerOptions {
-    rootDir: string;
-    replaceIndexHtml: boolean,
-    onNotFound: (req: JopiRequest) => Response|Promise<Response>
-}
+    add_jwtTokenAuth() {
+        const builder = new JwtTokenAuth_Builder(this, this.internals);
 
-class JopiEasy_FileServerBuilder extends JopiEasy_CoreWebSite {
-    add_fileServer() {
-        const options: FileServerOptions = {
-            rootDir: "www",
-            replaceIndexHtml: true,
-            onNotFound:  req => req.error404Response()
-        };
-
-        this.afterHook.push(webSite => {
-            webSite.onGET("/**", req => {
-                return req.serveFile(options.rootDir, {
-                    replaceIndexHtml: options.replaceIndexHtml,
-                    onNotFound: options.onNotFound
-                });
-            });
-        });
-
-        return new FileServerBuilder<JopiEasy_CoreWebSite>(this, this.internals, options);
+        return {
+            step_setPrivateKey: (privateKey: string) => builder.setPrivateKey_STEP(privateKey)
+        }
     }
 }
 
-//region JopiEasy_ReverseProxy
+//region Server starting
+
+let gIsAutoStartDone = false;
+
+function autoStartServer() {
+    if (gIsAutoStartDone) return;
+    gIsAutoStartDone = true;
+
+    setTimeout(()=>{
+        myServer.startServer()
+    }, 5);
+}
+
+const myServer = new JopiServer();
+
+//endregion
+
+//region Reverse proxy
 
 class ReverseProxyTarget<T> {
     protected weight: number = 1;
@@ -211,7 +217,34 @@ class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
 
 //endregion
 
-//region FileServerBuilder
+//region File server
+
+interface FileServerOptions {
+    rootDir: string;
+    replaceIndexHtml: boolean,
+    onNotFound: (req: JopiRequest) => Response|Promise<Response>
+}
+
+class JopiEasy_FileServerBuilder extends JopiEasy_CoreWebSite {
+    add_fileServer() {
+        const options: FileServerOptions = {
+            rootDir: "www",
+            replaceIndexHtml: true,
+            onNotFound:  req => req.error404Response()
+        };
+
+        this.afterHook.push(webSite => {
+            webSite.onGET("/**", req => {
+                return req.serveFile(options.rootDir, {
+                    replaceIndexHtml: options.replaceIndexHtml,
+                    onNotFound: options.onNotFound
+                });
+            });
+        });
+
+        return new FileServerBuilder<JopiEasy_CoreWebSite>(this, this.internals, options);
+    }
+}
 
 class FileServerBuilder<T> {
     constructor(private readonly parent: T, private readonly internals: CoreWebSiteInternal, private readonly options: FileServerOptions ) {
@@ -237,6 +270,8 @@ class FileServerBuilder<T> {
 }
 
 //endregion
+
+//region TLS Certificats
 
 //region CertificateBuilder
 
@@ -341,25 +376,133 @@ class LetsEncryptCertificateBuilder<T> {
 
 //endregion
 
-interface OnlyDone<T> {
-    done(): T
-}
-
-//region Server
-
-let gIsAutoStartDone = false;
-
-function autoStartServer() {
-    if (gIsAutoStartDone) return;
-    gIsAutoStartDone = true;
-
-    setTimeout(()=>{
-        myServer.startServer()
-    }, 5);
-}
-
-const myServer = new JopiServer();
-
 //endregion
 
-export const jopiEasy = new JopiEasy();
+//region JWT Tokens
+
+export interface UserInfos {
+    userId: string;
+    [key: string]: any;
+}
+
+export interface UserInfos_WithLoginPassword extends UserInfos {
+    login: string;
+    password: string;
+}
+
+type JwtTokenCustomStore = (login: string, password: string, passwordHash: string) => Promise<UserInfos|undefined|null|void>;
+
+class JwtTokenAuth_Builder {
+    private privateKey?: string;
+
+    constructor(private readonly parent: JopiEasy_CoreWebSite, private readonly internals: CoreWebSiteInternal) {
+    }
+
+    FINISH() {
+        return {
+            DONE_add_jwtTokenAuth: () => this.parent
+        }
+    }
+
+    //region setPrivateKey_STEP (BEGIN / root)
+
+    setPrivateKey_STEP(privateKey: string) {
+        this.privateKey = privateKey;
+
+        return {
+            step_setUserStore: () => this.setUserStore_STEP()
+        }
+    }
+
+    //endregion
+
+    //region setUserStore_STEP
+
+    setUserStore_STEP() {
+        return {
+            use_simpleLoginPassword: () => this.useSimpleLoginPassword_BEGIN(),
+            use_customStore: (store: JwtTokenCustomStore) => this.useCustomStore_BEGIN(store)
+        }
+    }
+
+    _setUserStore_NEXT() {
+        return {
+            stepOptional_setTokenStore: () => this.setTokenStore_STEP(),
+            DONE_add_jwtTokenAuth: () => this.FINISH,
+        }
+    }
+
+    //region useCustomStore
+
+    useCustomStore_BEGIN(store: JwtTokenCustomStore) {
+        return {
+            DONE_use_customStore : () => this.useCustomStore_DONE()
+        }
+    }
+
+    useCustomStore_DONE() {
+        return this._setUserStore_NEXT();
+    }
+
+    //endregion
+
+    //region useSimpleLoginPassword
+
+    useSimpleLoginPassword_BEGIN() {
+        return this._useSimpleLoginPassword_REPEAT();
+    }
+
+    useSimpleLoginPassword_DONE() {
+        return this._setUserStore_NEXT();
+    }
+
+    _useSimpleLoginPassword_REPEAT() {
+        return {
+            addOne: (login: string, password: string, userInfos?: UserInfos) => this.useSimpleLoginPassword_addOne(login, password, userInfos),
+            addMany: (users: UserInfos_WithLoginPassword[]) => this.useSimpleLoginPassword_addMany(users),
+            DONE_use_simpleLoginPassword: () => this.useSimpleLoginPassword_DONE()
+        }
+    }
+
+    useSimpleLoginPassword_addOne(login: string, password: string, userInfos?: UserInfos) {
+        //TODO
+
+        return this._useSimpleLoginPassword_REPEAT();
+    }
+
+    useSimpleLoginPassword_addMany(users: UserInfos_WithLoginPassword[]) {
+        //TODO
+
+        return this._useSimpleLoginPassword_REPEAT();
+    }
+
+    //endregion
+
+    //endregion
+
+    //region setTokenStore
+
+    setTokenStore_STEP() {
+        return {
+            use_cookie: (name: string, expirationDuration_days: number = 3600) => this.setTokenStore_useCookie(name, expirationDuration_days),
+            use_authentificationHeader: () => this.setTokenStore_useAuthentificationHeader()
+        }
+    }
+
+    setTokenStore_useCookie(name: string, expirationDuration_days: number = 3600) {
+        return this.FINISH();
+    }
+
+    setTokenStore_useAuthentificationHeader() {
+        return this.FINISH();
+    }
+
+    //endregion
+}
+
+class GoToWebSite<T> {
+    constructor(private readonly parent: T) { }
+    goTo_webSite() { return this.parent; }
+}
+
+//endregion
