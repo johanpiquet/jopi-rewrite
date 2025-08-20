@@ -1,7 +1,7 @@
 import esbuild, {type BuildOptions, type Plugin} from "esbuild";
 import sassPlugin from 'esbuild-plugin-sass';
 import fs from "node:fs/promises";
-import {cssModuleHandler} from "jopi-loader";
+import {cssModuleHandler} from "@jopi-loader/tools";
 
 export interface EsBuildParams {
     entryPoint: string;

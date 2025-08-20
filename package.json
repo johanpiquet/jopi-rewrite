@@ -14,14 +14,14 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "tsc": "tsc",
+    "tscgo": "npx tsgo",
+    "tsc-trace": "npx tsc --traceResolution > out.log.txt",
     "bun-publish": "tsc; bun publish"
   },
   "devDependencies": {
     "@types/bun": "^1.2.20",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "typescript": "^5.9.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/acme-client": "^3.3.4"
   },
@@ -36,7 +36,7 @@
     "react-dom": "^19.1.1",
     "rou3": "^0.7.3",
     "jopi-node-space": "workspace:*",
-    "jopi-loader": "workspace:*",
+    "@jopi-loader/tools": "workspace:*",
     "jopi-rewrite-ui": "workspace:*"
   }
 }

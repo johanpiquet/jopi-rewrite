@@ -6,7 +6,7 @@ import {setNewHydrateListener, useCssModule} from "jopi-rewrite-ui";
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
 import fs from "node:fs/promises";
-import {scssToCss} from "jopi-loader";
+import {scssToCss} from "@jopi-loader/tools";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;

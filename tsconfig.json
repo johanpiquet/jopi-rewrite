@@ -10,8 +10,8 @@
 
     "jsx": "react-jsx",
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
 
     "rewriteRelativeImportExtensions": true,
     "esModuleInterop": true,
@@ -20,9 +20,7 @@
     "skipLibCheck": true,
     "noEmitOnError": false,
     "verbatimModuleSyntax": true,
-    "allowJs": false,
-
-    "allowSyntheticDefaultImports": true
+    "allowJs": false
   },
 
   "include": [
@@ -32,7 +30,6 @@
   ],
 
   "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
+    "node_modules"
   ]
 }
