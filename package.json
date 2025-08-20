@@ -38,5 +38,8 @@
     "jopi-node-space": "workspace:*",
     "@jopi-loader/tools": "workspace:*",
     "jopi-rewrite-ui": "workspace:*"
-  }
+  },
+
+  "nodeSwitch": true,
+  "nodeSwitch-default": "node"
 }
