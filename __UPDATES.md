@@ -1,7 +1,8 @@
 **2025-08-21**                                                  --> npm 2.0.0@next.1
 * Added JwtToken support to JopiEasy.
 * Starting v2, with JopiEasy at the center.
-* JopiEasy, new website path handler.
+* JopiEasy, a new website path handler.
+* Correction of an anomaly why make WebStorm very slow.
 
 **2025-08-19**                                                  --> npm 1.0.10
 * Started JopiEasy lib.

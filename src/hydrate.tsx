@@ -220,7 +220,13 @@ async function compileForTailwind(sourceFiles: string[]): Promise<string|undefin
     }
 }
 
-let gTempDirPath = path.join("node_modules", ".reactHydrateCache");
+// Don't use node_modules, because of a bug when using workspaces.
+// This bug is doing that WebStorm doesn't resolve the file to his real location
+// but to the workspace node_modules (and not the project inside the workspace).
+//
+// TODO: allow configuring it.
+//
+let gTempDirPath = path.join("temp", ".reactHydrateCache");
 
 //endregion
 
