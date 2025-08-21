@@ -10,11 +10,10 @@ class JopiEasy {
         return new JopiEasy_CoreWebSite(url);
     }
     new_reverseProxy(url) {
-        return new JopiEasy_ReverseProxy(url);
+        return new ReverseProxyBuilder(url);
     }
     new_fileServer(url) {
-        const w = new JopiEasy_FileServerBuilder(url);
-        return w.add_fileServer();
+        return new FileServerBuilder(url);
     }
 }
 export const jopiEasy = new JopiEasy();
@@ -60,7 +59,7 @@ class JopiEasy_CoreWebSite {
         this.internals.onHookWebSite = hook;
         return this;
     }
-    done() {
+    DONE_createWebSite() {
         return jopiEasy;
     }
     add_httpCertificate() {
@@ -71,6 +70,11 @@ class JopiEasy_CoreWebSite {
         return {
             step_setPrivateKey: (privateKey) => builder.setPrivateKey_STEP(privateKey)
         };
+    }
+}
+class JopiEasy_CoreWebSite2 extends JopiEasy_CoreWebSite {
+    getInternals() {
+        return this.internals;
     }
 }
 //region Server starting
@@ -99,7 +103,7 @@ class ReverseProxyTarget {
         this.origin = urlInfos.origin;
         this.hostName = urlInfos.hostname;
     }
-    done() {
+    DONE_add_target() {
         return this.parent;
     }
     useIp(ip) {
@@ -135,10 +139,13 @@ class ReverseProxyTarget2 extends ReverseProxyTarget {
         return ServerFetch.useOrigin(this.origin, this.hostName, options);
     }
 }
-class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
-    targets = [];
-    initialize() {
-        this.afterHook.push(webSite => {
+class ReverseProxyBuilder {
+    webSite;
+    internals;
+    constructor(url) {
+        this.webSite = new JopiEasy_CoreWebSite2(url);
+        this.internals = this.webSite.getInternals();
+        this.internals.afterHook.push(webSite => {
             this.targets.forEach(target => {
                 let sf = target.compile();
                 webSite.addSourceServer(sf);
@@ -155,44 +162,28 @@ class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
             });
         });
     }
+    targets = [];
     add_target(url) {
         const target = new ReverseProxyTarget2(this, url);
         this.targets.push(target);
         return target;
     }
+    DONE_new_reverseProxy() {
+        return this.webSite;
+    }
 }
-class JopiEasy_FileServerBuilder extends JopiEasy_CoreWebSite {
-    add_fileServer() {
-        const options = {
+class FileServerBuilder {
+    webSite;
+    internals;
+    options;
+    constructor(url) {
+        this.webSite = new JopiEasy_CoreWebSite2(url);
+        this.internals = this.webSite.getInternals();
+        this.options = {
             rootDir: "www",
             replaceIndexHtml: true,
             onNotFound: req => req.error404Response()
         };
-        this.afterHook.push(webSite => {
-            webSite.onGET("/**", req => {
-                return req.serveFile(options.rootDir, {
-                    replaceIndexHtml: options.replaceIndexHtml,
-                    onNotFound: options.onNotFound
-                });
-            });
-        });
-        return new FileServerBuilder(this, this.internals, options);
-    }
-}
-class FileServerBuilder {
-    parent;
-    internals;
-    options;
-    constructor(parent, internals, options) {
-        this.parent = parent;
-        this.internals = internals;
-        this.options = options;
-    }
-    done() {
-        return this.parent;
-    }
-    webSite() {
-        return this.parent;
     }
     set_rootDir(rootDir) {
         this.options.rootDir = rootDir;
@@ -202,9 +193,12 @@ class FileServerBuilder {
         this.options.onNotFound = handler;
         return this;
     }
+    DONE_new_fileServer() {
+        return this.webSite;
+    }
 }
 //endregion
-//region TLS Certificats
+//region TLS Certificates
 //region CertificateBuilder
 class CertificateBuilder {
     parent;
@@ -212,9 +206,6 @@ class CertificateBuilder {
     constructor(parent, internals) {
         this.parent = parent;
         this.internals = internals;
-    }
-    done() {
-        return this.parent;
     }
     generate_localDevCert(saveInDir = "certs") {
         this.internals.beforeHook.push(async () => {
@@ -225,7 +216,9 @@ class CertificateBuilder {
                 console.error(`Can't create ssl certificate for ${this.internals.hostName}. Is mkcert tool installed ?`);
             }
         });
-        return this;
+        return {
+            DONE_add_httpCertificate: () => this.parent
+        };
     }
     use_dirStore(dirPath) {
         dirPath = path.join(dirPath, this.internals.hostName);
@@ -246,7 +239,9 @@ class CertificateBuilder {
             console.error("Certificat key file not found: ", key);
         }
         this.internals.options.certificate = { key, cert };
-        return this;
+        return {
+            DONE_add_httpCertificate: () => this.parent
+        };
     }
     generate_letsEncryptCert(email) {
         const params = { email };
@@ -265,7 +260,7 @@ class LetsEncryptCertificateBuilder {
         this.parent = parent;
         this.params = params;
     }
-    done() {
+    DONE_add_httpCertificate() {
         return this.parent;
     }
     enable_production(value = true) {

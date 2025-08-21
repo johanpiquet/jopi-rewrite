@@ -1,13 +1,10 @@
 import { type AuthHandler, JopiRequest, type UserInfos, WebSite, WebSiteOptions } from "./core.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
 import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.js";
-interface OnlyDone<T> {
-    done(): T;
-}
 declare class JopiEasy {
     new_webSite(url: string): JopiEasy_CoreWebSite;
-    new_reverseProxy(url: string): JopiEasy_ReverseProxy;
-    new_fileServer(url: string): FileServerBuilder<JopiEasy_CoreWebSite>;
+    new_reverseProxy(url: string): ReverseProxyBuilder;
+    new_fileServer(url: string): FileServerBuilder;
 }
 export declare const jopiEasy: JopiEasy;
 interface CoreWebSiteInternal {
@@ -31,8 +28,8 @@ declare class JopiEasy_CoreWebSite {
     protected initialize(): void;
     private initWebSiteInstance;
     hook_webSite(hook: (webSite: WebSite) => void): this;
-    done(): JopiEasy;
-    add_httpCertificate(): CertificateBuilder<this>;
+    DONE_createWebSite(): JopiEasy;
+    add_httpCertificate(): CertificateBuilder;
     add_jwtTokenAuth(): {
         step_setPrivateKey: (privateKey: string) => {
             step_setUserStore: () => {
@@ -73,6 +70,9 @@ declare class JopiEasy_CoreWebSite {
         };
     };
 }
+declare class JopiEasy_CoreWebSite2 extends JopiEasy_CoreWebSite {
+    getInternals(): CoreWebSiteInternal;
+}
 declare class ReverseProxyTarget<T> {
     private readonly parent;
     protected weight: number;
@@ -80,46 +80,46 @@ declare class ReverseProxyTarget<T> {
     protected hostName: string;
     protected publicUrl: string;
     constructor(parent: T, url: string);
-    done(): T;
+    DONE_add_target(): T;
     useIp(ip: string): this;
     setWeight(weight: number): this;
     set_isMainServer(): this;
     set_isBackupServer(): this;
 }
-declare class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
+declare class ReverseProxyBuilder {
+    private readonly webSite;
+    private readonly internals;
+    constructor(url: string);
     private readonly targets;
-    protected initialize(): void;
-    add_target(url: string): ReverseProxyTarget<JopiEasy_ReverseProxy>;
+    add_target(url: string): ReverseProxyTarget<ReverseProxyBuilder>;
+    DONE_new_reverseProxy(): JopiEasy_CoreWebSite2;
 }
-interface FileServerOptions {
-    rootDir: string;
-    replaceIndexHtml: boolean;
-    onNotFound: (req: JopiRequest) => Response | Promise<Response>;
-}
-declare class FileServerBuilder<T> {
-    private readonly parent;
+declare class FileServerBuilder {
+    private readonly webSite;
     private readonly internals;
     private readonly options;
-    constructor(parent: T, internals: CoreWebSiteInternal, options: FileServerOptions);
-    done(): T;
-    webSite(): T;
+    constructor(url: string);
     set_rootDir(rootDir: string): this;
     set_onNotFound(handler: (req: JopiRequest) => Response | Promise<Response>): this;
+    DONE_new_fileServer(): JopiEasy_CoreWebSite2;
 }
-declare class CertificateBuilder<T> {
+declare class CertificateBuilder {
     private readonly parent;
     private readonly internals;
-    constructor(parent: T, internals: CoreWebSiteInternal);
-    done(): T;
-    generate_localDevCert(saveInDir?: string): OnlyDone<T>;
-    use_dirStore(dirPath: string): OnlyDone<T>;
-    generate_letsEncryptCert(email: string): LetsEncryptCertificateBuilder<T>;
+    constructor(parent: JopiEasy_CoreWebSite, internals: CoreWebSiteInternal);
+    generate_localDevCert(saveInDir?: string): {
+        DONE_add_httpCertificate: () => JopiEasy_CoreWebSite;
+    };
+    use_dirStore(dirPath: string): {
+        DONE_add_httpCertificate: () => JopiEasy_CoreWebSite;
+    };
+    generate_letsEncryptCert(email: string): LetsEncryptCertificateBuilder;
 }
-declare class LetsEncryptCertificateBuilder<T> {
+declare class LetsEncryptCertificateBuilder {
     private readonly parent;
     private readonly params;
-    constructor(parent: T, params: LetsEncryptParams);
-    done(): T;
+    constructor(parent: JopiEasy_CoreWebSite, params: LetsEncryptParams);
+    DONE_add_httpCertificate(): JopiEasy_CoreWebSite;
     enable_production(value?: boolean): this;
     disable_log(): this;
     set_certificateDir(dirPath: string): this;

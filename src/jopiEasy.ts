@@ -16,22 +16,17 @@ import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
 import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.js";
 
-interface OnlyDone<T> {
-    done(): T
-}
-
 class JopiEasy {
     new_webSite(url: string): JopiEasy_CoreWebSite {
         return new JopiEasy_CoreWebSite(url);
     }
 
-    new_reverseProxy(url: string): JopiEasy_ReverseProxy {
-        return new JopiEasy_ReverseProxy(url);
+    new_reverseProxy(url: string): ReverseProxyBuilder {
+        return new ReverseProxyBuilder(url);
     }
 
-    new_fileServer(url: string): FileServerBuilder<JopiEasy_CoreWebSite> {
-        const w = new JopiEasy_FileServerBuilder(url);
-        return w.add_fileServer();
+    new_fileServer(url: string): FileServerBuilder {
+        return new FileServerBuilder(url);
     }
 }
 
@@ -103,7 +98,7 @@ class JopiEasy_CoreWebSite {
         return this;
     }
 
-    done(): JopiEasy {
+    DONE_createWebSite(): JopiEasy {
         return jopiEasy;
     }
 
@@ -117,6 +112,12 @@ class JopiEasy_CoreWebSite {
         return {
             step_setPrivateKey: (privateKey: string) => builder.setPrivateKey_STEP(privateKey)
         }
+    }
+}
+
+class JopiEasy_CoreWebSite2 extends JopiEasy_CoreWebSite {
+    getInternals() {
+        return this.internals;
     }
 }
 
@@ -152,7 +153,7 @@ class ReverseProxyTarget<T> {
         this.hostName = urlInfos.hostname;
     }
 
-    done() {
+    DONE_add_target() {
         return this.parent;
     }
 
@@ -194,11 +195,15 @@ class ReverseProxyTarget2<T> extends ReverseProxyTarget<T> {
     }
 }
 
-class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
-    private readonly targets: ReverseProxyTarget2<JopiEasy_ReverseProxy>[] = [];
+class ReverseProxyBuilder {
+    private readonly webSite: JopiEasy_CoreWebSite2;
+    private readonly internals: CoreWebSiteInternal;
 
-    protected override initialize() {
-        this.afterHook.push(webSite => {
+    constructor(url: string) {
+        this.webSite = new JopiEasy_CoreWebSite2(url);
+        this.internals = this.webSite.getInternals();
+
+        this.internals.afterHook.push(webSite => {
             this.targets.forEach(target => {
                 let sf = target.compile();
                 webSite.addSourceServer(sf);
@@ -220,10 +225,16 @@ class JopiEasy_ReverseProxy extends JopiEasy_CoreWebSite {
         });
     }
 
-    add_target(url: string): ReverseProxyTarget<JopiEasy_ReverseProxy> {
-        const target = new ReverseProxyTarget2<JopiEasy_ReverseProxy>(this, url);
+    private readonly targets: ReverseProxyTarget2<ReverseProxyBuilder>[] = [];
+
+    add_target(url: string): ReverseProxyTarget<ReverseProxyBuilder> {
+        const target = new ReverseProxyTarget2<ReverseProxyBuilder>(this, url);
         this.targets.push(target);
-        return target as ReverseProxyTarget<JopiEasy_ReverseProxy>;
+        return target as ReverseProxyTarget<ReverseProxyBuilder>;
+    }
+
+    DONE_new_reverseProxy() {
+        return this.webSite;
     }
 }
 
@@ -237,37 +248,20 @@ interface FileServerOptions {
     onNotFound: (req: JopiRequest) => Response|Promise<Response>
 }
 
-class JopiEasy_FileServerBuilder extends JopiEasy_CoreWebSite {
-    add_fileServer() {
-        const options: FileServerOptions = {
+class FileServerBuilder {
+    private readonly webSite: JopiEasy_CoreWebSite2;
+    private readonly internals: CoreWebSiteInternal;
+    private readonly options: FileServerOptions;
+
+    constructor(url: string) {
+        this.webSite = new JopiEasy_CoreWebSite2(url);
+        this.internals = this.webSite.getInternals();
+
+        this.options = {
             rootDir: "www",
             replaceIndexHtml: true,
-            onNotFound:  req => req.error404Response()
+            onNotFound: req => req.error404Response()
         };
-
-        this.afterHook.push(webSite => {
-            webSite.onGET("/**", req => {
-                return req.serveFile(options.rootDir, {
-                    replaceIndexHtml: options.replaceIndexHtml,
-                    onNotFound: options.onNotFound
-                });
-            });
-        });
-
-        return new FileServerBuilder<JopiEasy_CoreWebSite>(this, this.internals, options);
-    }
-}
-
-class FileServerBuilder<T> {
-    constructor(private readonly parent: T, private readonly internals: CoreWebSiteInternal, private readonly options: FileServerOptions ) {
-    }
-
-    done(): T {
-        return this.parent;
-    }
-
-    webSite() {
-        return this.parent;
     }
 
     set_rootDir(rootDir: string) {
@@ -279,20 +273,20 @@ class FileServerBuilder<T> {
         this.options.onNotFound = handler;
         return this;
     }
+
+    DONE_new_fileServer() {
+        return this.webSite;
+    }
 }
 
 //endregion
 
-//region TLS Certificats
+//region TLS Certificates
 
 //region CertificateBuilder
 
-class CertificateBuilder<T> {
-    constructor(private readonly parent: T, private readonly internals: CoreWebSiteInternal) {
-    }
-
-    done(): T {
-        return this.parent;
+class CertificateBuilder {
+    constructor(private readonly parent: JopiEasy_CoreWebSite, private readonly internals: CoreWebSiteInternal) {
     }
 
     generate_localDevCert(saveInDir: string = "certs") {
@@ -305,7 +299,9 @@ class CertificateBuilder<T> {
             }
         });
 
-        return this as OnlyDone<T>;
+        return {
+            DONE_add_httpCertificate: () => this.parent
+        }
     }
 
     use_dirStore(dirPath: string) {
@@ -329,7 +325,10 @@ class CertificateBuilder<T> {
         }
 
         this.internals.options.certificate = {key, cert};
-        return this as OnlyDone<T>;
+
+        return {
+            DONE_add_httpCertificate: () => this.parent
+        }
     }
 
     generate_letsEncryptCert(email: string) {
@@ -347,11 +346,11 @@ class CertificateBuilder<T> {
 
 //region LetsEncryptCertificateBuilder
 
-class LetsEncryptCertificateBuilder<T> {
-    constructor(private readonly parent: T, private readonly params: LetsEncryptParams) {
+class LetsEncryptCertificateBuilder {
+    constructor(private readonly parent: JopiEasy_CoreWebSite, private readonly params: LetsEncryptParams) {
     }
 
-    done() {
+    DONE_add_httpCertificate() {
         return this.parent;
     }
 
