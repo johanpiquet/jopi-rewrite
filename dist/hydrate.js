@@ -6,46 +6,12 @@ import { setNewHydrateListener, useCssModule } from "jopi-rewrite-ui";
 import { esBuildBundle, jopiReplaceServerPlugin } from "./bundler_esBuild.js";
 import { esBuildBundleExternal } from "./bundler_esBuildExternal.js";
 import fs from "node:fs/promises";
-import { scssToCss } from "@jopi-loader/tools";
+import { scssToCss, searchSourceOf } from "@jopi-loader/tools";
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
-const isNodeJs = NodeSpace.what.isNodeJS;
 //region Bundle
-/**
- * Search the source of the component if it's a JavaScript and not a TypeScript.
- * Why? Because EsBuild doesn't work well on already transpiled code.
- */
-async function searchSourceOf(scriptPath) {
-    async function tryResolve(tsFile, outDir) {
-        let out = path.sep + outDir + path.sep;
-        let idx = tsFile.lastIndexOf(out);
-        if (idx !== -1) {
-            tsFile = tsFile.slice(0, idx) + "/src/" + tsFile.slice(idx + out.length);
-            if (await nFS.isFile(tsFile))
-                return tsFile;
-            tsFile += "x";
-            if (await nFS.isFile(tsFile))
-                return tsFile;
-        }
-        return undefined;
-    }
-    if (!isNodeJs)
-        return scriptPath;
-    if (!scriptPath.endsWith(".js"))
-        return scriptPath;
-    let tsFile = scriptPath.slice(0, -2) + "ts";
-    if (await nFS.isFile(tsFile))
-        return tsFile;
-    let found = await tryResolve(tsFile, "dist");
-    if (found)
-        return found;
-    found = await tryResolve(tsFile, "build");
-    if (found)
-        return found;
-    return scriptPath;
-}
 async function generateScript(outputDir, components) {
     let declarations = "";
     for (const componentKey in components) {
@@ -199,11 +165,6 @@ async function compileForTailwind(sourceFiles) {
         theme: { extend: {} },
         plugins: [],
     };
-    /*const inputCss = `
-  @tailwind base;
-  @tailwind components;
-  @tailwind utilities;
-`;*/
     const inputCss = `@import "tailwindcss";`;
     try {
         const processor = postcss([
