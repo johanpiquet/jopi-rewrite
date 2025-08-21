@@ -7,6 +7,8 @@ import { esBuildBundle, jopiReplaceServerPlugin } from "./bundler_esBuild.js";
 import { esBuildBundleExternal } from "./bundler_esBuildExternal.js";
 import fs from "node:fs/promises";
 import { scssToCss } from "@jopi-loader/tools";
+import postcss from 'postcss';
+import tailwindPostcss from '@tailwindcss/postcss';
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
 const isNodeJs = NodeSpace.what.isNodeJS;
@@ -50,13 +52,7 @@ async function generateScript(outputDir, components) {
         const componentPath = await searchSourceOf(components[componentKey]);
         declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
     }
-    let resolvedPath;
-    if (NodeSpace.what.isNodeJS) {
-        resolvedPath = import.meta.resolve("./../src/template.jsx");
-    }
-    else {
-        resolvedPath = import.meta.resolve("./../src/template.jsx");
-    }
+    let resolvedPath = import.meta.resolve("./../src/template.jsx");
     resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
     let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
     let script = template.replace("//[DECLARE]", declarations);
@@ -140,11 +136,14 @@ async function postProcessCreateBundle(webSite, outputDir) {
     for (const cssFilePath of gAllCssFiles) {
         let css;
         if (cssFilePath.endsWith(".scss")) {
-            // Is synchrone.
             css = scssToCss(cssFilePath);
         }
         else {
             css = await nFS.readTextFromFile(cssFilePath);
+        }
+        let tailwindCss = await compileForTailwind(path.join(outputDir, "loader.jsx"));
+        if (tailwindCss) {
+            css = tailwindCss + css;
         }
         await fs.appendFile(outFilePath, css, "utf-8");
     }
@@ -184,6 +183,29 @@ export async function handleBundleRequest(req) {
     }
     catch {
         return new Response("", { status: 404 });
+    }
+}
+async function compileForTailwind(jsxFilePath) {
+    const tailwindConfig = {
+        content: [jsxFilePath],
+        theme: { extend: {} },
+        plugins: [],
+    };
+    const inputCss = `
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+`;
+    try {
+        const processor = postcss([
+            tailwindPostcss(tailwindConfig),
+        ]);
+        const result = await processor.process(inputCss, { from: path.dirname(jsxFilePath) });
+        return result.css;
+    }
+    catch (e) {
+        console.error("Error while compiling for Tailwind:", e);
+        return undefined;
     }
 }
 let gTempDirPath = path.join("node_modules", ".reactHydrateCache");

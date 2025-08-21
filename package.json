@@ -6,22 +6,18 @@
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
-
   "engines": {
     "bun": "^1.2.18",
     "node": ">=22.18.0"
   },
-
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
-
   "scripts": {
     "tscgo": "npx tsgo",
     "tsc": "npx tsc",
     "bun-publish": "tsc; bun publish --tag next"
   },
-
   "devDependencies": {
     "@types/bun": "^1.2.20",
     "@types/react": "^19.1.10",
@@ -29,22 +25,23 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/acme-client": "^3.3.4"
   },
-
   "dependencies": {
+    "@jopi-loader/tools": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.12",
     "acme-client": "^5.4.0",
     "cheerio": "^1.1.2",
     "css-url-parser": "^1.1.4",
     "esbuild": "^0.25.9",
     "esbuild-plugin-sass": "latest",
+    "jopi-node-space": "workspace:*",
+    "jopi-rewrite-ui": "workspace:*",
     "jsonwebtoken": "^9.0.2",
+    "postcss": "^8.5.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "rou3": "^0.7.3",
-    "jopi-node-space": "workspace:*",
-    "@jopi-loader/tools": "workspace:*",
-    "jopi-rewrite-ui": "workspace:*"
+    "tailwindcss": "^4.1.12"
   },
-
   "nodeSwitch": true,
   "nodeSwitch-default": "node"
 }

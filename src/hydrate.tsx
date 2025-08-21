@@ -8,6 +8,10 @@ import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
 import fs from "node:fs/promises";
 import {scssToCss} from "@jopi-loader/tools";
 
+import postcss from 'postcss';
+import tailwindPostcss from '@tailwindcss/postcss';
+import type { Config as TailwindConfig } from 'tailwindcss';
+
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
 const isNodeJs = NodeSpace.what.isNodeJS;
@@ -57,15 +61,9 @@ async function generateScript(outputDir: string, components: {[key: string]: str
         declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
     }
 
-    let resolvedPath: string;
-
-    if (NodeSpace.what.isNodeJS) {
-        resolvedPath = import.meta.resolve("./../src/template.jsx");
-    } else {
-        resolvedPath = import.meta.resolve("./../src/template.jsx");
-    }
-
+    let resolvedPath = import.meta.resolve("./../src/template.jsx");
     resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
+
     let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
     let script = template.replace("//[DECLARE]", declarations);
 
@@ -168,10 +166,15 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string) {
         let css: string;
 
         if (cssFilePath.endsWith(".scss")) {
-            // Is synchrone.
             css = scssToCss(cssFilePath);
         } else {
             css = await nFS.readTextFromFile(cssFilePath);
+        }
+
+        let tailwindCss = await compileForTailwind(path.join(outputDir, "loader.jsx"));
+
+        if (tailwindCss) {
+            css = tailwindCss + css;
         }
 
         await fs.appendFile(outFilePath, css, "utf-8");
@@ -220,6 +223,33 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     }
     catch {
         return new Response("", {status: 404});
+    }
+}
+
+async function compileForTailwind(jsxFilePath: string): Promise<string|undefined> {
+    const tailwindConfig: TailwindConfig = {
+        content: [jsxFilePath],
+        theme: {extend: {}},
+        plugins: [],
+    };
+
+    const inputCss = `
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+`;
+
+    try {
+        const processor = postcss([
+            tailwindPostcss(tailwindConfig as any),
+        ]);
+
+        const result = await processor.process(inputCss, {from: path.dirname(jsxFilePath)});
+        return result.css;
+    }
+    catch (e: any) {
+        console.error("Error while compiling for Tailwind:", e);
+        return undefined;
     }
 }
 
