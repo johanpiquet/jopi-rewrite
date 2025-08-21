@@ -1,5 +1,6 @@
-import { JopiRequest, WebSite, WebSiteOptions } from "./core.ts";
+import { type AuthHandler, JopiRequest, type UserInfos, WebSite, WebSiteOptions } from "./core.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
+import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.js";
 interface OnlyDone<T> {
     done(): T;
 }
@@ -17,6 +18,7 @@ interface CoreWebSiteInternal {
     beforeHook: (() => Promise<void>)[];
     onHookWebSite?: (webSite: WebSite) => void;
 }
+type GetValue<T> = (value: T) => void;
 declare class JopiEasy_CoreWebSite {
     protected readonly origin: string;
     protected readonly hostName: string;
@@ -35,11 +37,12 @@ declare class JopiEasy_CoreWebSite {
         step_setPrivateKey: (privateKey: string) => {
             step_setUserStore: () => {
                 use_simpleLoginPassword: () => {
-                    addOne: (login: string, password: string, userInfos?: UserInfos) => /*elided*/ any;
+                    getStoreRef: (h: GetValue<UserStore_WithLoginPassword>) => /*elided*/ any;
+                    addOne: (login: string, password: string, userInfos: UserInfos) => /*elided*/ any;
                     addMany: (users: UserInfos_WithLoginPassword[]) => /*elided*/ any;
                     DONE_use_simpleLoginPassword: () => {
                         stepOptional_setTokenStore: () => {
-                            use_cookie: (name: string, expirationDuration_days?: number) => {
+                            use_cookie: (expirationDuration_days?: number) => {
                                 DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
                             };
                             use_authentificationHeader: () => {
@@ -51,10 +54,10 @@ declare class JopiEasy_CoreWebSite {
                         };
                     };
                 };
-                use_customStore: (store: JwtTokenCustomStore) => {
+                use_customStore<T>(store: AuthHandler<T>): {
                     DONE_use_customStore: () => {
                         stepOptional_setTokenStore: () => {
-                            use_cookie: (name: string, expirationDuration_days?: number) => {
+                            use_cookie: (expirationDuration_days?: number) => {
                                 DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
                             };
                             use_authentificationHeader: () => {
@@ -124,13 +127,4 @@ declare class LetsEncryptCertificateBuilder<T> {
     force_timout_sec(value: number): this;
     if_timeOutError(handler: OnTimeoutError): this;
 }
-export interface UserInfos {
-    userId: string;
-    [key: string]: any;
-}
-export interface UserInfos_WithLoginPassword extends UserInfos {
-    login: string;
-    password: string;
-}
-type JwtTokenCustomStore = (login: string, password: string, passwordHash: string) => Promise<UserInfos | undefined | null | void>;
 export {};

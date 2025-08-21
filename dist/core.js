@@ -786,7 +786,7 @@ export class WebSite {
     middlewares;
     postMiddlewares;
     JWT_SECRET;
-    jwtSigInOptions;
+    jwtSignInOptions;
     authHandler;
     jwtTokenStore;
     data = {};
@@ -951,7 +951,7 @@ export class WebSite {
      */
     createJwtToken(data) {
         try {
-            return jwt.sign(data, this.JWT_SECRET, this.jwtSigInOptions);
+            return jwt.sign(data, this.JWT_SECRET, this.jwtSignInOptions);
         }
         catch (e) {
             return undefined;

@@ -1,10 +1,14 @@
-**2025-08-19**  
+**2025-08-21**                                                  --> npm 1.0.10@next
+* Added JwtToken support to JopiEasy.
+* Starting v2, with JopiEasy at the center.
+
+**2025-08-19**                                                  --> npm 1.0.10
 * Started JopiEasy lib.
 * Improving LetsEncrypt support.
 * Allowing hot refresh of SSL certificates.
 
 
-**2025-08-18**                                                  --> npm 1.0.8c
+**2025-08-18**                                                  --> npm 1.0.8
 * Page wrapper for React SSR.
 * Inject CSS module into the page.
 * Bundle CSS into loader.css + add hash.

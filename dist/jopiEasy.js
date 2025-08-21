@@ -4,6 +4,7 @@ import path from "node:path";
 import fsc from "node:fs";
 import { ServerFetch } from "./serverFetch.js";
 import { getLetsEncryptCertificate } from "./letsEncrypt.js";
+import { UserStore_WithLoginPassword } from "./userStores.js";
 class JopiEasy {
     new_webSite(url) {
         return new JopiEasy_CoreWebSite(url);
@@ -292,10 +293,12 @@ class LetsEncryptCertificateBuilder {
         return this;
     }
 }
+//endregion
+//endregion
+//region JWT Tokens
 class JwtTokenAuth_Builder {
     parent;
     internals;
-    privateKey;
     constructor(parent, internals) {
         this.parent = parent;
         this.internals = internals;
@@ -307,17 +310,27 @@ class JwtTokenAuth_Builder {
     }
     //region setPrivateKey_STEP (BEGIN / root)
     setPrivateKey_STEP(privateKey) {
-        this.privateKey = privateKey;
+        this.internals.afterHook.push(async (webSite) => {
+            webSite.setJwtSecret(privateKey);
+        });
         return {
             step_setUserStore: () => this.setUserStore_STEP()
         };
     }
     //endregion
     //region setUserStore_STEP
+    loginPasswordStore;
     setUserStore_STEP() {
+        const self = this;
         return {
-            use_simpleLoginPassword: () => this.useSimpleLoginPassword_BEGIN(),
-            use_customStore: (store) => this.useCustomStore_BEGIN(store)
+            use_simpleLoginPassword: () => {
+                this.loginPasswordStore = new UserStore_WithLoginPassword();
+                this.internals.afterHook.push(webSite => {
+                    this.loginPasswordStore.setAuthHandler(webSite);
+                });
+                return this.useSimpleLoginPassword_BEGIN();
+            },
+            use_customStore(store) { return self.useCustomStore_BEGIN(store); }
         };
     }
     _setUserStore_NEXT() {
@@ -328,6 +341,9 @@ class JwtTokenAuth_Builder {
     }
     //region useCustomStore
     useCustomStore_BEGIN(store) {
+        this.internals.afterHook.push(webSite => {
+            webSite.setAuthHandler(store);
+        });
         return {
             DONE_use_customStore: () => this.useCustomStore_DONE()
         };
@@ -345,17 +361,21 @@ class JwtTokenAuth_Builder {
     }
     _useSimpleLoginPassword_REPEAT() {
         return {
+            getStoreRef: (h) => {
+                h(this.loginPasswordStore);
+                return this._useSimpleLoginPassword_REPEAT();
+            },
             addOne: (login, password, userInfos) => this.useSimpleLoginPassword_addOne(login, password, userInfos),
             addMany: (users) => this.useSimpleLoginPassword_addMany(users),
             DONE_use_simpleLoginPassword: () => this.useSimpleLoginPassword_DONE()
         };
     }
     useSimpleLoginPassword_addOne(login, password, userInfos) {
-        //TODO
+        this.loginPasswordStore.add({ login, password, userInfos });
         return this._useSimpleLoginPassword_REPEAT();
     }
     useSimpleLoginPassword_addMany(users) {
-        //TODO
+        users.forEach(e => this.loginPasswordStore.add(e));
         return this._useSimpleLoginPassword_REPEAT();
     }
     //endregion
@@ -363,14 +383,24 @@ class JwtTokenAuth_Builder {
     //region setTokenStore
     setTokenStore_STEP() {
         return {
-            use_cookie: (name, expirationDuration_days = 3600) => this.setTokenStore_useCookie(name, expirationDuration_days),
+            use_cookie: (expirationDuration_days = 3600) => this.setTokenStore_useCookie(expirationDuration_days),
             use_authentificationHeader: () => this.setTokenStore_useAuthentificationHeader()
         };
     }
-    setTokenStore_useCookie(name, expirationDuration_days = 3600) {
+    setTokenStore_useCookie(expirationDuration_days = 3600) {
+        this.internals.afterHook.push(webSite => {
+            webSite.setJwtTokenStore((_token, cookieValue, req, res) => {
+                req.addCookie(res, "authorization", cookieValue, { maxAge: NodeSpace.timer.ONE_DAY * expirationDuration_days });
+            });
+        });
         return this.FINISH();
     }
     setTokenStore_useAuthentificationHeader() {
+        this.internals.afterHook.push(webSite => {
+            webSite.setJwtTokenStore((token, _cookieValue, req, res) => {
+                res.headers.set("Authorization", `Bearer ${token}`);
+            });
+        });
         return this.FINISH();
     }
 }

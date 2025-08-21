@@ -19,8 +19,8 @@ export interface CookieOptions {
     maxAge?: number;
 }
 export interface UserInfos {
+    id: string;
     roles?: string[];
-    id?: string;
     email?: string;
     fullName?: string;
     nickName?: string;
@@ -280,7 +280,7 @@ export declare class WebSite {
     private middlewares?;
     private postMiddlewares?;
     private JWT_SECRET?;
-    private jwtSigInOptions?;
+    private jwtSignInOptions?;
     private authHandler?;
     private jwtTokenStore?;
     readonly data: any;

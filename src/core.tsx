@@ -48,9 +48,9 @@ export interface CookieOptions {
 }
 
 export interface UserInfos {
-    roles?: string[];
+    id: string;
 
-    id?: string;
+    roles?: string[];
     email?: string;
 
     fullName?: string;
@@ -1028,7 +1028,7 @@ export class WebSite {
     private postMiddlewares?: JopiPostMiddleware[];
 
     private JWT_SECRET?: string;
-    private jwtSigInOptions?: jwt.SignOptions;
+    private jwtSignInOptions?: jwt.SignOptions;
     private authHandler?: AuthHandler<any>;
     private jwtTokenStore?: JwtTokenStore;
 
@@ -1226,7 +1226,7 @@ export class WebSite {
      */
     createJwtToken(data: UserInfos): string|undefined {
         try {
-            return jwt.sign(data as object, this.JWT_SECRET!, this.jwtSigInOptions);
+            return jwt.sign(data as object, this.JWT_SECRET!, this.jwtSignInOptions);
         } catch (e) {
             return undefined;
         }

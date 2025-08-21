@@ -1,10 +1,20 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {HTTP_VERBS, JopiRequest, type JopiRouteHandler, JopiServer, WebSite, WebSiteOptions} from "./core.ts";
+import {
+    type AuthHandler,
+    HTTP_VERBS,
+    JopiRequest,
+    type JopiRouteHandler,
+    JopiServer,
+    type UserInfos,
+    WebSite,
+    WebSiteOptions
+} from "./core.ts";
 import path from "node:path";
 import fsc from "node:fs";
 import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
+import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.js";
 
 interface OnlyDone<T> {
     done(): T
@@ -37,6 +47,8 @@ interface CoreWebSiteInternal {
 
     onHookWebSite?: (webSite: WebSite) => void;
 }
+
+type GetValue<T> = (value: T) => void;
 
 class JopiEasy_CoreWebSite {
     protected readonly origin: string;
@@ -380,21 +392,7 @@ class LetsEncryptCertificateBuilder<T> {
 
 //region JWT Tokens
 
-export interface UserInfos {
-    userId: string;
-    [key: string]: any;
-}
-
-export interface UserInfos_WithLoginPassword extends UserInfos {
-    login: string;
-    password: string;
-}
-
-type JwtTokenCustomStore = (login: string, password: string, passwordHash: string) => Promise<UserInfos|undefined|null|void>;
-
 class JwtTokenAuth_Builder {
-    private privateKey?: string;
-
     constructor(private readonly parent: JopiEasy_CoreWebSite, private readonly internals: CoreWebSiteInternal) {
     }
 
@@ -407,7 +405,9 @@ class JwtTokenAuth_Builder {
     //region setPrivateKey_STEP (BEGIN / root)
 
     setPrivateKey_STEP(privateKey: string) {
-        this.privateKey = privateKey;
+        this.internals.afterHook.push(async webSite => {
+            webSite.setJwtSecret(privateKey);
+        });
 
         return {
             step_setUserStore: () => this.setUserStore_STEP()
@@ -418,10 +418,23 @@ class JwtTokenAuth_Builder {
 
     //region setUserStore_STEP
 
+    private loginPasswordStore?: UserStore_WithLoginPassword;
+
     setUserStore_STEP() {
+        const self = this;
+
         return {
-            use_simpleLoginPassword: () => this.useSimpleLoginPassword_BEGIN(),
-            use_customStore: (store: JwtTokenCustomStore) => this.useCustomStore_BEGIN(store)
+            use_simpleLoginPassword: () => {
+                this.loginPasswordStore = new UserStore_WithLoginPassword();
+
+                this.internals.afterHook.push(webSite => {
+                    this.loginPasswordStore!.setAuthHandler(webSite);
+                });
+
+                return this.useSimpleLoginPassword_BEGIN()
+            },
+
+            use_customStore<T>(store: AuthHandler<T>) { return self.useCustomStore_BEGIN<T>(store) }
         }
     }
 
@@ -434,7 +447,11 @@ class JwtTokenAuth_Builder {
 
     //region useCustomStore
 
-    useCustomStore_BEGIN(store: JwtTokenCustomStore) {
+    useCustomStore_BEGIN<T>(store: AuthHandler<T>) {
+        this.internals.afterHook.push(webSite => {
+            webSite.setAuthHandler(store);
+        })
+
         return {
             DONE_use_customStore : () => this.useCustomStore_DONE()
         }
@@ -458,21 +475,25 @@ class JwtTokenAuth_Builder {
 
     _useSimpleLoginPassword_REPEAT() {
         return {
-            addOne: (login: string, password: string, userInfos?: UserInfos) => this.useSimpleLoginPassword_addOne(login, password, userInfos),
+            getStoreRef: (h: GetValue<UserStore_WithLoginPassword>) => {
+                h(this.loginPasswordStore!);
+                return this._useSimpleLoginPassword_REPEAT();
+            },
+
+            addOne: (login: string, password: string, userInfos: UserInfos) => this.useSimpleLoginPassword_addOne(login, password, userInfos),
             addMany: (users: UserInfos_WithLoginPassword[]) => this.useSimpleLoginPassword_addMany(users),
             DONE_use_simpleLoginPassword: () => this.useSimpleLoginPassword_DONE()
         }
     }
 
-    useSimpleLoginPassword_addOne(login: string, password: string, userInfos?: UserInfos) {
-        //TODO
+    useSimpleLoginPassword_addOne(login: string, password: string, userInfos: UserInfos) {
+        this.loginPasswordStore!.add({login, password, userInfos});
 
         return this._useSimpleLoginPassword_REPEAT();
     }
 
     useSimpleLoginPassword_addMany(users: UserInfos_WithLoginPassword[]) {
-        //TODO
-
+        users.forEach(e => this.loginPasswordStore!.add(e));
         return this._useSimpleLoginPassword_REPEAT();
     }
 
@@ -484,16 +505,28 @@ class JwtTokenAuth_Builder {
 
     setTokenStore_STEP() {
         return {
-            use_cookie: (name: string, expirationDuration_days: number = 3600) => this.setTokenStore_useCookie(name, expirationDuration_days),
+            use_cookie: (expirationDuration_days: number = 3600) => this.setTokenStore_useCookie(expirationDuration_days),
             use_authentificationHeader: () => this.setTokenStore_useAuthentificationHeader()
         }
     }
 
-    setTokenStore_useCookie(name: string, expirationDuration_days: number = 3600) {
+    setTokenStore_useCookie(expirationDuration_days: number = 3600) {
+        this.internals.afterHook.push(webSite => {
+            webSite.setJwtTokenStore((_token, cookieValue, req, res) => {
+                req.addCookie(res, "authorization", cookieValue, {maxAge: NodeSpace.timer.ONE_DAY * expirationDuration_days})
+            });
+        });
+
         return this.FINISH();
     }
 
     setTokenStore_useAuthentificationHeader() {
+        this.internals.afterHook.push(webSite => {
+            webSite.setJwtTokenStore((token, _cookieValue, req, res) => {
+                res.headers.set("Authorization", `Bearer ${token}`);
+            });
+        });
+
         return this.FINISH();
     }
 
