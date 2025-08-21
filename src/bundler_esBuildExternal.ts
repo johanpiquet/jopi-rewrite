@@ -10,15 +10,13 @@ export interface EsBuildExternalParams {
     overrideConfig?: BuildOptions;
 }
 
-const DO_DIRECT_CALL = false;
-
 /**
  * Will execute EsBuild from a separate process.
  * The file will call himself with the parameters for calling esbuild.
  * And process the call.
  */
 export async function esBuildBundleExternal(params: EsBuildExternalParams, doDirectCall = false) {
-    if (doDirectCall || DO_DIRECT_CALL) {
+    if (doDirectCall) {
         let config = params;
         let config2 = config as EsBuildParams;
 

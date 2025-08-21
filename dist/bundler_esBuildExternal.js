@@ -1,13 +1,12 @@
 import { execFile } from "node:child_process";
 import { esBuildBundle, jopiReplaceServerPlugin } from "./bundler_esBuild.js";
-const DO_DIRECT_CALL = false;
 /**
  * Will execute EsBuild from a separate process.
  * The file will call himself with the parameters for calling esbuild.
  * And process the call.
  */
 export async function esBuildBundleExternal(params, doDirectCall = false) {
-    if (doDirectCall || DO_DIRECT_CALL) {
+    if (doDirectCall) {
         let config = params;
         let config2 = config;
         if (config.usePlugins && config.usePlugins.length > 0) {

@@ -119,7 +119,7 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
         }
     });
 
-    await postProcessCreateBundle(webSite, outputDir);
+    await postProcessCreateBundle(webSite, outputDir, Object.values(components));
 }
 
 async function createBundle_esbuild(webSite: WebSite): Promise<void> {
@@ -144,10 +144,13 @@ async function createBundle_esbuild(webSite: WebSite): Promise<void> {
         }
     });
 
-    await postProcessCreateBundle(webSite, outputDir);
+    await postProcessCreateBundle(webSite, outputDir, Object.values(components));
 }
 
-async function postProcessCreateBundle(webSite: WebSite, outputDir: string) {
+async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sourceFiles: string[]) {
+    // Prefer the sources if possible.
+    sourceFiles = await Promise.all(sourceFiles.map(searchSourceOf))
+
     //region Creates the CSS bundle.
 
     // Jopi Loader hooks the CSS. It's why EsBuild can't automatically catch the CSS.
@@ -161,7 +164,10 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string) {
 
     // Assure the file exists.
     await fs.appendFile(outFilePath, "", "utf-8");
-    
+
+    let tailwindCss = await compileForTailwind(sourceFiles);
+    if (tailwindCss) await fs.appendFile(outFilePath, tailwindCss, "utf-8");
+
     for (const cssFilePath of gAllCssFiles) {
         let css: string;
 
@@ -169,12 +175,6 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string) {
             css = scssToCss(cssFilePath);
         } else {
             css = await nFS.readTextFromFile(cssFilePath);
-        }
-
-        let tailwindCss = await compileForTailwind(path.join(outputDir, "loader.jsx"));
-
-        if (tailwindCss) {
-            css = tailwindCss + css;
         }
 
         await fs.appendFile(outFilePath, css, "utf-8");
@@ -226,25 +226,33 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     }
 }
 
-async function compileForTailwind(jsxFilePath: string): Promise<string|undefined> {
+/**
+ * Generate Tailwind CSS file a liste of source files, and returns the CSS or undefined.
+ * @param sourceFiles
+ *      The list of source files. It's .tsx files.
+ * @returns
+ *       The CSS or undefined.
+ */
+async function compileForTailwind(sourceFiles: string[]): Promise<string|undefined> {
     const tailwindConfig: TailwindConfig = {
-        content: [jsxFilePath],
+        content: sourceFiles,
         theme: {extend: {}},
         plugins: [],
     };
 
-    const inputCss = `
+    /*const inputCss = `
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
-`;
+`;*/
+    const inputCss = `@import "tailwindcss";`;
 
     try {
         const processor = postcss([
             tailwindPostcss(tailwindConfig as any),
         ]);
 
-        const result = await processor.process(inputCss, {from: path.dirname(jsxFilePath)});
+        const result = await processor.process(inputCss, {from: undefined});
         return result.css;
     }
     catch (e: any) {
