@@ -1,6 +1,7 @@
-**2025-08-21**                                                  --> npm 1.0.10@next
+**2025-08-21**                                                  --> npm 2.0.0@next.1
 * Added JwtToken support to JopiEasy.
 * Starting v2, with JopiEasy at the center.
+* JopiEasy, new website path handler.
 
 **2025-08-19**                                                  --> npm 1.0.10
 * Started JopiEasy lib.
