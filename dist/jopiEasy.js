@@ -7,7 +7,7 @@ import { getLetsEncryptCertificate } from "./letsEncrypt.js";
 import { UserStore_WithLoginPassword } from "./userStores.js";
 class JopiEasy {
     new_webSite(url) {
-        return new JopiEasy_CoreWebSite(url);
+        return new JopiEasyWebSite(url);
     }
     new_reverseProxy(url) {
         return new ReverseProxyBuilder(url);
@@ -17,7 +17,8 @@ class JopiEasy {
     }
 }
 export const jopiEasy = new JopiEasy();
-class JopiEasy_CoreWebSite {
+//region WebSite
+class JopiEasyWebSite {
     origin;
     hostName;
     webSite;
@@ -71,12 +72,86 @@ class JopiEasy_CoreWebSite {
             step_setPrivateKey: (privateKey) => builder.setPrivateKey_STEP(privateKey)
         };
     }
+    add_path(path) {
+        return new WebSiteContentBuilder(this, this.internals, path);
+    }
 }
-class JopiEasy_CoreWebSite2 extends JopiEasy_CoreWebSite {
+class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
     getInternals() {
         return this.internals;
     }
 }
+class WebSiteContentBuilder {
+    webSite;
+    internals;
+    path;
+    requiredRoles;
+    verb;
+    handler;
+    constructor(webSite, internals, path) {
+        this.webSite = webSite;
+        this.internals = internals;
+        this.path = path;
+        this.internals.afterHook.push(webSite => {
+            if (!this.handler)
+                return;
+            let handler = this.handler;
+            if (this.requiredRoles) {
+                const requiredRoles = this.requiredRoles;
+                const oldHandler = handler;
+                handler = req => {
+                    req.assertUserHasRoles(requiredRoles);
+                    return oldHandler(req);
+                };
+            }
+            webSite.onVerb(this.verb, this.path, handler);
+        });
+    }
+    add_requiredRole(role) {
+        if (!this.requiredRoles)
+            this.requiredRoles = [role];
+        else
+            this.requiredRoles.push(role);
+        return this;
+    }
+    add_requiredRoles(roles) {
+        if (!this.requiredRoles)
+            this.requiredRoles = [...roles];
+        else
+            this.requiredRoles = [...this.requiredRoles, ...roles];
+        return this;
+    }
+    onRequest(verb, handler) {
+        this.verb = verb;
+        this.handler = handler;
+        return {
+            add_path: (path) => new WebSiteContentBuilder(this.webSite, this.internals, path),
+            DONE_add_path: () => this.webSite
+        };
+    }
+    onGET(handler) {
+        return this.onRequest("GET", handler);
+    }
+    onPOST(handler) {
+        return this.onRequest("POST", handler);
+    }
+    onPUT(handler) {
+        return this.onRequest("PUT", handler);
+    }
+    onDELETE(handler) {
+        return this.onRequest("DELETE", handler);
+    }
+    onOPTIONS(handler) {
+        return this.onRequest("OPTIONS", handler);
+    }
+    onPATCH(handler) {
+        return this.onRequest("PATCH", handler);
+    }
+    onHEAD(handler) {
+        return this.onRequest("HEAD", handler);
+    }
+}
+//endregion
 //region Server starting
 let gIsAutoStartDone = false;
 function autoStartServer() {
@@ -90,6 +165,40 @@ function autoStartServer() {
 const myServer = new JopiServer();
 //endregion
 //region Reverse proxy
+class ReverseProxyBuilder {
+    webSite;
+    internals;
+    constructor(url) {
+        this.webSite = new JopiEasyWebSite_ExposePrivate(url);
+        this.internals = this.webSite.getInternals();
+        this.internals.afterHook.push(webSite => {
+            this.targets.forEach(target => {
+                let sf = target.compile();
+                webSite.addSourceServer(sf);
+            });
+            const handler = req => {
+                req.headers.set('X-Forwarded-Proto', req.urlInfos.protocol.replace(':', ''));
+                req.headers.set('X-Forwarded-Host', req.urlInfos.host);
+                const clientIp = req.coreServer.requestIP(req.coreRequest)?.address;
+                req.headers.set("X-Forwarded-For", clientIp);
+                return req.directProxyToServer();
+            };
+            HTTP_VERBS.forEach(verb => {
+                webSite.onVerb(verb, "/**", handler);
+            });
+        });
+    }
+    targets = [];
+    add_target(url) {
+        // Using ReverseProxyTarget2 but returning ReverseProxyTarget allow masking the private things.
+        const target = new ReverseProxyTarget_ExposePrivate(this, url);
+        this.targets.push(target);
+        return target;
+    }
+    DONE_new_reverseProxy() {
+        return this.webSite;
+    }
+}
 class ReverseProxyTarget {
     parent;
     weight = 1;
@@ -130,7 +239,7 @@ class ReverseProxyTarget {
         return this;
     }
 }
-class ReverseProxyTarget2 extends ReverseProxyTarget {
+class ReverseProxyTarget_ExposePrivate extends ReverseProxyTarget {
     compile() {
         let options = {
             userDefaultHeaders: true,
@@ -139,51 +248,26 @@ class ReverseProxyTarget2 extends ReverseProxyTarget {
         return ServerFetch.useOrigin(this.origin, this.hostName, options);
     }
 }
-class ReverseProxyBuilder {
-    webSite;
-    internals;
-    constructor(url) {
-        this.webSite = new JopiEasy_CoreWebSite2(url);
-        this.internals = this.webSite.getInternals();
-        this.internals.afterHook.push(webSite => {
-            this.targets.forEach(target => {
-                let sf = target.compile();
-                webSite.addSourceServer(sf);
-            });
-            const handler = req => {
-                req.headers.set('X-Forwarded-Proto', req.urlInfos.protocol.replace(':', ''));
-                req.headers.set('X-Forwarded-Host', req.urlInfos.host);
-                const clientIp = req.coreServer.requestIP(req.coreRequest)?.address;
-                req.headers.set("X-Forwarded-For", clientIp);
-                return req.directProxyToServer();
-            };
-            HTTP_VERBS.forEach(verb => {
-                webSite.onVerb(verb, "/**", handler);
-            });
-        });
-    }
-    targets = [];
-    add_target(url) {
-        const target = new ReverseProxyTarget2(this, url);
-        this.targets.push(target);
-        return target;
-    }
-    DONE_new_reverseProxy() {
-        return this.webSite;
-    }
-}
 class FileServerBuilder {
     webSite;
     internals;
     options;
     constructor(url) {
-        this.webSite = new JopiEasy_CoreWebSite2(url);
+        this.webSite = new JopiEasyWebSite_ExposePrivate(url);
         this.internals = this.webSite.getInternals();
         this.options = {
             rootDir: "www",
             replaceIndexHtml: true,
             onNotFound: req => req.error404Response()
         };
+        this.internals.afterHook.push(webSite => {
+            webSite.onGET("/**", req => {
+                return req.serveFile(this.options.rootDir, {
+                    replaceIndexHtml: this.options.replaceIndexHtml,
+                    onNotFound: this.options.onNotFound
+                });
+            });
+        });
     }
     set_rootDir(rootDir) {
         this.options.rootDir = rootDir;
@@ -392,19 +476,12 @@ class JwtTokenAuth_Builder {
     }
     setTokenStore_useAuthentificationHeader() {
         this.internals.afterHook.push(webSite => {
-            webSite.setJwtTokenStore((token, _cookieValue, req, res) => {
+            webSite.setJwtTokenStore((token, _cookieValue, _req, res) => {
                 res.headers.set("Authorization", `Bearer ${token}`);
             });
         });
         return this.FINISH();
     }
-}
-class GoToWebSite {
-    parent;
-    constructor(parent) {
-        this.parent = parent;
-    }
-    goTo_webSite() { return this.parent; }
 }
 //endregion
 //# sourceMappingURL=jopiEasy.js.map

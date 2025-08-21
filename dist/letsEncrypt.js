@@ -109,7 +109,7 @@ export async function checkWebSite(httpsWebSite, params, isFromCron) {
             console.log("LetsEncrypt - Requesting initial certificate for", host);
     }
     // Must be on port 80.
-    webSite80.onGET("/.well-known/acme-challenge/**", req => {
+    webSite80.onGET("/.well-known/acme-challenge/**", async (req) => {
         console.log("LetsEncrypt - requested ", req.url);
         if (req.url.endsWith(vChallengeToken)) {
             console.log("LetsEncrypt - returning the auth", vKeyAuthorization);

@@ -149,7 +149,7 @@ export async function checkWebSite(httpsWebSite: WebSite, params: LetsEncryptPar
     }
     
     // Must be on port 80.
-    webSite80.onGET("/.well-known/acme-challenge/**", req => {
+    webSite80.onGET("/.well-known/acme-challenge/**", async req => {
         console.log("LetsEncrypt - requested ", req.url);
         
         if (req.url.endsWith(vChallengeToken)) {

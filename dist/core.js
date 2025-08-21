@@ -527,9 +527,7 @@ export class JopiRequest {
         const [bunNewReq, spyReq] = await this.duplicateRawRequest(this.coreRequest);
         // Required because the body is already consumed.
         this.coreRequest = bunNewReq;
-        let res = handleRequest(this);
-        if (res instanceof Promise)
-            res = await res;
+        let res = await handleRequest(this);
         const [bunNewRes, spyRes] = await this.duplicateResponse(res);
         // Required because the body is already consumed.
         this.coreRequest = spyReq;
@@ -711,7 +709,7 @@ export class JopiRequest {
      * Check if the user has all these roles.
      * Return true if ok, false otherwise.
      */
-    userHasRoles(...requiredRoles) {
+    userHasRoles(requiredRoles) {
         const userInfos = this.getUserInfos();
         if (!userInfos)
             return false;
@@ -724,8 +722,8 @@ export class JopiRequest {
         }
         return true;
     }
-    assertUserHasRoles(...requiredRoles) {
-        if (!this.userHasRoles(...requiredRoles)) {
+    assertUserHasRoles(requiredRoles) {
+        if (!this.userHasRoles(requiredRoles)) {
             throw new NotAuthorizedException();
         }
     }
@@ -879,7 +877,7 @@ export class WebSite {
             return undefined;
         return matched.data;
     }
-    processRequest(urlInfos, bunRequest, bunServer) {
+    async processRequest(urlInfos, bunRequest, bunServer) {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
         const matched = findRoute(this.router, bunRequest.method, urlInfos.pathname);
@@ -887,7 +885,7 @@ export class WebSite {
         if (matched) {
             req.urlParts = matched.params;
             try {
-                return matched.data.handler(req);
+                return await matched.data.handler(req);
             }
             catch (e) {
                 if (e instanceof NotAuthorizedException) {
@@ -1049,7 +1047,7 @@ export class WebSite {
         urlInfos.protocol = "http";
         const webSite = new WebSite(urlInfos.href);
         this.http80WebSite = webSite;
-        webSite.onGET("/**", req => {
+        webSite.onGET("/**", async (req) => {
             req.urlInfos.port = "";
             req.urlInfos.protocol = "https";
             return req.redirectResponse(true, req.urlInfos.href);

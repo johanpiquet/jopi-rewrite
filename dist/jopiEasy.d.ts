@@ -1,29 +1,20 @@
-import { type AuthHandler, JopiRequest, type UserInfos, WebSite, WebSiteOptions } from "./core.ts";
+import { type AuthHandler, type HttpMethod, JopiRequest, type UserInfos, WebSite, WebSiteOptions } from "./core.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
 import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.js";
 declare class JopiEasy {
-    new_webSite(url: string): JopiEasy_CoreWebSite;
+    new_webSite(url: string): JopiEasyWebSite;
     new_reverseProxy(url: string): ReverseProxyBuilder;
     new_fileServer(url: string): FileServerBuilder;
 }
 export declare const jopiEasy: JopiEasy;
-interface CoreWebSiteInternal {
-    origin: string;
-    hostName: string;
-    options: WebSiteOptions;
-    afterHook: ((webSite: WebSite) => void)[];
-    beforeHook: (() => Promise<void>)[];
-    onHookWebSite?: (webSite: WebSite) => void;
-}
-type GetValue<T> = (value: T) => void;
-declare class JopiEasy_CoreWebSite {
+declare class JopiEasyWebSite {
     protected readonly origin: string;
     protected readonly hostName: string;
     private webSite?;
     protected readonly options: WebSiteOptions;
     protected readonly afterHook: ((webSite: WebSite) => void)[];
     protected readonly beforeHook: (() => Promise<void>)[];
-    protected readonly internals: CoreWebSiteInternal;
+    protected readonly internals: WebSiteInternal;
     constructor(url: string);
     protected initialize(): void;
     private initWebSiteInstance;
@@ -40,14 +31,14 @@ declare class JopiEasy_CoreWebSite {
                     DONE_use_simpleLoginPassword: () => {
                         stepOptional_setTokenStore: () => {
                             use_cookie: (expirationDuration_days?: number) => {
-                                DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                                DONE_add_jwtTokenAuth: () => JopiEasyWebSite;
                             };
                             use_authentificationHeader: () => {
-                                DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                                DONE_add_jwtTokenAuth: () => JopiEasyWebSite;
                             };
                         };
                         DONE_add_jwtTokenAuth: () => () => {
-                            DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                            DONE_add_jwtTokenAuth: () => JopiEasyWebSite;
                         };
                     };
                 };
@@ -55,44 +46,88 @@ declare class JopiEasy_CoreWebSite {
                     DONE_use_customStore: () => {
                         stepOptional_setTokenStore: () => {
                             use_cookie: (expirationDuration_days?: number) => {
-                                DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                                DONE_add_jwtTokenAuth: () => JopiEasyWebSite;
                             };
                             use_authentificationHeader: () => {
-                                DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                                DONE_add_jwtTokenAuth: () => JopiEasyWebSite;
                             };
                         };
                         DONE_add_jwtTokenAuth: () => () => {
-                            DONE_add_jwtTokenAuth: () => JopiEasy_CoreWebSite;
+                            DONE_add_jwtTokenAuth: () => JopiEasyWebSite;
                         };
                     };
                 };
             };
         };
     };
+    add_path(path: string): WebSiteContentBuilder;
 }
-declare class JopiEasy_CoreWebSite2 extends JopiEasy_CoreWebSite {
-    getInternals(): CoreWebSiteInternal;
+declare class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
+    getInternals(): WebSiteInternal;
 }
-declare class ReverseProxyTarget<T> {
-    private readonly parent;
-    protected weight: number;
-    protected origin: string;
-    protected hostName: string;
-    protected publicUrl: string;
-    constructor(parent: T, url: string);
-    DONE_add_target(): T;
-    useIp(ip: string): this;
-    setWeight(weight: number): this;
-    set_isMainServer(): this;
-    set_isBackupServer(): this;
+declare class WebSiteContentBuilder {
+    private readonly webSite;
+    private readonly internals;
+    private readonly path;
+    private requiredRoles?;
+    private verb?;
+    private handler?;
+    constructor(webSite: JopiEasyWebSite, internals: WebSiteInternal, path: string);
+    add_requiredRole(role: string): this;
+    add_requiredRoles(roles: string[]): this;
+    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
+    onGET(handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
+    onPOST(handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
+    onPUT(handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
+    onDELETE(handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
+    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
+    onPATCH(handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
+    onHEAD(handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
 }
 declare class ReverseProxyBuilder {
     private readonly webSite;
     private readonly internals;
     constructor(url: string);
     private readonly targets;
-    add_target(url: string): ReverseProxyTarget<ReverseProxyBuilder>;
-    DONE_new_reverseProxy(): JopiEasy_CoreWebSite2;
+    add_target(url: string): ReverseProxyTarget;
+    DONE_new_reverseProxy(): JopiEasyWebSite_ExposePrivate;
+}
+declare class ReverseProxyTarget {
+    private readonly parent;
+    protected weight: number;
+    protected origin: string;
+    protected hostName: string;
+    protected publicUrl: string;
+    constructor(parent: ReverseProxyBuilder, url: string);
+    DONE_add_target(): ReverseProxyBuilder;
+    useIp(ip: string): this;
+    setWeight(weight: number): this;
+    set_isMainServer(): this;
+    set_isBackupServer(): this;
 }
 declare class FileServerBuilder {
     private readonly webSite;
@@ -101,30 +136,39 @@ declare class FileServerBuilder {
     constructor(url: string);
     set_rootDir(rootDir: string): this;
     set_onNotFound(handler: (req: JopiRequest) => Response | Promise<Response>): this;
-    DONE_new_fileServer(): JopiEasy_CoreWebSite2;
+    DONE_new_fileServer(): JopiEasyWebSite_ExposePrivate;
 }
 declare class CertificateBuilder {
     private readonly parent;
     private readonly internals;
-    constructor(parent: JopiEasy_CoreWebSite, internals: CoreWebSiteInternal);
+    constructor(parent: JopiEasyWebSite, internals: WebSiteInternal);
     generate_localDevCert(saveInDir?: string): {
-        DONE_add_httpCertificate: () => JopiEasy_CoreWebSite;
+        DONE_add_httpCertificate: () => JopiEasyWebSite;
     };
     use_dirStore(dirPath: string): {
-        DONE_add_httpCertificate: () => JopiEasy_CoreWebSite;
+        DONE_add_httpCertificate: () => JopiEasyWebSite;
     };
     generate_letsEncryptCert(email: string): LetsEncryptCertificateBuilder;
 }
 declare class LetsEncryptCertificateBuilder {
     private readonly parent;
     private readonly params;
-    constructor(parent: JopiEasy_CoreWebSite, params: LetsEncryptParams);
-    DONE_add_httpCertificate(): JopiEasy_CoreWebSite;
+    constructor(parent: JopiEasyWebSite, params: LetsEncryptParams);
+    DONE_add_httpCertificate(): JopiEasyWebSite;
     enable_production(value?: boolean): this;
     disable_log(): this;
     set_certificateDir(dirPath: string): this;
     force_expireAfter_days(dayCount: number): this;
     force_timout_sec(value: number): this;
     if_timeOutError(handler: OnTimeoutError): this;
+}
+type GetValue<T> = (value: T) => void;
+interface WebSiteInternal {
+    origin: string;
+    hostName: string;
+    options: WebSiteOptions;
+    afterHook: ((webSite: WebSite) => void)[];
+    beforeHook: (() => Promise<void>)[];
+    onHookWebSite?: (webSite: WebSite) => void;
 }
 export {};

@@ -2,7 +2,7 @@
 
 import {
     type AuthHandler,
-    HTTP_VERBS,
+    HTTP_VERBS, type HttpMethod,
     JopiRequest,
     type JopiRouteHandler,
     JopiServer,
@@ -17,8 +17,8 @@ import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} 
 import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.js";
 
 class JopiEasy {
-    new_webSite(url: string): JopiEasy_CoreWebSite {
-        return new JopiEasy_CoreWebSite(url);
+    new_webSite(url: string): JopiEasyWebSite {
+        return new JopiEasyWebSite(url);
     }
 
     new_reverseProxy(url: string): ReverseProxyBuilder {
@@ -32,20 +32,9 @@ class JopiEasy {
 
 export const jopiEasy = new JopiEasy();
 
-interface CoreWebSiteInternal {
-    origin: string;
-    hostName: string;
-    options: WebSiteOptions;
+//region WebSite
 
-    afterHook: ((webSite: WebSite) => void)[];
-    beforeHook: (() => Promise<void>)[];
-
-    onHookWebSite?: (webSite: WebSite) => void;
-}
-
-type GetValue<T> = (value: T) => void;
-
-class JopiEasy_CoreWebSite {
+class JopiEasyWebSite {
     protected readonly origin: string;
     protected readonly hostName: string;
     private webSite?: WebSite;
@@ -54,7 +43,7 @@ class JopiEasy_CoreWebSite {
     protected readonly afterHook: ((webSite: WebSite)=>void)[] = [];
     protected readonly beforeHook: (()=>Promise<void>)[] = [];
 
-    protected readonly internals: CoreWebSiteInternal;
+    protected readonly internals: WebSiteInternal;
 
     constructor(url: string) {
         setTimeout(() => { this.initWebSiteInstance().then() }, 1);
@@ -113,13 +102,95 @@ class JopiEasy_CoreWebSite {
             step_setPrivateKey: (privateKey: string) => builder.setPrivateKey_STEP(privateKey)
         }
     }
+
+    add_path(path: string) {
+        return new WebSiteContentBuilder(this, this.internals, path);
+    }
 }
 
-class JopiEasy_CoreWebSite2 extends JopiEasy_CoreWebSite {
+class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
     getInternals() {
         return this.internals;
     }
 }
+
+class WebSiteContentBuilder {
+    private requiredRoles?: string[];
+    private verb?: HttpMethod;
+    private handler?: (req: JopiRequest) => Promise<Response>;
+
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string) {
+        this.internals.afterHook.push(webSite => {
+            if (!this.handler) return;
+
+            let handler = this.handler;
+
+            if (this.requiredRoles) {
+                const requiredRoles = this.requiredRoles;
+                const oldHandler = handler;
+
+                handler = req => {
+                    req.assertUserHasRoles(requiredRoles);
+                    return oldHandler(req);
+                }
+            }
+
+            webSite.onVerb(this.verb!, this.path!, handler);
+        });
+    }
+
+    add_requiredRole(role: string) {
+        if (!this.requiredRoles) this.requiredRoles = [role];
+        else this.requiredRoles.push(role);
+        return this;
+    }
+
+    add_requiredRoles(roles: string[]) {
+        if (!this.requiredRoles) this.requiredRoles = [...roles];
+        else this.requiredRoles = [...this.requiredRoles, ...roles];
+        return this;
+    }
+
+    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>) {
+        this.verb = verb;
+        this.handler = handler;
+
+        return {
+            add_path: (path: string) => new WebSiteContentBuilder(this.webSite, this.internals, path),
+            DONE_add_path: () => this.webSite
+        }
+    }
+
+    onGET(handler: (req: JopiRequest) => Promise<Response>) {
+        return this.onRequest("GET", handler);
+    }
+
+    onPOST(handler: (req: JopiRequest) => Promise<Response>) {
+        return this.onRequest("POST", handler);
+    }
+
+    onPUT(handler: (req: JopiRequest) => Promise<Response>) {
+        return this.onRequest("PUT", handler);
+    }
+
+    onDELETE(handler: (req: JopiRequest) => Promise<Response>) {
+        return this.onRequest("DELETE", handler);
+    }
+
+    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>) {
+        return this.onRequest("OPTIONS", handler);
+    }
+
+    onPATCH(handler: (req: JopiRequest) => Promise<Response>) {
+        return this.onRequest("PATCH", handler);
+    }
+
+    onHEAD(handler: (req: JopiRequest) => Promise<Response>) {
+        return this.onRequest("HEAD", handler);
+    }
+}
+
+//endregion
 
 //region Server starting
 
@@ -140,13 +211,57 @@ const myServer = new JopiServer();
 
 //region Reverse proxy
 
-class ReverseProxyTarget<T> {
+class ReverseProxyBuilder {
+    private readonly webSite: JopiEasyWebSite_ExposePrivate;
+    private readonly internals: WebSiteInternal;
+
+    constructor(url: string) {
+        this.webSite = new JopiEasyWebSite_ExposePrivate(url);
+        this.internals = this.webSite.getInternals();
+
+        this.internals.afterHook.push(webSite => {
+            this.targets.forEach(target => {
+                let sf = target.compile();
+                webSite.addSourceServer(sf);
+            });
+
+            const handler: JopiRouteHandler = req => {
+                req.headers.set('X-Forwarded-Proto', req.urlInfos.protocol.replace(':', ''));
+                req.headers.set('X-Forwarded-Host', req.urlInfos.host)
+
+                const clientIp = req.coreServer.requestIP(req.coreRequest)?.address;
+                req.headers.set("X-Forwarded-For", clientIp!);
+
+                return req.directProxyToServer();
+            };
+
+            HTTP_VERBS.forEach(verb => {
+                webSite.onVerb(verb, "/**", handler);
+            });
+        });
+    }
+
+    private readonly targets: ReverseProxyTarget_ExposePrivate[] = [];
+
+    add_target(url: string): ReverseProxyTarget {
+        // Using ReverseProxyTarget2 but returning ReverseProxyTarget allow masking the private things.
+        const target = new ReverseProxyTarget_ExposePrivate(this, url);
+        this.targets.push(target);
+        return target as ReverseProxyTarget;
+    }
+
+    DONE_new_reverseProxy() {
+        return this.webSite;
+    }
+}
+
+class ReverseProxyTarget {
     protected weight: number = 1;
     protected origin: string;
     protected hostName: string;
     protected publicUrl: string;
 
-    constructor(private readonly parent: T, url: string) {
+    constructor(private readonly parent: ReverseProxyBuilder, url: string) {
         const urlInfos = new URL(url);
         this.publicUrl = url;
         this.origin = urlInfos.origin;
@@ -184,7 +299,7 @@ class ReverseProxyTarget<T> {
     }
 }
 
-class ReverseProxyTarget2<T> extends ReverseProxyTarget<T> {
+class ReverseProxyTarget_ExposePrivate extends ReverseProxyTarget {
     public compile(): ServerFetch<any> {
         let options: ServerFetchOptions<any> = {
             userDefaultHeaders: true,
@@ -192,49 +307,6 @@ class ReverseProxyTarget2<T> extends ReverseProxyTarget<T> {
         };
 
         return ServerFetch.useOrigin(this.origin, this.hostName, options);
-    }
-}
-
-class ReverseProxyBuilder {
-    private readonly webSite: JopiEasy_CoreWebSite2;
-    private readonly internals: CoreWebSiteInternal;
-
-    constructor(url: string) {
-        this.webSite = new JopiEasy_CoreWebSite2(url);
-        this.internals = this.webSite.getInternals();
-
-        this.internals.afterHook.push(webSite => {
-            this.targets.forEach(target => {
-                let sf = target.compile();
-                webSite.addSourceServer(sf);
-            });
-
-            const handler: JopiRouteHandler = req => {
-                req.headers.set('X-Forwarded-Proto', req.urlInfos.protocol.replace(':', ''));
-                req.headers.set('X-Forwarded-Host', req.urlInfos.host)
-
-                const clientIp = req.coreServer.requestIP(req.coreRequest)?.address;
-                req.headers.set("X-Forwarded-For", clientIp!);
-
-                return req.directProxyToServer();
-            };
-
-            HTTP_VERBS.forEach(verb => {
-                webSite.onVerb(verb, "/**", handler);
-            });
-        });
-    }
-
-    private readonly targets: ReverseProxyTarget2<ReverseProxyBuilder>[] = [];
-
-    add_target(url: string): ReverseProxyTarget<ReverseProxyBuilder> {
-        const target = new ReverseProxyTarget2<ReverseProxyBuilder>(this, url);
-        this.targets.push(target);
-        return target as ReverseProxyTarget<ReverseProxyBuilder>;
-    }
-
-    DONE_new_reverseProxy() {
-        return this.webSite;
     }
 }
 
@@ -249,12 +321,12 @@ interface FileServerOptions {
 }
 
 class FileServerBuilder {
-    private readonly webSite: JopiEasy_CoreWebSite2;
-    private readonly internals: CoreWebSiteInternal;
+    private readonly webSite: JopiEasyWebSite_ExposePrivate;
+    private readonly internals: WebSiteInternal;
     private readonly options: FileServerOptions;
 
     constructor(url: string) {
-        this.webSite = new JopiEasy_CoreWebSite2(url);
+        this.webSite = new JopiEasyWebSite_ExposePrivate(url);
         this.internals = this.webSite.getInternals();
 
         this.options = {
@@ -262,6 +334,15 @@ class FileServerBuilder {
             replaceIndexHtml: true,
             onNotFound: req => req.error404Response()
         };
+
+        this.internals.afterHook.push(webSite => {
+            webSite.onGET("/**", req => {
+                return req.serveFile(this.options.rootDir, {
+                    replaceIndexHtml: this.options.replaceIndexHtml,
+                    onNotFound: this.options.onNotFound
+                });
+            });
+        });
     }
 
     set_rootDir(rootDir: string) {
@@ -286,7 +367,7 @@ class FileServerBuilder {
 //region CertificateBuilder
 
 class CertificateBuilder {
-    constructor(private readonly parent: JopiEasy_CoreWebSite, private readonly internals: CoreWebSiteInternal) {
+    constructor(private readonly parent: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
     }
 
     generate_localDevCert(saveInDir: string = "certs") {
@@ -347,7 +428,7 @@ class CertificateBuilder {
 //region LetsEncryptCertificateBuilder
 
 class LetsEncryptCertificateBuilder {
-    constructor(private readonly parent: JopiEasy_CoreWebSite, private readonly params: LetsEncryptParams) {
+    constructor(private readonly parent: JopiEasyWebSite, private readonly params: LetsEncryptParams) {
     }
 
     DONE_add_httpCertificate() {
@@ -392,7 +473,7 @@ class LetsEncryptCertificateBuilder {
 //region JWT Tokens
 
 class JwtTokenAuth_Builder {
-    constructor(private readonly parent: JopiEasy_CoreWebSite, private readonly internals: CoreWebSiteInternal) {
+    constructor(private readonly parent: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
     }
 
     FINISH() {
@@ -521,7 +602,7 @@ class JwtTokenAuth_Builder {
 
     setTokenStore_useAuthentificationHeader() {
         this.internals.afterHook.push(webSite => {
-            webSite.setJwtTokenStore((token, _cookieValue, req, res) => {
+            webSite.setJwtTokenStore((token, _cookieValue, _req, res) => {
                 res.headers.set("Authorization", `Bearer ${token}`);
             });
         });
@@ -532,9 +613,21 @@ class JwtTokenAuth_Builder {
     //endregion
 }
 
-class GoToWebSite<T> {
-    constructor(private readonly parent: T) { }
-    goTo_webSite() { return this.parent; }
+//endregion
+
+//region Helpers
+
+type GetValue<T> = (value: T) => void;
+
+interface WebSiteInternal {
+    origin: string;
+    hostName: string;
+    options: WebSiteOptions;
+
+    afterHook: ((webSite: WebSite) => void)[];
+    beforeHook: (() => Promise<void>)[];
+
+    onHookWebSite?: (webSite: WebSite) => void;
 }
 
 //endregion

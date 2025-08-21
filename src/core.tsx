@@ -28,7 +28,7 @@ const nOS = NodeSpace.os;
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
 export type JopiRouter = RouterContext<WebSiteRoute>;
-export type JopiRouteHandler = (req: JopiRequest) => Response|Promise<Response>;
+export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
 export type JopiErrorHandler = (req: JopiRequest, error?: Error|string) => Response|Promise<Response>;
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 export type RequestBody = ReadableStream<Uint8Array> | null;
@@ -622,7 +622,7 @@ export class JopiRequest {
         return [res1, res2];
     }
 
-    async spyRequest(handleRequest: (req: JopiRequest) => Response|Promise<Response>): Promise<Response> {
+    async spyRequest(handleRequest: (req: JopiRequest) => Promise<Response>): Promise<Response> {
         return this.spyRequestData(handleRequest, (data) => {
             this.printSpyRequestData(data);
         });
@@ -664,8 +664,7 @@ export class JopiRequest {
         // Required because the body is already consumed.
         this.coreRequest = bunNewReq;
 
-        let res = handleRequest(this);
-        if (res instanceof Promise) res = await res;
+        let res = await handleRequest(this);
         const [bunNewRes, spyRes] = await this.duplicateResponse(res);
 
         // Required because the body is already consumed.
@@ -893,7 +892,7 @@ export class JopiRequest {
      * Check if the user has all these roles.
      * Return true if ok, false otherwise.
      */
-    public userHasRoles(...requiredRoles: string[]): boolean {
+    public userHasRoles(requiredRoles: string[]): boolean {
         const userInfos = this.getUserInfos();
         if (!userInfos) return false;
 
@@ -907,8 +906,8 @@ export class JopiRequest {
         return true;
     }
 
-    public assertUserHasRoles(...requiredRoles: string[]) {
-        if (!this.userHasRoles(...requiredRoles)) {
+    public assertUserHasRoles(requiredRoles: string[]) {
+        if (!this.userHasRoles(requiredRoles)) {
             throw new NotAuthorizedException();
         }
     }
@@ -1141,7 +1140,7 @@ export class WebSite {
         return matched.data;
     }
 
-    processRequest(urlInfos: URL, bunRequest: Request, bunServer: ServerInstance): Response|Promise<Response> {
+    async processRequest(urlInfos: URL, bunRequest: Request, bunServer: ServerInstance): Promise<Response> {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
 
@@ -1152,7 +1151,7 @@ export class WebSite {
             req.urlParts = matched.params;
 
             try {
-                return matched.data.handler(req);
+                return await matched.data.handler(req);
             } catch (e) {
                 if (e instanceof NotAuthorizedException) {
                     return req.textResponse(e.message, 401);
@@ -1337,7 +1336,7 @@ export class WebSite {
         const webSite = new WebSite(urlInfos.href);
         this.http80WebSite = webSite;
 
-        webSite.onGET("/**", req => {
+        webSite.onGET("/**", async req => {
             req.urlInfos.port = "";
             req.urlInfos.protocol = "https";
 

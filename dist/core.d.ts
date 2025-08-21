@@ -5,7 +5,7 @@ import { type ReactNode } from "react";
 import { LoadBalancer } from "./loadBalancing.ts";
 import { type ServerInstance, type ServerSocketAddress, type StartServerCoreOptions } from "./server.ts";
 export type JopiRouter = RouterContext<WebSiteRoute>;
-export type JopiRouteHandler = (req: JopiRequest) => Response | Promise<Response>;
+export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
 export type JopiErrorHandler = (req: JopiRequest, error?: Error | string) => Response | Promise<Response>;
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 export type RequestBody = ReadableStream<Uint8Array> | null;
@@ -170,7 +170,7 @@ export declare class JopiRequest {
     duplicateReadableStream(stream: ReadableStream | null): Promise<(ReadableStream<any> | null)[]>;
     duplicateRawRequest(raw: Request): Promise<[Request, Request]>;
     duplicateResponse(raw: Response): Promise<[Response, Response]>;
-    spyRequest(handleRequest: (req: JopiRequest) => Response | Promise<Response>): Promise<Response>;
+    spyRequest(handleRequest: (req: JopiRequest) => Promise<Response>): Promise<Response>;
     printSpyRequestData(data: JopiRequestSpyData): Promise<void>;
     spyRequestData(handleRequest: JopiRouteHandler, onSpy: JopiRequestSpy): Promise<Response>;
     hasCookie(name: string, value?: string): boolean;
@@ -218,8 +218,8 @@ export declare class JopiRequest {
      * Check if the user has all these roles.
      * Return true if ok, false otherwise.
      */
-    userHasRoles(...requiredRoles: string[]): boolean;
-    assertUserHasRoles(...requiredRoles: string[]): void;
+    userHasRoles(requiredRoles: string[]): boolean;
+    assertUserHasRoles(requiredRoles: string[]): void;
     filterSearchParams(filter: SearchParamFilterFunction): void;
     getContentTypeOf(response: Response): string | null;
     /**
@@ -301,7 +301,7 @@ export declare class WebSite {
     on404(handler: JopiRouteHandler): void;
     on500(handler: JopiRouteHandler): void;
     getRouteFor(url: string, method?: string): WebSiteRoute | undefined;
-    processRequest(urlInfos: URL, bunRequest: Request, bunServer: ServerInstance): Response | Promise<Response>;
+    processRequest(urlInfos: URL, bunRequest: Request, bunServer: ServerInstance): Promise<Response>;
     return404(req: JopiRequest): Response | Promise<Response>;
     return500(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
     onServerStarted(): void;
