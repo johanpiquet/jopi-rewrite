@@ -5,6 +5,7 @@ import fsc from "node:fs";
 import { ServerFetch } from "./serverFetch.js";
 import { getLetsEncryptCertificate } from "./letsEncrypt.js";
 import { UserStore_WithLoginPassword } from "./userStores.js";
+import { setConfig_disableTailwind } from "./hydrate.js";
 class JopiEasy {
     new_webSite(url) {
         return new JopiEasyWebSite(url);
@@ -14,6 +15,9 @@ class JopiEasy {
     }
     new_fileServer(url) {
         return new FileServerBuilder(url);
+    }
+    globalConfig() {
+        return new GlobalConfigBuilder();
     }
 }
 export const jopiEasy = new JopiEasy();
@@ -481,6 +485,13 @@ class JwtTokenAuth_Builder {
             });
         });
         return this.FINISH();
+    }
+}
+//endregion
+//region Config
+class GlobalConfigBuilder {
+    disable_tailwind() {
+        setConfig_disableTailwind();
     }
 }
 //endregion

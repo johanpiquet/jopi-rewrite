@@ -1,10 +1,11 @@
 import { type AuthHandler, type HttpMethod, JopiRequest, type UserInfos, WebSite, WebSiteOptions } from "./core.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
-import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.js";
+import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.ts";
 declare class JopiEasy {
     new_webSite(url: string): JopiEasyWebSite;
     new_reverseProxy(url: string): ReverseProxyBuilder;
     new_fileServer(url: string): FileServerBuilder;
+    globalConfig(): GlobalConfigBuilder;
 }
 export declare const jopiEasy: JopiEasy;
 declare class JopiEasyWebSite {
@@ -161,6 +162,9 @@ declare class LetsEncryptCertificateBuilder {
     force_expireAfter_days(dayCount: number): this;
     force_timout_sec(value: number): this;
     if_timeOutError(handler: OnTimeoutError): this;
+}
+declare class GlobalConfigBuilder {
+    disable_tailwind(): void;
 }
 type GetValue<T> = (value: T) => void;
 interface WebSiteInternal {

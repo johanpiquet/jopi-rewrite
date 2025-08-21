@@ -7,3 +7,4 @@ export declare function hasExternalCssBundled(): boolean;
 export declare function getHydrateComponents(): {
     [key: string]: string;
 };
+export declare function setConfig_disableTailwind(): void;

@@ -14,7 +14,8 @@ import path from "node:path";
 import fsc from "node:fs";
 import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
-import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.js";
+import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.ts";
+import {setConfig_disableTailwind} from "./hydrate.ts";
 
 class JopiEasy {
     new_webSite(url: string): JopiEasyWebSite {
@@ -27,6 +28,10 @@ class JopiEasy {
 
     new_fileServer(url: string): FileServerBuilder {
         return new FileServerBuilder(url);
+    }
+
+    globalConfig() {
+        return new GlobalConfigBuilder();
     }
 }
 
@@ -611,6 +616,16 @@ class JwtTokenAuth_Builder {
     }
 
     //endregion
+}
+
+//endregion
+
+//region Config
+
+class GlobalConfigBuilder {
+    disable_tailwind() {
+        setConfig_disableTailwind();
+    }
 }
 
 //endregion

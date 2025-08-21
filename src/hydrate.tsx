@@ -132,8 +132,10 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
     // Assure the file exists.
     await fs.appendFile(outFilePath, "", "utf-8");
 
-    let tailwindCss = await compileForTailwind(sourceFiles);
-    if (tailwindCss) await fs.appendFile(outFilePath, tailwindCss, "utf-8");
+    if (!gConfig_disableTailwind) {
+        let tailwindCss = await compileForTailwind(sourceFiles);
+        if (tailwindCss) await fs.appendFile(outFilePath, tailwindCss, "utf-8");
+    }
 
     for (const cssFilePath of gAllCssFiles) {
         let css: string;
@@ -336,5 +338,15 @@ let gHasManuallyIncludedCss = false;
 
 setNewHydrateListener(onNewHydrate);
 setNewMustBundleExternalCssListener(onNewMustIncludeCss);
+
+//endregion
+
+//region Config
+
+let gConfig_disableTailwind = false;
+
+export function setConfig_disableTailwind() {
+    gConfig_disableTailwind = true;
+}
 
 //endregion
