@@ -2,7 +2,8 @@
 * Added JwtToken support to JopiEasy.
 * Starting v2, with JopiEasy at the center.
 * JopiEasy, a new website path handler.
-* Correction of an anomaly why make WebStorm very slow.
+* Correction of an anomaly which makes WebStorm very slow.
+* Allow bundling external CSS (see: mustBundleExternalCss).
 
 **2025-08-19**                                                  --> npm 1.0.10
 * Started JopiEasy lib.

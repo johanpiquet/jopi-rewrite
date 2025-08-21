@@ -8,7 +8,14 @@ import * as ReactServer from 'react-dom/server';
 import React, {type ReactNode} from "react";
 import {Page} from "jopi-rewrite-ui";
 
-import {createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents} from "./hydrate.tsx";
+import {
+    createBundle,
+    getBundleUrl,
+    handleBundleRequest,
+    hasHydrateComponents,
+    hasManuallyIncludedCss
+} from "./hydrate.tsx";
+
 import * as cheerio from "cheerio";
 import {LoadBalancer} from "./loadBalancing.ts";
 import fs from "node:fs/promises";
@@ -765,12 +772,15 @@ export class JopiRequest {
     //region Post processing
 
     private postProcessHtml(html: string): string {
-        if (hasHydrateComponents()) {
+        if (hasHydrateComponents() || hasManuallyIncludedCss()) {
             const bundleUrl = getBundleUrl(this.webSite);
             const hash = this.webSite.data["jopiLoaderHash"];
 
             html += `\n<link rel="stylesheet" href="${bundleUrl}/loader.css?${hash.css}" />`;
-            html += `\n<script type="module" src="${bundleUrl}/loader.js?${hash.js}"></script>`;
+
+            if (hasHydrateComponents()) {
+                html += `\n<script type="module" src="${bundleUrl}/loader.js?${hash.js}"></script>`;
+            }
         }
 
         return html;
@@ -1061,7 +1071,7 @@ export class WebSite {
         this.mainCache = options.cache || gVoidCache;
         this.router = createRouter<WebSiteRoute>();
 
-        if (hasHydrateComponents()) {
+        if (hasHydrateComponents() || hasManuallyIncludedCss()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
     }

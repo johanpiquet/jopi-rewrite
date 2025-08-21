@@ -2,11 +2,12 @@ import path from "node:path";
 
 import React from "react";
 import {type JopiRequest, WebSite} from "./core.tsx";
-import {setNewHydrateListener, useCssModule} from "jopi-rewrite-ui";
+import {setNewHydrateListener, setNewMustBundleExternalCssListener, useCssModule} from "jopi-rewrite-ui";
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
 import fs from "node:fs/promises";
 import {scssToCss, searchSourceOf} from "@jopi-loader/tools";
+import {pathToFileURL, fileURLToPath} from "node:url";
 
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
@@ -57,56 +58,58 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 }
 
 async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
-    if (!hasHydrateComponents()) return;
-
     const components = getHydrateComponents();
     const outputDir = path.join(gTempDirPath, webSite.hostName);
-    const publicUrl = webSite.welcomeUrl + '/_bundle/';
 
-    // Empty the dir, this makes tests easier.
-    await nFS.rmDir(gTempDirPath);
-    await nFS.mkDir(gTempDirPath);
+    if (hasHydrateComponents()) {
+        const publicUrl = webSite.welcomeUrl + '/_bundle/';
 
-    const entryPoint = await generateScript(outputDir, components);
+        // Empty the dir, this makes tests easier.
+        await nFS.rmDir(gTempDirPath);
+        await nFS.mkDir(gTempDirPath);
 
-    await esBuildBundleExternal({
-        entryPoint, outputDir,
-        publicPath: publicUrl,
-        usePlugins: ["jopiReplaceServerPlugin"],
+        const entryPoint = await generateScript(outputDir, components);
 
-        overrideConfig: {
-            platform: 'browser',
-            bundle: true,
-            format: 'esm',
-            target: "es2020",
-            splitting: true
-        }
-    });
+        await esBuildBundleExternal({
+            entryPoint, outputDir,
+            publicPath: publicUrl,
+            usePlugins: ["jopiReplaceServerPlugin"],
+
+            overrideConfig: {
+                platform: 'browser',
+                bundle: true,
+                format: 'esm',
+                target: "es2020",
+                splitting: true
+            }
+        });
+    }
 
     await postProcessCreateBundle(webSite, outputDir, Object.values(components));
 }
 
 async function createBundle_esbuild(webSite: WebSite): Promise<void> {
-    if (!hasHydrateComponents()) return;
-
     const components = getHydrateComponents();
     const outputDir = path.join(gTempDirPath, webSite.hostName);
-    const entryPoint = await generateScript(outputDir, components);
-    const publicUrl = webSite.welcomeUrl + '/_bundle/';
 
-    await esBuildBundle({
-        entryPoint, outputDir,
-        publicPath: publicUrl,
-        plugins: [jopiReplaceServerPlugin],
+    if (hasHydrateComponents()) {
+        const entryPoint = await generateScript(outputDir, components);
+        const publicUrl = webSite.welcomeUrl + '/_bundle/';
 
-        overrideConfig: {
-            platform: 'browser',
-            bundle: true,
-            format: 'esm',
-            target: "es2020",
-            splitting: true
-        }
-    });
+        await esBuildBundle({
+            entryPoint, outputDir,
+            publicPath: publicUrl,
+            plugins: [jopiReplaceServerPlugin],
+
+            overrideConfig: {
+                platform: 'browser',
+                bundle: true,
+                format: 'esm',
+                target: "es2020",
+                splitting: true
+            }
+        });
+    }
 
     await postProcessCreateBundle(webSite, outputDir, Object.values(components));
 }
@@ -115,7 +118,7 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
     // Prefer the sources if possible.
     sourceFiles = await Promise.all(sourceFiles.map(searchSourceOf))
 
-    //region Creates the CSS bundle.
+    //region Creates the CSS bundle (include Tailwind CSS).
 
     // Jopi Loader hooks the CSS. It's why EsBuild can't automatically catch the CSS.
     // And why, here we bundle it manually.
@@ -157,13 +160,6 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
     let jsFilePath = path.join(outputDir, "loader.js");
     if (!await nFS.isFile(path.join(outputDir, "loader.js"))) await nFS.writeTextToFile(jsFilePath, "");
     loaderHash.js = NodeSpace.crypto.md5(await nFS.readTextFromFile(path.join(outputDir, "loader.js")));
-}
-
-const gAllCssFiles: string[] = [];
-
-// @ts-ignore Is called by jopi-loader when found a CSS/SCSS file which isn't a module.
-global.jopiOnCssImported = function(cssFilePath: string) {
-    gAllCssFiles.push(cssFilePath);
 }
 
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
@@ -220,6 +216,11 @@ async function compileForTailwind(sourceFiles: string[]): Promise<string|undefin
     }
 }
 
+// @ts-ignore Is called by jopi-loader when found a CSS/SCSS file which isn't a module.
+global.jopiOnCssImported = function(cssFilePath: string) {
+    addCssToBundle(cssFilePath);
+}
+
 // Don't use node_modules, because of a bug when using workspaces.
 // This bug is doing that WebStorm doesn't resolve the file to his real location
 // but to the workspace node_modules (and not the project inside the workspace).
@@ -228,12 +229,18 @@ async function compileForTailwind(sourceFiles: string[]): Promise<string|undefin
 //
 let gTempDirPath = path.join("temp", ".reactHydrateCache");
 
+const gAllCssFiles: string[] = [];
+
 //endregion
 
 //region UI
 
 export function hasHydrateComponents() {
     return gHasComponents;
+}
+
+export function hasManuallyIncludedCss() {
+    return gHasManuallyIncludedCss;
 }
 
 export function getHydrateComponents() {
@@ -288,9 +295,46 @@ function onNewHydrate(importMeta: {filename: string}, f: React.FunctionComponent
     }
 }
 
+async function onNewMustIncludeCss(importMeta: {filename: string}, cssFilePath: string) {
+    // Resolve the file path, which must be a file url, absolute or relative.
+
+    let cssFileUrl: string;
+
+    if (cssFilePath.startsWith("file:/")) {
+        cssFileUrl = cssFilePath;
+    } else {
+        if (!cssFilePath.startsWith("./")) {
+            console.error("* CSS file must starts with 'file:/' or './'\n|- See:", await searchSourceOf(importMeta.filename));
+        }
+
+        let dirPath = path.dirname(importMeta.filename);
+        cssFileUrl = pathToFileURL(dirPath).href + '/' + cssFilePath;
+    }
+
+    cssFilePath = fileURLToPath(cssFileUrl);
+
+    // If using a TypeScript compiler, then the CSS remain in the source folder.
+    cssFilePath = await searchSourceOf(cssFilePath);
+
+    if (!await nFS.isFile(cssFilePath)) {
+        console.warn("JopiHydrate: CSS file not found:", cssFilePath);
+        return;
+    }
+
+    addCssToBundle(cssFilePath);
+}
+
+function addCssToBundle(cssFilePath: string) {
+    gHasManuallyIncludedCss = true;
+    if (gAllCssFiles.includes(cssFilePath)) return;
+    gAllCssFiles.push(cssFilePath);
+}
+
 const gHydrateComponents: {[key: string]: string} = {};
 let gHasComponents = false;
+let gHasManuallyIncludedCss = false;
 
 setNewHydrateListener(onNewHydrate);
+setNewMustBundleExternalCssListener(onNewMustIncludeCss);
 
 //endregion
