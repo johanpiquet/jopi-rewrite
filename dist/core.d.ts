@@ -177,6 +177,8 @@ export declare class JopiRequest {
     getCookie(name: string): string | undefined;
     hookIfCookie(res: Response, name: string, testCookieValue: null | undefined | TestCookieValue, ...hooks: TextModifier[]): Promise<Response>;
     addCookie(res: Response, cookieName: string, cookieValue: string, options?: CookieOptions): void;
+    private isUsingReactPage;
+    private isUsingReact;
     reactResponse(element: ReactNode): Response;
     reactToString(element: ReactNode): string;
     asJquery(html: string): cheerio.Root;

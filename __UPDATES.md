@@ -4,6 +4,7 @@
 * JopiEasy, a new website path handler.
 * Correction of an anomaly which makes WebStorm very slow.
 * Allow bundling external CSS (see: mustBundleExternalCss).
+* Add injected CSS bundle to the head when possible.
 
 **2025-08-19**                                                  --> npm 1.0.10
 * Started JopiEasy lib.

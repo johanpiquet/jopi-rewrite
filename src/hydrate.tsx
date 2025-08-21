@@ -239,7 +239,7 @@ export function hasHydrateComponents() {
     return gHasComponents;
 }
 
-export function hasManuallyIncludedCss() {
+export function hasExternalCssBundled() {
     return gHasManuallyIncludedCss;
 }
 

@@ -6,14 +6,14 @@ import {ServerFetch} from "./serverFetch.ts";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import * as ReactServer from 'react-dom/server';
 import React, {type ReactNode} from "react";
-import {Page} from "jopi-rewrite-ui";
+import {Page, PageController, usePage} from "jopi-rewrite-ui";
 
 import {
     createBundle,
     getBundleUrl,
     handleBundleRequest,
     hasHydrateComponents,
-    hasManuallyIncludedCss
+    hasExternalCssBundled
 } from "./hydrate.tsx";
 
 import * as cheerio from "cheerio";
@@ -743,11 +743,29 @@ export class JopiRequest {
 
     //region ReactJS
 
+    private isUsingReactPage = false;
+    private isUsingReact = false;
+
     reactResponse(element: ReactNode) {
-        return this.htmlResponse(ReactServer.renderToStaticMarkup(<Page>{element}</Page>));
+        this.isUsingReact = true;
+        this.isUsingReactPage = true;
+
+        // Add the CSS bundle to the head.
+        // This will avoid content flicking.
+        //
+        const hook = (controller: PageController<unknown>) => {
+            if (hasExternalCssBundled() || hasHydrateComponents()) {
+                const bundleUrl = getBundleUrl(this.webSite);
+                const hash = this.webSite.data["jopiLoaderHash"];
+                controller.head.push(<link rel="stylesheet" key={hash.css} href={bundleUrl + "/loader.css?" + hash.css} />);
+            }
+        }
+
+        return this.htmlResponse(ReactServer.renderToStaticMarkup(<Page hook={hook}>{element}</Page>));
     }
 
     reactToString(element: ReactNode): string {
+        this.isUsingReact = true;
         return ReactServer.renderToStaticMarkup(element);
     }
 
@@ -772,14 +790,19 @@ export class JopiRequest {
     //region Post processing
 
     private postProcessHtml(html: string): string {
-        if (hasHydrateComponents() || hasManuallyIncludedCss()) {
+        if (hasExternalCssBundled() || this.isUsingReact && hasHydrateComponents()) {
             const bundleUrl = getBundleUrl(this.webSite);
             const hash = this.webSite.data["jopiLoaderHash"];
 
-            html += `\n<link rel="stylesheet" href="${bundleUrl}/loader.css?${hash.css}" />`;
+            // If using a page, then this page already includes the CSS.
+            // This allows putting it in the head, which avoids content flicking.
+            //
+            if (!this.isUsingReactPage) {
+                html += `<link rel="stylesheet" href="${bundleUrl}/loader.css?${hash.css}" />`;
+            }
 
             if (hasHydrateComponents()) {
-                html += `\n<script type="module" src="${bundleUrl}/loader.js?${hash.js}"></script>`;
+                html += `<script type="module" src="${bundleUrl}/loader.js?${hash.js}"></script>`;
             }
         }
 
@@ -1071,7 +1094,7 @@ export class WebSite {
         this.mainCache = options.cache || gVoidCache;
         this.router = createRouter<WebSiteRoute>();
 
-        if (hasHydrateComponents() || hasManuallyIncludedCss()) {
+        if (hasHydrateComponents() || hasExternalCssBundled()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
     }
