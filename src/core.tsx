@@ -1421,8 +1421,8 @@ export class JopiWebSocket {
         nSocket.onMessage(this.webSocket, listener);
     }
 
-    sendTextMessage(text: string) {
-        nSocket.sendTextMessage(this.webSocket, text);
+    sendMessage(msg: string|Buffer|Uint8Array|ArrayBuffer) {
+        nSocket.sendMessage(this.webSocket, msg);
     }
 }
 

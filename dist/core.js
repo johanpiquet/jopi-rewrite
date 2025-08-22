@@ -1115,8 +1115,8 @@ export class JopiWebSocket {
     onMessage(listener) {
         nSocket.onMessage(this.webSocket, listener);
     }
-    sendTextMessage(text) {
-        nSocket.sendTextMessage(this.webSocket, text);
+    sendMessage(msg) {
+        nSocket.sendMessage(this.webSocket, msg);
     }
 }
 export class ServerAlreadyStartedError extends Error {

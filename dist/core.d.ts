@@ -347,7 +347,7 @@ export declare class JopiWebSocket {
     constructor(webSite: WebSite, server: ServerInstance, webSocket: WebSocket);
     close(): void;
     onMessage(listener: (msg: string | Buffer) => void): void;
-    sendTextMessage(text: string): void;
+    sendMessage(msg: string | Buffer | Uint8Array | ArrayBuffer): void;
 }
 export type AuthHandler<T> = (loginInfo: T) => AuthResult | Promise<AuthResult>;
 export interface WithRoles {
