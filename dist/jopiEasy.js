@@ -92,23 +92,27 @@ class WebSiteContentBuilder {
     requiredRoles;
     verb;
     handler;
+    wsHandler;
     constructor(webSite, internals, path) {
         this.webSite = webSite;
         this.internals = internals;
         this.path = path;
         this.internals.afterHook.push(webSite => {
-            if (!this.handler)
-                return;
-            let handler = this.handler;
-            if (this.requiredRoles) {
-                const requiredRoles = this.requiredRoles;
-                const oldHandler = handler;
-                handler = req => {
-                    req.assertUserHasRoles(requiredRoles);
-                    return oldHandler(req);
-                };
+            if (this.handler) {
+                let handler = this.handler;
+                if (this.requiredRoles) {
+                    const requiredRoles = this.requiredRoles;
+                    const oldHandler = handler;
+                    handler = req => {
+                        req.assertUserHasRoles(requiredRoles);
+                        return oldHandler(req);
+                    };
+                }
+                webSite.onVerb(this.verb, this.path, handler);
             }
-            webSite.onVerb(this.verb, this.path, handler);
+            if (this.wsHandler) {
+                webSite.onWebSocketConnect(this.path, this.wsHandler);
+            }
         });
     }
     add_requiredRole(role) {
@@ -153,6 +157,13 @@ class WebSiteContentBuilder {
     }
     onHEAD(handler) {
         return this.onRequest("HEAD", handler);
+    }
+    onWebSocketConnect(handler) {
+        this.wsHandler = handler;
+        return {
+            add_path: (path) => new WebSiteContentBuilder(this.webSite, this.internals, path),
+            DONE_add_path: () => this.webSite
+        };
     }
 }
 //endregion

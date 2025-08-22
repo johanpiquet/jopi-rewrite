@@ -4,7 +4,7 @@ import { type ReactNode } from "react";
 import { LoadBalancer } from "./loadBalancing.ts";
 import { type ServerInstance, type ServerSocketAddress, type StartServerCoreOptions, type WebSocketConnectionInfos } from "./server.ts";
 export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
-export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => Promise<void>;
+export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
 export type JopiErrorHandler = (req: JopiRequest, error?: Error | string) => Response | Promise<Response>;
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 export type RequestBody = ReadableStream<Uint8Array> | null;
@@ -337,7 +337,7 @@ export declare class WebSite {
     getOrCreateHttpRedirectWebsite(): WebSite;
     _onRebuildCertificate?: () => void;
     updateSslCertificate(certificate: SslCertificatePath): void;
-    declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL): Promise<void>;
+    declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL): void;
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
 }
 export declare class JopiWebSocket {

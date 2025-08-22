@@ -5,7 +5,7 @@ import {
     HTTP_VERBS, type HttpMethod,
     JopiRequest,
     type JopiRouteHandler,
-    JopiServer,
+    JopiServer, type JopiWsRouteHandler,
     type UserInfos,
     WebSite,
     WebSiteOptions
@@ -123,24 +123,30 @@ class WebSiteContentBuilder {
     private requiredRoles?: string[];
     private verb?: HttpMethod;
     private handler?: (req: JopiRequest) => Promise<Response>;
+    private wsHandler?: JopiWsRouteHandler;
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string) {
         this.internals.afterHook.push(webSite => {
-            if (!this.handler) return;
+            if (this.handler) {
 
-            let handler = this.handler;
+                let handler = this.handler;
 
-            if (this.requiredRoles) {
-                const requiredRoles = this.requiredRoles;
-                const oldHandler = handler;
+                if (this.requiredRoles) {
+                    const requiredRoles = this.requiredRoles;
+                    const oldHandler = handler;
 
-                handler = req => {
-                    req.assertUserHasRoles(requiredRoles);
-                    return oldHandler(req);
+                    handler = req => {
+                        req.assertUserHasRoles(requiredRoles);
+                        return oldHandler(req);
+                    }
                 }
+
+                webSite.onVerb(this.verb!, this.path, handler);
             }
 
-            webSite.onVerb(this.verb!, this.path!, handler);
+            if (this.wsHandler) {
+                webSite.onWebSocketConnect(this.path, this.wsHandler)
+            }
         });
     }
 
@@ -192,6 +198,15 @@ class WebSiteContentBuilder {
 
     onHEAD(handler: (req: JopiRequest) => Promise<Response>) {
         return this.onRequest("HEAD", handler);
+    }
+
+    onWebSocketConnect(handler: JopiWsRouteHandler) {
+        this.wsHandler = handler;
+
+        return {
+            add_path: (path: string) => new WebSiteContentBuilder(this.webSite, this.internals, path),
+            DONE_add_path: () => this.webSite
+        }
     }
 }
 

@@ -36,7 +36,7 @@ const nSocket = NodeSpace.webSocket;
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
 export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
-export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => Promise<void>;
+export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
 export type JopiErrorHandler = (req: JopiRequest, error?: Error|string) => Response|Promise<Response>;
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 export type RequestBody = ReadableStream<Uint8Array> | null;
@@ -1393,7 +1393,7 @@ export class WebSite {
         if (this._onRebuildCertificate) this._onRebuildCertificate();
     }
 
-    async declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL) {
+    declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL) {
         const matched = findRoute(this.wsRouter, "ws", urlInfos.pathname);
 
         if (!matched) {
@@ -1401,7 +1401,8 @@ export class WebSite {
             return;
         }
 
-        await matched.data(jws, infos);
+        try { matched.data(jws, infos); }
+        catch(e) { console.error(e) }
     }
 
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler) {
@@ -1540,7 +1541,7 @@ export class JopiServer {
                     }
 
                     const jws = new JopiWebSocket(webSite, myServerInstance, ws);
-                    webSite.declareNewWebSocketConnection(jws, infos, urlInfos).catch();
+                    webSite.declareNewWebSocketConnection(jws, infos, urlInfos);
                 }
             };
 

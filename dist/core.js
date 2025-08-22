@@ -1088,13 +1088,18 @@ export class WebSite {
         if (this._onRebuildCertificate)
             this._onRebuildCertificate();
     }
-    async declareNewWebSocketConnection(jws, infos, urlInfos) {
+    declareNewWebSocketConnection(jws, infos, urlInfos) {
         const matched = findRoute(this.wsRouter, "ws", urlInfos.pathname);
         if (!matched) {
             jws.close();
             return;
         }
-        await matched.data(jws, infos);
+        try {
+            matched.data(jws, infos);
+        }
+        catch (e) {
+            console.error(e);
+        }
     }
     onWebSocketConnect(path, handler) {
         return this.addWsRoute(path, handler);
@@ -1204,7 +1209,7 @@ export class JopiServer {
                         return;
                     }
                     const jws = new JopiWebSocket(webSite, myServerInstance, ws);
-                    webSite.declareNewWebSocketConnection(jws, infos, urlInfos).catch();
+                    webSite.declareNewWebSocketConnection(jws, infos, urlInfos);
                 }
             };
             const myServerInstance = serverImpl.startServer(myServerOptions);

@@ -1,4 +1,4 @@
-import { type AuthHandler, type HttpMethod, JopiRequest, type UserInfos, WebSite, WebSiteOptions } from "./core.ts";
+import { type AuthHandler, type HttpMethod, JopiRequest, type JopiWsRouteHandler, type UserInfos, WebSite, WebSiteOptions } from "./core.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
 import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.ts";
 declare class JopiEasy {
@@ -73,6 +73,7 @@ declare class WebSiteContentBuilder {
     private requiredRoles?;
     private verb?;
     private handler?;
+    private wsHandler?;
     constructor(webSite: JopiEasyWebSite, internals: WebSiteInternal, path: string);
     add_requiredRole(role: string): this;
     add_requiredRoles(roles: string[]): this;
@@ -105,6 +106,10 @@ declare class WebSiteContentBuilder {
         DONE_add_path: () => JopiEasyWebSite;
     };
     onHEAD(handler: (req: JopiRequest) => Promise<Response>): {
+        add_path: (path: string) => WebSiteContentBuilder;
+        DONE_add_path: () => JopiEasyWebSite;
+    };
+    onWebSocketConnect(handler: JopiWsRouteHandler): {
         add_path: (path: string) => WebSiteContentBuilder;
         DONE_add_path: () => JopiEasyWebSite;
     };
