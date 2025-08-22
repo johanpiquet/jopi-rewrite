@@ -178,8 +178,8 @@ declare class GlobalConfigBuilder {
     enable_devMode(value?: boolean): this;
 }
 declare class DevModeConfigBuilder {
-    disable_refreshBrowserOnSourceChange(): this;
-    disable_restartServerOnSourceChange(): this;
+    enable_refreshBrowserOnSourceChange(delay_ms?: number): this;
+    enable_restartServerOnSourceChange(delay_ms?: number): this;
     add_directoryToWatch(dirPath: string): this;
 }
 type GetValue<T> = (value: T) => void;

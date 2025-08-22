@@ -463,3 +463,5 @@ export declare function octetToMo(size: number): number;
 export declare const ONE_KILO_OCTET = 1024;
 export declare const ONE_MEGA_OCTET: number;
 export declare const HTTP_VERBS: HttpMethod[];
+export declare function isDevMode(): boolean;
+export declare function enableDevMode(devMode: boolean): void;

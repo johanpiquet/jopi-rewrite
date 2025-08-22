@@ -1455,4 +1455,22 @@ export function octetToMo(size) {
 export const ONE_KILO_OCTET = 1024;
 export const ONE_MEGA_OCTET = 1024 * ONE_KILO_OCTET;
 export const HTTP_VERBS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
+//endregion
+//region DevMod
+let gIsDevMode;
+export function isDevMode() {
+    if (gIsDevMode === undefined) {
+        if (process.env.NODE_ENV === 'production')
+            gIsDevMode = false;
+        else
+            gIsDevMode = true;
+    }
+    return gIsDevMode;
+}
+export function enableDevMode(devMode) {
+    if (gIsDevMode !== undefined) {
+        throw "enableDevMode: isDevMode has already be called.";
+    }
+    gIsDevMode = devMode;
+}
 //# sourceMappingURL=core.js.map

@@ -1887,3 +1887,26 @@ export const ONE_MEGA_OCTET = 1024 * ONE_KILO_OCTET;
 export const HTTP_VERBS: HttpMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 
 //endregion
+
+//region DevMod
+
+let gIsDevMode: boolean|undefined;
+
+export function isDevMode(): boolean {
+    if (gIsDevMode===undefined) {
+        if (process.env.NODE_ENV === 'production') gIsDevMode = false;
+        else gIsDevMode = true;
+    }
+
+    return gIsDevMode;
+}
+
+export function enableDevMode(devMode: boolean) {
+    if (gIsDevMode!==undefined) {
+        throw "enableDevMode: isDevMode has already be called."
+    }
+
+    gIsDevMode = devMode;
+}
+
+//endregion
