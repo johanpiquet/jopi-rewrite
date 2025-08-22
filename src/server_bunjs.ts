@@ -1,4 +1,5 @@
-import type {ServerInstance, StartServerOptions, ServerImpl} from "./server.ts";
+import type {ServerInstance, StartServerOptions, ServerImpl, WebSocketConnectionInfos} from "./server.ts";
+import type {JopiWebSocket} from "./core.js";
 
 const impl: ServerImpl = {
     startServer(options: StartServerOptions): ServerInstance {
@@ -12,30 +13,35 @@ const impl: ServerImpl = {
 
                 websocket: {
                     async message(ws, message) {
+                        let listener = (ws.data as WebSocketData).onMessage;
+                        if (listener) listener(message);
                     },
 
-                    open(ws) {
-                        const host = (ws.data as any).host;
-                        onWebSocketConnection(ws as unknown as WebSocket, host);
+                    async open(ws) {
+                        const data = ws.data as WebSocketData;
+                        onWebSocketConnection(ws as unknown as WebSocket, data as WebSocketConnectionInfos);
+
+                        // Clean-up.
+                        data.headers = undefined;
+                        data.url = undefined;
                     },
 
                     close(ws, code, reason) {
-                    },
-
-                    drain(ws) {
-                    },
+                        let listener = (ws.data as WebSocketData).onClosed;
+                        if (listener) listener(code, reason);
+                    }
                 },
 
                 fetch(req) {
                     // Try to automatically upgrade the websocket.
                     if (req.headers.get("upgrade") === "websocket") {
-
                         // We will automatically have a call to websocket.open once ok.
                         const success = server.upgrade(req, {
-                            host: req.headers.get("host")
-                        } as any);
+                            data: {url: req.url, headers: req.headers} as WebSocketData
+                        });
 
-                        if (success) return;
+                        if (success) return undefined;
+
                         return new Response("Can't update websocket", {status: 500});
                     }
 
@@ -56,6 +62,14 @@ const impl: ServerImpl = {
         // Will reload without breaking the current connections.
         bunServer.reload(options);
     }
+}
+
+interface WebSocketData {
+    url?: string,
+    headers?: Headers,
+
+    onMessage?: (msg: string|Buffer) => void
+    onClosed?: (code: number, reason: string) => void
 }
 
 export default impl;

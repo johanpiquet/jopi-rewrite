@@ -26,11 +26,8 @@ import serverImpl, {
     type ServerInstance,
     type ServerSocketAddress,
     type StartServerCoreOptions,
-    type StartServerOptions
+    type StartServerOptions, type WebSocketConnectionInfos
 } from "./server.ts";
-import type {Server} from "ws";
-import webSocketClient from "jopi-rewrite-test/dist/testWebSocket/WebSocketClient.js";
-import type {Message} from "esbuild";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -38,8 +35,8 @@ const nSocket = NodeSpace.webSocket;
 
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
-export type JopiRouter = RouterContext<WebSiteRoute>;
 export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
+export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => Promise<void>;
 export type JopiErrorHandler = (req: JopiRequest, error?: Error|string) => Response|Promise<Response>;
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 export type RequestBody = ReadableStream<Uint8Array> | null;
@@ -1054,7 +1051,8 @@ export class WebSite {
     certificate?: SslCertificatePath;
     readonly mainCache: PageCache;
 
-    private readonly router: JopiRouter;
+    private readonly router: RouterContext<WebSiteRoute>;
+    private readonly wsRouter: RouterContext<JopiWsRouteHandler>;
     private _onNotFound?: JopiRouteHandler;
     private _on404?: JopiRouteHandler;
     private _on500?: JopiErrorHandler;
@@ -1097,6 +1095,7 @@ export class WebSite {
         this.hostName = urlInfos.hostname;
         this.mainCache = options.cache || gVoidCache;
         this.router = createRouter<WebSiteRoute>();
+        this.wsRouter = createRouter<JopiWsRouteHandler>();
 
         if (hasHydrateComponents() || hasExternalCssBundled()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
@@ -1107,6 +1106,10 @@ export class WebSite {
         const webSiteRoute: WebSiteRoute = {handler};
         addRoute(this.router, method, path, webSiteRoute);
         return webSiteRoute;
+    }
+
+    addWsRoute(path: string, handler: JopiWsRouteHandler) {
+        addRoute(this.wsRouter, "ws", path, handler);
     }
 
     addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler) {
@@ -1390,18 +1393,19 @@ export class WebSite {
         if (this._onRebuildCertificate) this._onRebuildCertificate();
     }
 
-    declareNewWebSocketConnection(ws: WebSocket, serverImpl: ServerInstance) {
-        const jws = new JopiWebSocket(this, serverImpl, ws);
+    async declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL) {
+        const matched = findRoute(this.wsRouter, "ws", urlInfos.pathname);
 
-        if (this._onWebSocketConnect) {
-            this._onWebSocketConnect(jws);
+        if (!matched) {
+            jws.close();
+            return;
         }
+
+        await matched.data(jws, infos);
     }
 
-    private _onWebSocketConnect?: (ws: JopiWebSocket) => void;
-
-    onWebSocketConnect(listener: (ws: JopiWebSocket) => void) {
-        this._onWebSocketConnect = listener;
+    onWebSocketConnect(path: string, handler: JopiWsRouteHandler) {
+        return this.addWsRoute(path, handler);
     }
 }
 
@@ -1413,8 +1417,8 @@ export class JopiWebSocket {
         this.webSocket.close();
     }
 
-    onTextMessage(listener: (msg: string) => void): void {
-        nSocket.onTextMessage(this.webSocket, listener);
+    onMessage(listener: (msg: string|Buffer) => void): void {
+        nSocket.onMessage(this.webSocket, listener);
     }
 
     sendTextMessage(text: string) {
@@ -1526,16 +1530,17 @@ export class JopiServer {
                     return webSite.processRequest(urlInfos, req, myServerInstance);
                 },
 
-                onWebSocketConnection(ws: WebSocket, host: string) {
-                    const url = new URL("http://" + host);
-                    const webSite = hostNameMap[url.hostname];
+                async onWebSocketConnection(ws: WebSocket, infos: WebSocketConnectionInfos) {
+                    const urlInfos = new URL(infos.url);
+                    const webSite = hostNameMap[urlInfos.hostname];
 
                     if (!webSite) {
                         ws.close();
                         return;
                     }
 
-                    webSite.declareNewWebSocketConnection(ws, myServerInstance);
+                    const jws = new JopiWebSocket(webSite, myServerInstance, ws);
+                    webSite.declareNewWebSocketConnection(jws, infos, urlInfos).catch();
                 }
             };
 

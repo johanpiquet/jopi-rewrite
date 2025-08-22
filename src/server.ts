@@ -1,6 +1,7 @@
 import "jopi-node-space";
 import nodeJsServer from "./server_nodejs.ts"
 import bunJsServer from "./server_bunjs.ts"
+import type {JopiWebSocket} from "./core.js";
 
 export interface StartServerCoreOptions {
     /**
@@ -24,7 +25,12 @@ export interface StartServerOptions extends StartServerCoreOptions {
 
     fetch: (req: Request) => Response|Promise<Response>;
 
-    onWebSocketConnection?: (ws: WebSocket, hostName: string) => void;
+    onWebSocketConnection?: (ws: WebSocket, infos: WebSocketConnectionInfos) => void;
+}
+
+export interface WebSocketConnectionInfos {
+    headers: Headers;
+    url: string;
 }
 
 export interface TlsCertificate {

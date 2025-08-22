@@ -1,11 +1,10 @@
-import { type RouterContext } from "rou3";
 import { ServerFetch } from "./serverFetch.ts";
 import type { SearchParamFilterFunction } from "./searchParamFilter.ts";
 import { type ReactNode } from "react";
 import { LoadBalancer } from "./loadBalancing.ts";
-import { type ServerInstance, type ServerSocketAddress, type StartServerCoreOptions } from "./server.ts";
-export type JopiRouter = RouterContext<WebSiteRoute>;
+import { type ServerInstance, type ServerSocketAddress, type StartServerCoreOptions, type WebSocketConnectionInfos } from "./server.ts";
 export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
+export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => Promise<void>;
 export type JopiErrorHandler = (req: JopiRequest, error?: Error | string) => Response | Promise<Response>;
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 export type RequestBody = ReadableStream<Uint8Array> | null;
@@ -275,6 +274,7 @@ export declare class WebSite {
     certificate?: SslCertificatePath;
     readonly mainCache: PageCache;
     private readonly router;
+    private readonly wsRouter;
     private _onNotFound?;
     private _on404?;
     private _on500?;
@@ -289,6 +289,7 @@ export declare class WebSite {
     readonly loadBalancer: LoadBalancer;
     constructor(url: string, options?: WebSiteOptions);
     addRoute(method: HttpMethod, path: string, handler: JopiRouteHandler): WebSiteRoute;
+    addWsRoute(path: string, handler: JopiWsRouteHandler): void;
     addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler): WebSiteRoute;
     getWebSiteRoute(method: string, url: string): WebSiteRoute | undefined;
     onVerb(verb: HttpMethod, path: string | string[], handler: JopiRouteHandler): WebSiteRoute;
@@ -336,9 +337,8 @@ export declare class WebSite {
     getOrCreateHttpRedirectWebsite(): WebSite;
     _onRebuildCertificate?: () => void;
     updateSslCertificate(certificate: SslCertificatePath): void;
-    declareNewWebSocketConnection(ws: WebSocket, serverImpl: ServerInstance): void;
-    private _onWebSocketConnect?;
-    onWebSocketConnect(listener: (ws: JopiWebSocket) => void): void;
+    declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL): Promise<void>;
+    onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
 }
 export declare class JopiWebSocket {
     private readonly webSite;
@@ -346,7 +346,7 @@ export declare class JopiWebSocket {
     private readonly webSocket;
     constructor(webSite: WebSite, server: ServerInstance, webSocket: WebSocket);
     close(): void;
-    onTextMessage(listener: (msg: string) => void): void;
+    onMessage(listener: (msg: string | Buffer) => void): void;
     sendTextMessage(text: string): void;
 }
 export type AuthHandler<T> = (loginInfo: T) => AuthResult | Promise<AuthResult>;

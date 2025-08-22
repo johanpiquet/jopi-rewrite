@@ -66,8 +66,11 @@ class NodeServer implements ServerInstance {
         if (onWebSocketConnection) {
             const wss = new WebSocketServer({ server: this.server });
 
-            wss.on('connection', (ws, request) => {
-                onWebSocketConnection(ws as unknown as WebSocket, request.headers["host"]!);
+            wss.on('connection', (ws, req) => {
+                onWebSocketConnection(ws as unknown as WebSocket, {
+                    url: "https://" + req.headers.host! + req.url!,
+                    headers: new Headers(req.headers as any)
+                });
             });
         }
     }

@@ -14,7 +14,6 @@ import fs from "node:fs/promises";
 import { PostMiddlewares } from "./middlewares/index.js";
 import * as jwt from 'jsonwebtoken';
 import serverImpl, {} from "./server.js";
-import webSocketClient from "jopi-rewrite-test/dist/testWebSocket/WebSocketClient.js";
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
 const nSocket = NodeSpace.webSocket;
@@ -801,6 +800,7 @@ export class WebSite {
     certificate;
     mainCache;
     router;
+    wsRouter;
     _onNotFound;
     _on404;
     _on500;
@@ -838,6 +838,7 @@ export class WebSite {
         this.hostName = urlInfos.hostname;
         this.mainCache = options.cache || gVoidCache;
         this.router = createRouter();
+        this.wsRouter = createRouter();
         if (hasHydrateComponents() || hasExternalCssBundled()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
@@ -846,6 +847,9 @@ export class WebSite {
         const webSiteRoute = { handler };
         addRoute(this.router, method, path, webSiteRoute);
         return webSiteRoute;
+    }
+    addWsRoute(path, handler) {
+        addRoute(this.wsRouter, "ws", path, handler);
     }
     addSharedRoute(method, allPath, handler) {
         const webSiteRoute = { handler };
@@ -1084,15 +1088,16 @@ export class WebSite {
         if (this._onRebuildCertificate)
             this._onRebuildCertificate();
     }
-    declareNewWebSocketConnection(ws, serverImpl) {
-        const jws = new JopiWebSocket(this, serverImpl, ws);
-        if (this._onWebSocketConnect) {
-            this._onWebSocketConnect(jws);
+    async declareNewWebSocketConnection(jws, infos, urlInfos) {
+        const matched = findRoute(this.wsRouter, "ws", urlInfos.pathname);
+        if (!matched) {
+            jws.close();
+            return;
         }
+        await matched.data(jws, infos);
     }
-    _onWebSocketConnect;
-    onWebSocketConnect(listener) {
-        this._onWebSocketConnect = listener;
+    onWebSocketConnect(path, handler) {
+        return this.addWsRoute(path, handler);
     }
 }
 export class JopiWebSocket {
@@ -1107,8 +1112,8 @@ export class JopiWebSocket {
     close() {
         this.webSocket.close();
     }
-    onTextMessage(listener) {
-        nSocket.onTextMessage(this.webSocket, listener);
+    onMessage(listener) {
+        nSocket.onMessage(this.webSocket, listener);
     }
     sendTextMessage(text) {
         nSocket.sendTextMessage(this.webSocket, text);
@@ -1191,14 +1196,15 @@ export class JopiServer {
                         return new Response("", { status: 404 });
                     return webSite.processRequest(urlInfos, req, myServerInstance);
                 },
-                onWebSocketConnection(ws, host) {
-                    const url = new URL("http://" + host);
-                    const webSite = hostNameMap[url.hostname];
+                async onWebSocketConnection(ws, infos) {
+                    const urlInfos = new URL(infos.url);
+                    const webSite = hostNameMap[urlInfos.hostname];
                     if (!webSite) {
                         ws.close();
                         return;
                     }
-                    webSite.declareNewWebSocketConnection(ws, myServerInstance);
+                    const jws = new JopiWebSocket(webSite, myServerInstance, ws);
+                    webSite.declareNewWebSocketConnection(jws, infos, urlInfos).catch();
                 }
             };
             const myServerInstance = serverImpl.startServer(myServerOptions);

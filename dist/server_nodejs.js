@@ -52,8 +52,11 @@ class NodeServer {
         const onWebSocketConnection = options.onWebSocketConnection;
         if (onWebSocketConnection) {
             const wss = new WebSocketServer({ server: this.server });
-            wss.on('connection', (ws, request) => {
-                onWebSocketConnection(ws, request.headers["host"]);
+            wss.on('connection', (ws, req) => {
+                onWebSocketConnection(ws, {
+                    url: "https://" + req.headers.host + req.url,
+                    headers: new Headers(req.headers)
+                });
             });
         }
     }
