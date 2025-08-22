@@ -1,5 +1,6 @@
 import http from "node:http";
 import https from "node:https";
+import { WebSocketServer } from "ws";
 const nFS = NodeSpace.fs;
 class NodeServer {
     options;
@@ -47,6 +48,13 @@ class NodeServer {
         }
         else {
             this.server = http.createServer(handler);
+        }
+        const onWebSocketConnection = options.onWebSocketConnection;
+        if (onWebSocketConnection) {
+            const wss = new WebSocketServer({ server: this.server });
+            wss.on('connection', (ws, request) => {
+                onWebSocketConnection(ws, request.headers["host"]);
+            });
         }
     }
     requestIP(req) {

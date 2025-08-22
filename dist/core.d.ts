@@ -303,7 +303,7 @@ export declare class WebSite {
     on404(handler: JopiRouteHandler): void;
     on500(handler: JopiRouteHandler): void;
     getRouteFor(url: string, method?: string): WebSiteRoute | undefined;
-    processRequest(urlInfos: URL, bunRequest: Request, bunServer: ServerInstance): Promise<Response>;
+    processRequest(urlInfos: URL, bunRequest: Request, serverImpl: ServerInstance): Promise<Response>;
     return404(req: JopiRequest): Response | Promise<Response>;
     return500(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
     onServerStarted(): void;
@@ -336,6 +336,18 @@ export declare class WebSite {
     getOrCreateHttpRedirectWebsite(): WebSite;
     _onRebuildCertificate?: () => void;
     updateSslCertificate(certificate: SslCertificatePath): void;
+    declareNewWebSocketConnection(ws: WebSocket, serverImpl: ServerInstance): void;
+    private _onWebSocketConnect?;
+    onWebSocketConnect(listener: (ws: JopiWebSocket) => void): void;
+}
+export declare class JopiWebSocket {
+    private readonly webSite;
+    private readonly server;
+    private readonly webSocket;
+    constructor(webSite: WebSite, server: ServerInstance, webSocket: WebSocket);
+    close(): void;
+    onTextMessage(listener: (msg: string) => void): void;
+    sendTextMessage(text: string): void;
 }
 export type AuthHandler<T> = (loginInfo: T) => AuthResult | Promise<AuthResult>;
 export interface WithRoles {

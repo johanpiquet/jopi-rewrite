@@ -1,11 +1,12 @@
 import http from "node:http";
 import https from "node:https";
 import type {ServerImpl, ServerInstance, ServerSocketAddress, StartServerOptions} from "./server.ts";
+import {WebSocketServer} from "ws";
 
 const nFS = NodeSpace.fs;
 
 class NodeServer implements ServerInstance {
-    private server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
+    private readonly server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
 
     constructor(private options: StartServerOptions) {
         async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
@@ -58,6 +59,16 @@ class NodeServer implements ServerInstance {
         }
         else {
             this.server = http.createServer(handler);
+        }
+
+        const onWebSocketConnection = options.onWebSocketConnection;
+
+        if (onWebSocketConnection) {
+            const wss = new WebSocketServer({ server: this.server });
+
+            wss.on('connection', (ws, request) => {
+                onWebSocketConnection(ws as unknown as WebSocket, request.headers["host"]!);
+            });
         }
     }
 

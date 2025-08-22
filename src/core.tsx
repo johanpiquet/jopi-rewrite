@@ -6,7 +6,7 @@ import {ServerFetch} from "./serverFetch.ts";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import * as ReactServer from 'react-dom/server';
 import React, {type ReactNode} from "react";
-import {Page, PageController, usePage} from "jopi-rewrite-ui";
+import {Page, PageController} from "jopi-rewrite-ui";
 
 import {
     createBundle,
@@ -28,9 +28,13 @@ import serverImpl, {
     type StartServerCoreOptions,
     type StartServerOptions
 } from "./server.ts";
+import type {Server} from "ws";
+import webSocketClient from "jopi-rewrite-test/dist/testWebSocket/WebSocketClient.js";
+import type {Message} from "esbuild";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
+const nSocket = NodeSpace.webSocket;
 
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
@@ -1173,12 +1177,12 @@ export class WebSite {
         return matched.data;
     }
 
-    async processRequest(urlInfos: URL, bunRequest: Request, bunServer: ServerInstance): Promise<Response> {
+    async processRequest(urlInfos: URL, bunRequest: Request, serverImpl: ServerInstance): Promise<Response> {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
 
         const matched = findRoute(this.router!, bunRequest.method, urlInfos.pathname);
-        const req = new JopiRequest(this, urlInfos, bunRequest, bunServer, (matched?.data)!);
+        const req = new JopiRequest(this, urlInfos, bunRequest, serverImpl, (matched?.data)!);
 
         if (matched) {
             req.urlParts = matched.params;
@@ -1385,6 +1389,37 @@ export class WebSite {
         this.certificate = certificate;
         if (this._onRebuildCertificate) this._onRebuildCertificate();
     }
+
+    declareNewWebSocketConnection(ws: WebSocket, serverImpl: ServerInstance) {
+        const jws = new JopiWebSocket(this, serverImpl, ws);
+
+        if (this._onWebSocketConnect) {
+            this._onWebSocketConnect(jws);
+        }
+    }
+
+    private _onWebSocketConnect?: (ws: JopiWebSocket) => void;
+
+    onWebSocketConnect(listener: (ws: JopiWebSocket) => void) {
+        this._onWebSocketConnect = listener;
+    }
+}
+
+export class JopiWebSocket {
+    constructor(private readonly webSite: WebSite, private readonly server: ServerInstance, private readonly webSocket: WebSocket) {
+    }
+
+    close(): void {
+        this.webSocket.close();
+    }
+
+    onTextMessage(listener: (msg: string) => void): void {
+        nSocket.onTextMessage(this.webSocket, listener);
+    }
+
+    sendTextMessage(text: string) {
+        nSocket.sendTextMessage(this.webSocket, text);
+    }
 }
 
 export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
@@ -1489,6 +1524,18 @@ export class JopiServer {
                     const webSite = hostNameMap[urlInfos.hostname];
                     if (!webSite) return new Response("", {status: 404});
                     return webSite.processRequest(urlInfos, req, myServerInstance);
+                },
+
+                onWebSocketConnection(ws: WebSocket, host: string) {
+                    const url = new URL("http://" + host);
+                    const webSite = hostNameMap[url.hostname];
+
+                    if (!webSite) {
+                        ws.close();
+                        return;
+                    }
+
+                    webSite.declareNewWebSocketConnection(ws, myServerInstance);
                 }
             };
 

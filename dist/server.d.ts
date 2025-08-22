@@ -17,6 +17,7 @@ export interface StartServerOptions extends StartServerCoreOptions {
      */
     tls?: TlsCertificate | TlsCertificate[];
     fetch: (req: Request) => Response | Promise<Response>;
+    onWebSocketConnection?: (ws: WebSocket, hostName: string) => void;
 }
 export interface TlsCertificate {
     key: string;

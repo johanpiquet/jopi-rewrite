@@ -5,7 +5,7 @@ import { addRoute, createRouter, findRoute } from "rou3";
 import { ServerFetch } from "./serverFetch.js";
 import * as ReactServer from 'react-dom/server';
 import React, {} from "react";
-import { Page, PageController, usePage } from "jopi-rewrite-ui";
+import { Page, PageController } from "jopi-rewrite-ui";
 import { createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents, hasExternalCssBundled } from "./hydrate.js";
 import * as cheerio from "cheerio";
 import { LoadBalancer } from "./loadBalancing.js";
@@ -14,8 +14,10 @@ import fs from "node:fs/promises";
 import { PostMiddlewares } from "./middlewares/index.js";
 import * as jwt from 'jsonwebtoken';
 import serverImpl, {} from "./server.js";
+import webSocketClient from "jopi-rewrite-test/dist/testWebSocket/WebSocketClient.js";
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
+const nSocket = NodeSpace.webSocket;
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 export class NotAuthorizedException extends Error {
 }
@@ -899,11 +901,11 @@ export class WebSite {
             return undefined;
         return matched.data;
     }
-    async processRequest(urlInfos, bunRequest, bunServer) {
+    async processRequest(urlInfos, bunRequest, serverImpl) {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
         const matched = findRoute(this.router, bunRequest.method, urlInfos.pathname);
-        const req = new JopiRequest(this, urlInfos, bunRequest, bunServer, (matched?.data));
+        const req = new JopiRequest(this, urlInfos, bunRequest, serverImpl, (matched?.data));
         if (matched) {
             req.urlParts = matched.params;
             try {
@@ -1082,6 +1084,35 @@ export class WebSite {
         if (this._onRebuildCertificate)
             this._onRebuildCertificate();
     }
+    declareNewWebSocketConnection(ws, serverImpl) {
+        const jws = new JopiWebSocket(this, serverImpl, ws);
+        if (this._onWebSocketConnect) {
+            this._onWebSocketConnect(jws);
+        }
+    }
+    _onWebSocketConnect;
+    onWebSocketConnect(listener) {
+        this._onWebSocketConnect = listener;
+    }
+}
+export class JopiWebSocket {
+    webSite;
+    server;
+    webSocket;
+    constructor(webSite, server, webSocket) {
+        this.webSite = webSite;
+        this.server = server;
+        this.webSocket = webSocket;
+    }
+    close() {
+        this.webSocket.close();
+    }
+    onTextMessage(listener) {
+        nSocket.onTextMessage(this.webSocket, listener);
+    }
+    sendTextMessage(text) {
+        nSocket.sendTextMessage(this.webSocket, text);
+    }
 }
 export class ServerAlreadyStartedError extends Error {
     constructor() {
@@ -1159,6 +1190,15 @@ export class JopiServer {
                     if (!webSite)
                         return new Response("", { status: 404 });
                     return webSite.processRequest(urlInfos, req, myServerInstance);
+                },
+                onWebSocketConnection(ws, host) {
+                    const url = new URL("http://" + host);
+                    const webSite = hostNameMap[url.hostname];
+                    if (!webSite) {
+                        ws.close();
+                        return;
+                    }
+                    webSite.declareNewWebSocketConnection(ws, myServerInstance);
                 }
             };
             const myServerInstance = serverImpl.startServer(myServerOptions);

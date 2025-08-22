@@ -1,3 +1,6 @@
+**2025-08-22**
+* Starting WebSocket support.
+
 **2025-08-21**                                                  --> npm 2.0.0@next.1
 * Added JwtToken support to JopiEasy.
 * Starting v2, with JopiEasy at the center.
