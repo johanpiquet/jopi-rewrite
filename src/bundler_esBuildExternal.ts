@@ -36,6 +36,7 @@ export async function esBuildBundleExternal(params: EsBuildExternalParams, doDir
 
     let nodeJsPath = process.argv[0];
     const args = [thisFile, "--import", "jopi-loader", "--", "--jopi-bundler", jsonParams];
+    let useShell = nodeJsPath.endsWith('.cmd') || nodeJsPath.endsWith('.bat') || nodeJsPath.endsWith('.sh');
 
     // Will allow this function to be really async.
     //
@@ -43,7 +44,7 @@ export async function esBuildBundleExternal(params: EsBuildExternalParams, doDir
         // Here execFile is better than "exec" since it automatically encodes the arguments.
         //
         execFile(
-            nodeJsPath, args, {cwd: process.cwd()}, (error, _stdout, stderr) => {
+            nodeJsPath, args, {cwd: process.cwd(), shell: useShell}, (error, _stdout, stderr) => {
                 if (error) {
                     console.error(`Error when executing EsBuild:\n${stderr}`);
                     reject(error);

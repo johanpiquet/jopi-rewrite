@@ -164,9 +164,10 @@ export class SourceChangesWatcher {
             await NodeSpace.timer.tick(100);
         }
         const nodeJsPath = gArgs[0];
+        let useShell = nodeJsPath.endsWith('.cmd') || nodeJsPath.endsWith('.bat') || nodeJsPath.endsWith('.sh');
         this._child = spawn(nodeJsPath, this._restartArgs, {
             stdio: "inherit",
-            shell: false,
+            shell: useShell,
             cwd: gCwd,
             env: {
                 ...process.env,
