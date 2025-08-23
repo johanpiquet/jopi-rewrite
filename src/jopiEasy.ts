@@ -1,8 +1,8 @@
 // noinspection JSUnusedGlobalSymbols
 
 import {
-    type AuthHandler, enableDevMode,
-    HTTP_VERBS, type HttpMethod, isDevMode,
+    type AuthHandler,
+    HTTP_VERBS, type HttpMethod,
     JopiRequest,
     type JopiRouteHandler,
     JopiServer, type JopiWsRouteHandler,
@@ -18,6 +18,8 @@ import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} 
 import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.ts";
 import {setConfig_disableTailwind} from "./hydrate.ts";
 import SourceChangesWatcher from "./tools/sourceChangesWatcher.ts";
+import {getInternalConfig} from "./internalConfig.ts";
+import {enableDevMode, isDevMode} from "./devMode.ts";
 
 class JopiApp {
     private _isStartAppSet: boolean = false;
@@ -698,6 +700,7 @@ class GlobalConfigBuilder {
 
 class DevModeConfigBuilder {
     disable_refreshBrowserOnSourceChange() {
+        getInternalConfig().enableBrowserRefresh = false;
         return this;
     }
 

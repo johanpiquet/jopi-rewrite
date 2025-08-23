@@ -1,5 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
-import { enableDevMode, HTTP_VERBS, isDevMode, JopiRequest, JopiServer, WebSite, WebSiteOptions } from "./core.js";
+import { HTTP_VERBS, JopiRequest, JopiServer, WebSite, WebSiteOptions } from "./core.js";
 import path from "node:path";
 import fsc from "node:fs";
 import { ServerFetch } from "./serverFetch.js";
@@ -7,6 +7,8 @@ import { getLetsEncryptCertificate } from "./letsEncrypt.js";
 import { UserStore_WithLoginPassword } from "./userStores.js";
 import { setConfig_disableTailwind } from "./hydrate.js";
 import SourceChangesWatcher from "./tools/sourceChangesWatcher.js";
+import { getInternalConfig } from "./internalConfig.js";
+import { enableDevMode, isDevMode } from "./devMode.js";
 class JopiApp {
     _isStartAppSet = false;
     globalConfig() {
@@ -552,6 +554,7 @@ class GlobalConfigBuilder {
 }
 class DevModeConfigBuilder {
     disable_refreshBrowserOnSourceChange() {
+        getInternalConfig().enableBrowserRefresh = false;
         return this;
     }
     disable_restartServerOnSourceChange() {

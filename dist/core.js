@@ -14,6 +14,8 @@ import fs from "node:fs/promises";
 import { PostMiddlewares } from "./middlewares/index.js";
 import * as jwt from 'jsonwebtoken';
 import serverImpl, {} from "./server.js";
+import * as InternalConfig from "./internalConfig.js";
+import { fileURLToPath } from "node:url";
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
 const nSocket = NodeSpace.webSocket;
@@ -620,6 +622,9 @@ export class JopiRequest {
     //endregion
     //region Post processing
     postProcessHtml(html) {
+        if (InternalConfig.mustEnableBrowserRefresh()) {
+            html += `<script type="module" src="${this.webSite.welcomeUrl}/jopi-autorefresh-rkrkrjrktht/script.js"></script>`;
+        }
         if (hasExternalCssBundled() || this.isUsingReact && hasHydrateComponents()) {
             const bundleUrl = getBundleUrl(this.webSite);
             const hash = this.webSite.data["jopiLoaderHash"];
@@ -842,6 +847,7 @@ export class WebSite {
         if (hasHydrateComponents() || hasExternalCssBundled()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
+        tryInstallBrowserRefreshHandler(this);
     }
     addRoute(method, path, handler) {
         const webSiteRoute = { handler };
@@ -1368,6 +1374,24 @@ export var ContentTypeCategory;
     ContentTypeCategory[ContentTypeCategory["_BINARY_"] = 30] = "_BINARY_";
     ContentTypeCategory[ContentTypeCategory["IMAGE"] = 31] = "IMAGE";
 })(ContentTypeCategory || (ContentTypeCategory = {}));
+//region Auto-refresh browser
+function tryInstallBrowserRefreshHandler(webSite) {
+    async function loadDeps() {
+        let scriptPath = fileURLToPath(import.meta.resolve("./browserRefreshScript.js"));
+        scriptJS = await nFS.readTextFromFile(scriptPath);
+    }
+    if (!InternalConfig.mustEnableBrowserRefresh())
+        return;
+    let scriptJS = "";
+    loadDeps().then();
+    webSite.onGET("/jopi-autorefresh-rkrkrjrktht/script.js", async (_) => new Response(scriptJS, {
+        status: 200, headers: { "content-type": "text/javascript" }
+    }));
+    webSite.addWsRoute("/jopi-autorefresh-rkrkrjrktht/wssocket", (ws, infos) => {
+        // Nothing to do, only keep it open.
+    });
+}
+//endregion
 //region JQuery
 /**
  * Add our own function to cheerio.
@@ -1455,22 +1479,4 @@ export function octetToMo(size) {
 export const ONE_KILO_OCTET = 1024;
 export const ONE_MEGA_OCTET = 1024 * ONE_KILO_OCTET;
 export const HTTP_VERBS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
-//endregion
-//region DevMod
-let gIsDevMode;
-export function isDevMode() {
-    if (gIsDevMode === undefined) {
-        if (process.env.NODE_ENV === 'production')
-            gIsDevMode = false;
-        else
-            gIsDevMode = true;
-    }
-    return gIsDevMode;
-}
-export function enableDevMode(devMode) {
-    if (gIsDevMode !== undefined) {
-        throw "enableDevMode: isDevMode has already be called.";
-    }
-    gIsDevMode = devMode;
-}
 //# sourceMappingURL=core.js.map

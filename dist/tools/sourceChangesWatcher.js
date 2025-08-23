@@ -129,6 +129,7 @@ export class SourceChangesWatcher {
             if (this.restarting)
                 return;
             this.restarting = true;
+            console.clear();
             if (this._enableLogs) {
                 console.log("File change watcher - RESTART for:", filePath);
             }

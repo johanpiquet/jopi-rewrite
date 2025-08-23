@@ -1,5 +1,9 @@
+**2025-08-23**
+* Auto-refreshing the browser when sources change.
+
 **2025-08-22**
 * Added WebSocket support.
+* Auto-restarting server when sources change.
 
 **2025-08-21**                                                  --> npm 2.0.0@next.1
 * Added JwtToken support to JopiEasy.

@@ -28,6 +28,8 @@ import serverImpl, {
     type StartServerCoreOptions,
     type StartServerOptions, type WebSocketConnectionInfos
 } from "./server.ts";
+import * as InternalConfig from "./internalConfig.ts";
+import {fileURLToPath} from "node:url";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -791,6 +793,10 @@ export class JopiRequest {
     //region Post processing
 
     private postProcessHtml(html: string): string {
+        if (InternalConfig.mustEnableBrowserRefresh()) {
+            html += `<script type="module" src="${this.webSite.welcomeUrl}/jopi-autorefresh-rkrkrjrktht/script.js"></script>`;
+        }
+
         if (hasExternalCssBundled() || this.isUsingReact && hasHydrateComponents()) {
             const bundleUrl = getBundleUrl(this.webSite);
             const hash = this.webSite.data["jopiLoaderHash"];
@@ -1100,15 +1106,17 @@ export class WebSite {
         if (hasHydrateComponents() || hasExternalCssBundled()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
+
+        tryInstallBrowserRefreshHandler(this);
     }
 
-    addRoute(method: HttpMethod, path: string, handler: JopiRouteHandler) {
+    addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
         const webSiteRoute: WebSiteRoute = {handler};
         addRoute(this.router, method, path, webSiteRoute);
         return webSiteRoute;
     }
 
-    addWsRoute(path: string, handler: JopiWsRouteHandler) {
+    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
         addRoute(this.wsRouter, "ws", path, handler);
     }
 
@@ -1124,7 +1132,7 @@ export class WebSite {
         return matched.data;
     }
 
-    onVerb(verb: HttpMethod, path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onVerb(verb: HttpMethod, path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
@@ -1134,31 +1142,31 @@ export class WebSite {
         return this.addRoute(verb, path, handler);
     }
 
-    onGET(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onGET(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("GET", path, handler);
     }
 
-    onPOST(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onPOST(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("POST", path, handler);
     }
 
-    onPUT(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onPUT(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("PUT", path, handler);
     }
 
-    onDELETE(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onDELETE(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("DELETE", path, handler);
     }
 
-    onPATCH(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onPATCH(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("PATCH", path, handler);
     }
 
-    onHEAD(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onHEAD(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("HEAD", path, handler);
     }
 
-    onOPTIONS(path: string|string[], handler: JopiRouteHandler): WebSiteRoute {
+    onOPTIONS(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("OPTIONS", path, handler);
     }
 
@@ -1776,6 +1784,31 @@ export enum ContentTypeCategory {
     IMAGE
 }
 
+//region Auto-refresh browser
+
+function tryInstallBrowserRefreshHandler(webSite: WebSite) {
+    async function loadDeps() {
+        let scriptPath = fileURLToPath(import.meta.resolve("./browserRefreshScript.js"));
+        scriptJS = await nFS.readTextFromFile(scriptPath);
+    }
+
+    if (!InternalConfig.mustEnableBrowserRefresh()) return;
+
+    let scriptJS = "";
+    loadDeps().then();
+
+    webSite.onGET("/jopi-autorefresh-rkrkrjrktht/script.js",
+            async _ => new Response(scriptJS, {
+                status: 200, headers: {"content-type": "text/javascript"}
+            }));
+
+    webSite.addWsRoute("/jopi-autorefresh-rkrkrjrktht/wssocket", (ws, infos) => {
+        // Nothing to do, only keep it open.
+    });
+}
+
+//endregion
+
 //region JQuery
 
 /**
@@ -1885,28 +1918,5 @@ export const ONE_KILO_OCTET = 1024;
 export const ONE_MEGA_OCTET = 1024 * ONE_KILO_OCTET;
 
 export const HTTP_VERBS: HttpMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
-
-//endregion
-
-//region DevMod
-
-let gIsDevMode: boolean|undefined;
-
-export function isDevMode(): boolean {
-    if (gIsDevMode===undefined) {
-        if (process.env.NODE_ENV === 'production') gIsDevMode = false;
-        else gIsDevMode = true;
-    }
-
-    return gIsDevMode;
-}
-
-export function enableDevMode(devMode: boolean) {
-    if (gIsDevMode!==undefined) {
-        throw "enableDevMode: isDevMode has already be called."
-    }
-
-    gIsDevMode = devMode;
-}
 
 //endregion
