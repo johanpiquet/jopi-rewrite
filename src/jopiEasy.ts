@@ -10,6 +10,7 @@ import {
     WebSite,
     WebSiteOptions
 } from "./core.ts";
+
 import path from "node:path";
 import fsc from "node:fs";
 import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
@@ -59,7 +60,6 @@ class JopiApp {
         }
 
         if (!canStart) return;
-        console.log("Starting the app");
 
         if (isDevMode()) {
             redLogger("Executing in dev mode. File change watching is enabled.");
@@ -709,6 +709,12 @@ class DevModeConfigBuilder {
     add_directoryToWatch(dirPath: string) {
         dirPath = path.resolve(dirPath);
         gWatcher.addWatchDir(dirPath)
+        return this;
+    }
+
+    set_restartDelay(delay_ms: number, enableLogs?: boolean) {
+        gWatcher.setRestartDelay(delay_ms);
+        if (enableLogs!==undefined) gWatcher.enableLogs(enableLogs)
         return this;
     }
 }

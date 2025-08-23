@@ -11,14 +11,21 @@ import "jopi-node-space";
  */
 export class SourceChangesWatcher {
     watchDirs = new Set();
-    delayMs;
+    _fileWatchingDelay = 500;
     restarting = false;
     _isStarted = false;
-    restartArgs;
-    child;
-    constructor(options) {
-        this.delayMs = options?.delayMs ?? 300;
-        this.restartArgs = gArgs.slice(1);
+    _restartArgs;
+    _child;
+    _enableLogs = false;
+    _restartDelay = 1500;
+    constructor() {
+        this._restartArgs = gArgs.slice(1);
+    }
+    enableLogs(enable) {
+        this._enableLogs = enable;
+    }
+    setRestartDelay(delayMs) {
+        this._restartDelay = delayMs;
     }
     /** Adds a directory to watch (subdirectories included). */
     addWatchDir(dir) {
@@ -101,6 +108,7 @@ export class SourceChangesWatcher {
         }
         return null;
     }
+    timerId = 0;
     async askToRestart(filePath) {
         // Avoid it if inside a hidden directory (start by .).
         let pathParts = filePath.split(path.sep);
@@ -111,16 +119,26 @@ export class SourceChangesWatcher {
         let nodeModule = pathParts.find(e => e === 'node_modules');
         if (nodeModule)
             return;
-        console.log("File change watcher - change detected for:", filePath);
-        if (this.restarting)
+        // Allow avoiding restart until stability is found.
+        if (this.timerId) {
             return;
-        this.restarting = true;
-        try {
-            await this.spawnChild();
         }
-        finally {
-            this.restarting = false;
-        }
+        // @ts-ignore
+        this.timerId = setTimeout(async () => {
+            this.timerId = 0;
+            if (this.restarting)
+                return;
+            this.restarting = true;
+            if (this._enableLogs) {
+                console.log("File change watcher - RESTART for:", filePath);
+            }
+            try {
+                await this.spawnChild();
+            }
+            finally {
+                this.restarting = false;
+            }
+        }, this._restartDelay);
     }
     async watchDirectoryRecursive(dir) {
         const watcher = chokidar.watch(dir, {
@@ -132,31 +150,28 @@ export class SourceChangesWatcher {
                 return b === 'node_modules' || b === '.git' || b === '.idea' || b === '.vscode';
             },
             awaitWriteFinish: {
-                stabilityThreshold: this.delayMs,
-                pollInterval: Math.min(100, this.delayMs)
+                stabilityThreshold: this._fileWatchingDelay,
+                pollInterval: Math.min(100, this._fileWatchingDelay)
             }
         });
         watcher.on('all', async (_event, paths) => { await this.askToRestart(paths); });
         watcher.on('error', () => { });
     }
     async spawnChild() {
-        if (this.child) {
-            this.child.kill();
+        if (this._child) {
+            this._child.kill();
             await NodeSpace.timer.tick(100);
         }
         const nodeJsPath = gArgs[0];
-        this.child = spawn(nodeJsPath, this.restartArgs, {
+        this._child = spawn(nodeJsPath, this._restartArgs, {
             stdio: "inherit",
             shell: false,
-            //detached: true,
             cwd: gCwd,
             env: {
                 ...process.env,
                 jopi_is_restart_spawn: '1'
             }
         });
-        //this.child.on('spawn', () => { process.exit(0) });
-        //this.child.on('error', (err) => { console.error("Can't restart", err) });
     }
 }
 export default SourceChangesWatcher;

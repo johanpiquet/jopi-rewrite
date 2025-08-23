@@ -5,10 +5,6 @@ import chokidar from "chokidar";
 
 import "jopi-node-space";
 
-export interface SourceChangesWatcherOptions {
-    delayMs?: number;
-}
-
 /**
  * Watches source directories for changes and restarts a server process automatically.
  * - Add directories to watch (recursively).
@@ -18,17 +14,27 @@ export interface SourceChangesWatcherOptions {
 export class SourceChangesWatcher {
     private readonly watchDirs = new Set<string>();
 
-    private delayMs: number;
+    private readonly _fileWatchingDelay: number = 500;
 
     private restarting = false;
     private _isStarted = false;
 
-    private readonly restartArgs: string[];
-    private child?: ChildProcess;
+    private readonly _restartArgs: string[];
+    private _child?: ChildProcess;
 
-    constructor(options?: SourceChangesWatcherOptions) {
-        this.delayMs = options?.delayMs ?? 300;
-        this.restartArgs = gArgs.slice(1);
+    private _enableLogs: boolean = false;
+    private _restartDelay: number = 1500;
+
+    constructor() {
+        this._restartArgs = gArgs.slice(1);
+    }
+
+    enableLogs(enable: boolean) {
+        this._enableLogs = enable;
+    }
+
+    setRestartDelay(delayMs: number) {
+        this._restartDelay = delayMs;
     }
 
     /** Adds a directory to watch (subdirectories included). */
@@ -105,6 +111,7 @@ export class SourceChangesWatcher {
             const siblingSrc = await tryDir(path.join(cwd, "src"));
             if (siblingSrc) return siblingSrc;
         }
+
         const build = await tryDir(path.join(cwd, "build"));
         if (build) {
             const siblingSrc = await tryDir(path.join(cwd, "src"));
@@ -113,6 +120,8 @@ export class SourceChangesWatcher {
 
         return null;
     }
+
+    private timerId: number = 0;
 
     private async askToRestart(filePath: string) {
         // Avoid it if inside a hidden directory (start by .).
@@ -124,13 +133,23 @@ export class SourceChangesWatcher {
         let nodeModule = pathParts.find(e => e==='node_modules');
         if (nodeModule) return;
 
-        console.log("File change watcher - change detected for:", filePath);
+        // Allow avoiding restart until stability is found.
+        if (this.timerId) { return; }
 
-        if (this.restarting) return;
-        this.restarting = true;
+        // @ts-ignore
+        this.timerId = setTimeout(async () => {
+            this.timerId = 0;
 
-        try { await this.spawnChild(); }
-        finally { this.restarting = false; }
+            if (this.restarting) return;
+            this.restarting = true;
+
+            if (this._enableLogs) {
+                console.log("File change watcher - RESTART for:", filePath);
+            }
+
+            try { await this.spawnChild(); }
+            finally { this.restarting = false; }
+        }, this._restartDelay);
     }
 
     private async watchDirectoryRecursive(dir: string) {
@@ -145,8 +164,8 @@ export class SourceChangesWatcher {
             },
 
             awaitWriteFinish: {
-                stabilityThreshold: this.delayMs,
-                pollInterval: Math.min(100, this.delayMs)
+                stabilityThreshold: this._fileWatchingDelay,
+                pollInterval: Math.min(100, this._fileWatchingDelay)
             }
         });
 
@@ -155,26 +174,22 @@ export class SourceChangesWatcher {
     }
 
     private async spawnChild() {
-        if (this.child) {
-            this.child.kill();
+        if (this._child) {
+            this._child.kill();
             await NodeSpace.timer.tick(100);
         }
         
         const nodeJsPath = gArgs[0];
 
-        this.child = spawn(nodeJsPath, this.restartArgs, {
+        this._child = spawn(nodeJsPath, this._restartArgs, {
             stdio: "inherit",
             shell: false,
-            //detached: true,
             cwd: gCwd,
             env: {
                 ...process.env,
                 jopi_is_restart_spawn: '1'
             }
         });
-
-        //this.child.on('spawn', () => { process.exit(0) });
-        //this.child.on('error', (err) => { console.error("Can't restart", err) });
     }
 }
 

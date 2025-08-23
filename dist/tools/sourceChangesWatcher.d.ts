@@ -1,7 +1,4 @@
 import "jopi-node-space";
-export interface SourceChangesWatcherOptions {
-    delayMs?: number;
-}
 /**
  * Watches source directories for changes and restarts a server process automatically.
  * - Add directories to watch (recursively).
@@ -10,12 +7,16 @@ export interface SourceChangesWatcherOptions {
  */
 export declare class SourceChangesWatcher {
     private readonly watchDirs;
-    private delayMs;
+    private readonly _fileWatchingDelay;
     private restarting;
     private _isStarted;
-    private readonly restartArgs;
-    private child?;
-    constructor(options?: SourceChangesWatcherOptions);
+    private readonly _restartArgs;
+    private _child?;
+    private _enableLogs;
+    private _restartDelay;
+    constructor();
+    enableLogs(enable: boolean): void;
+    setRestartDelay(delayMs: number): void;
     /** Adds a directory to watch (subdirectories included). */
     addWatchDir(dir: string): this;
     /** Starts the child process and file watchers. */
@@ -28,6 +29,7 @@ export declare class SourceChangesWatcher {
      * - Else, if there is a ./dist or ./build and a nearby ./src, prefer ./src.
      */
     detectSourceDir(cwd?: string): Promise<string | null>;
+    private timerId;
     private askToRestart;
     private watchDirectoryRecursive;
     private spawnChild;

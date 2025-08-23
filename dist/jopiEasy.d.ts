@@ -181,6 +181,7 @@ declare class DevModeConfigBuilder {
     disable_refreshBrowserOnSourceChange(): this;
     disable_restartServerOnSourceChange(): this;
     add_directoryToWatch(dirPath: string): this;
+    set_restartDelay(delay_ms: number, enableLogs?: boolean): this;
 }
 type GetValue<T> = (value: T) => void;
 interface WebSiteInternal {

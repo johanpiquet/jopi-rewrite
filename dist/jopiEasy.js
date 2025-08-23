@@ -44,7 +44,6 @@ class JopiApp {
         }
         if (!canStart)
             return;
-        console.log("Starting the app");
         if (isDevMode()) {
             redLogger("Executing in dev mode. File change watching is enabled.");
         }
@@ -562,6 +561,12 @@ class DevModeConfigBuilder {
     add_directoryToWatch(dirPath) {
         dirPath = path.resolve(dirPath);
         gWatcher.addWatchDir(dirPath);
+        return this;
+    }
+    set_restartDelay(delay_ms, enableLogs) {
+        gWatcher.setRestartDelay(delay_ms);
+        if (enableLogs !== undefined)
+            gWatcher.enableLogs(enableLogs);
         return this;
     }
 }
