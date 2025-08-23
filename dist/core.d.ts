@@ -235,6 +235,11 @@ export interface WebSite {
     onPATCH(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
     onHEAD(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
     onOPTIONS(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    /**
+     * Can be called when the page / resource is not found.
+     * Will return a personalized 404 page.
+     * @param handler
+     */
     onNotFound(handler: JopiRouteHandler): void;
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
     on404(handler: JopiRouteHandler): void;
