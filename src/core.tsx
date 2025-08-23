@@ -1106,8 +1106,6 @@ export class WebSite {
         if (hasHydrateComponents() || hasExternalCssBundled()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
-
-        tryInstallBrowserRefreshHandler(this);
     }
 
     addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
@@ -1234,7 +1232,10 @@ export class WebSite {
         return new Response("", {status: 404});
     }
 
-    onServerStarted() {
+    async onServerStarted() {
+        await createBundle(this);
+        await tryInstallBrowserRefreshHandler(this);
+
         if (this.welcomeUrl) {
             console.log("Website started:", this.welcomeUrl);
         }
@@ -1479,14 +1480,11 @@ export class JopiServer {
         /**
          * Allow avoiding a bug where returning an array with only one certificate throws an error.
          */
-        function selectCertificate(certificates: any[]): any|any[]|undefined {
-            if (certificates.length===0) return undefined;
-            if (certificates.length===1) return certificates[0];
+        function selectCertificate(certificates: any[]): any | any[] | undefined {
+            if (certificates.length === 0) return undefined;
+            if (certificates.length === 1) return certificates[0];
             return certificates;
         }
-
-        // Create hydrate bundle.
-        Object.values(this.webSites).forEach(webSite => createBundle(webSite));
 
         const byPorts: { [port: number]: WebSiteMap } = {};
 
@@ -1525,7 +1523,7 @@ export class JopiServer {
                 myServerOptions.tls = certificate;
                 serverImpl.updateSslCertificate(myServerInstance, myServerOptions, certificate);
             });
-            
+
             const myServerOptions: StartServerOptions = {
                 ...gServerStartGlobalOptions,
 
@@ -1786,24 +1784,20 @@ export enum ContentTypeCategory {
 
 //region Auto-refresh browser
 
-function tryInstallBrowserRefreshHandler(webSite: WebSite) {
-    async function loadDeps() {
-        let scriptPath = fileURLToPath(import.meta.resolve("./browserRefreshScript.js"));
-        scriptJS = await nFS.readTextFromFile(scriptPath);
-    }
-
+async function tryInstallBrowserRefreshHandler(webSite: WebSite) {
     if (!InternalConfig.mustEnableBrowserRefresh()) return;
 
-    let scriptJS = "";
-    loadDeps().then();
+    let scriptPath = fileURLToPath(import.meta.resolve("./browserRefreshScript.js"));
+    let scriptJS = await nFS.readTextFromFile(scriptPath);
 
     webSite.onGET("/jopi-autorefresh-rkrkrjrktht/script.js",
             async _ => new Response(scriptJS, {
                 status: 200, headers: {"content-type": "text/javascript"}
             }));
 
-    webSite.addWsRoute("/jopi-autorefresh-rkrkrjrktht/wssocket", (ws, infos) => {
+    webSite.addWsRoute("/jopi-autorefresh-rkrkrjrktht/wssocket", () => {
         // Nothing to do, only keep it open.
+        // The only role of this socket is to detect server down (since the socket connection close).
     });
 }
 

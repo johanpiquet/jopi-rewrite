@@ -35,16 +35,23 @@ export async function esBuildBundleExternal(params: EsBuildExternalParams, doDir
     let jsonParams = JSON.stringify(params);
 
     let nodeJsPath = process.argv[0];
-    const args = [thisFile, "--import", "jopi-loader",  "--", "--jopi-bundler", jsonParams];
+    const args = [thisFile, "--import", "jopi-loader", "--", "--jopi-bundler", jsonParams];
 
-    // Here execFile is better than "exec" since it automatically encodes the arguments.
+    // Will allow this function to be really async.
     //
-    execFile(
-        nodeJsPath, args, { cwd: process.cwd() },
-
-        (error, _stdout, stderr) => {
-            if (error) console.error(`Error when executing EsBuild:\n${stderr}`);
-        });
+    return new Promise<void>((resolve, reject) => {
+        // Here execFile is better than "exec" since it automatically encodes the arguments.
+        //
+        execFile(
+            nodeJsPath, args, {cwd: process.cwd()}, (error, _stdout, stderr) => {
+                if (error) {
+                    console.error(`Error when executing EsBuild:\n${stderr}`);
+                    reject(error);
+                } else {
+                    resolve();
+                }
+            });
+    });
 }
 
 // The current version of Node.js doesn't support "import.meta.main".

@@ -307,7 +307,7 @@ export declare class WebSite {
     processRequest(urlInfos: URL, bunRequest: Request, serverImpl: ServerInstance): Promise<Response>;
     return404(req: JopiRequest): Response | Promise<Response>;
     return500(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
-    onServerStarted(): void;
+    onServerStarted(): Promise<void>;
     getHeadersToCache(): string[];
     addHeaderToCache(header: string): void;
     addMiddleware(middleware: JopiMiddleware): void;
