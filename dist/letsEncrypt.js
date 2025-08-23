@@ -1,4 +1,5 @@
 import * as acme from 'acme-client';
+import { WebSiteImpl } from "./core.js";
 import path from "node:path";
 const nFS = NodeSpace.fs;
 const nTimer = NodeSpace.timer;
@@ -171,7 +172,7 @@ export async function checkWebSite(httpsWebSite, params, isFromCron) {
 }
 let gIsCronStarted = false;
 const gWebsiteToCheck = [];
-function startCron(interval_days) {
+function startCron() {
     if (gIsCronStarted)
         return;
     gIsCronStarted = true;
@@ -181,7 +182,7 @@ function startCron(interval_days) {
 }
 function registerToCron(webSite, params) {
     if (!gIsCronStarted) {
-        startCron(params.expireAfter_days);
+        startCron();
     }
     gWebsiteToCheck.push({ webSite, params });
 }

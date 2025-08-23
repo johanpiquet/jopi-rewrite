@@ -1,5 +1,5 @@
 import * as acme from 'acme-client';
-import type {SslCertificatePath, WebSite} from "./core.tsx";
+import {type SslCertificatePath, type WebSite, WebSiteImpl} from "./core.tsx";
 import path from "node:path";
 
 const nFS = NodeSpace.fs;
@@ -126,7 +126,7 @@ export async function checkWebSite(httpsWebSite: WebSite, params: LetsEncryptPar
     // ACME challenge requires port 80 of the server.
     const webSite80 = httpsWebSite.getOrCreateHttpRedirectWebsite();
 
-    const certPaths = getCertificateDir(params.certificateDir, webSite80.hostName);
+    const certPaths = getCertificateDir(params.certificateDir, (webSite80 as WebSiteImpl).hostName);
     let canLog = params.log;
 
     let certState = await getCertificateState(certPaths, params);
@@ -141,7 +141,7 @@ export async function checkWebSite(httpsWebSite: WebSite, params: LetsEncryptPar
     let vChallengeToken = "";
     let vKeyAuthorization = "";
 
-    const host = new URL(webSite80.welcomeUrl).host;
+    const host = new URL((webSite80 as WebSiteImpl).welcomeUrl).host;
 
     if (canLog) {
         if (certState==CertificateState.IsExpired) console.log("LetsEncrypt - Will renew certificate for", host);
@@ -226,7 +226,7 @@ interface CronEntry {
 let gIsCronStarted = false;
 const gWebsiteToCheck: CronEntry[] = [];
 
-function startCron(interval_days: number) {
+function startCron() {
     if (gIsCronStarted) return;
     gIsCronStarted = true;
 
@@ -237,7 +237,7 @@ function startCron(interval_days: number) {
 
 function registerToCron(webSite: WebSite, params: LetsEncryptParams) {
     if (!gIsCronStarted) {
-        startCron(params.expireAfter_days!);
+        startCron();
     }
 
     gWebsiteToCheck.push({webSite, params});

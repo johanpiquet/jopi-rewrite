@@ -105,7 +105,7 @@ function startServer(options: StartServerOptions): ServerInstance {
     return server;
 }
 
-function updateSslCertificate(server: ServerInstance, options: StartServerOptions, newSslCertificate: any|any[]|undefined) {
+function updateSslCertificate() {
     // Not supported ...
 }
 

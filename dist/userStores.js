@@ -1,4 +1,4 @@
-import { WebSite } from "./core.js";
+import {} from "./core.js";
 export class UserStore_WithLoginPassword {
     users = [];
     add(infos) {

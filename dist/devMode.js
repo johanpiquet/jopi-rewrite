@@ -1,4 +1,3 @@
-//region DevMod
 let gIsDevMode;
 export function isDevMode() {
     if (gIsDevMode === undefined) {
@@ -12,5 +11,4 @@ export function enableDevMode(devMode) {
     }
     gIsDevMode = devMode;
 }
-//endregion
 //# sourceMappingURL=devMode.js.map

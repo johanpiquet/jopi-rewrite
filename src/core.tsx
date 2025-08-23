@@ -1,12 +1,20 @@
 // noinspection JSUnusedGlobalSymbols
 
 import * as path from "node:path";
+import fs from "node:fs/promises";
+import {fileURLToPath} from "node:url";
+
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
+import * as jwt from 'jsonwebtoken';
+import * as cheerio from "cheerio";
+
+import React, {type ReactNode} from "react";
+import * as ReactServer from 'react-dom/server';
+
+import {Page, PageController} from "jopi-rewrite-ui";
+
 import {ServerFetch} from "./serverFetch.ts";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
-import * as ReactServer from 'react-dom/server';
-import React, {type ReactNode} from "react";
-import {Page, PageController} from "jopi-rewrite-ui";
 
 import {
     createBundle,
@@ -16,20 +24,19 @@ import {
     hasExternalCssBundled
 } from "./hydrate.tsx";
 
-import * as cheerio from "cheerio";
 import {LoadBalancer} from "./loadBalancing.ts";
-import fs from "node:fs/promises";
+
 // noinspection ES6PreferShortImport
 import {PostMiddlewares} from "./middlewares/index.ts";
-import * as jwt from 'jsonwebtoken';
+
 import serverImpl, {
     type ServerInstance,
     type ServerSocketAddress,
     type StartServerCoreOptions,
     type StartServerOptions, type WebSocketConnectionInfos
 } from "./server.ts";
+
 import * as InternalConfig from "./internalConfig.ts";
-import {fileURLToPath} from "node:url";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -37,51 +44,7 @@ const nSocket = NodeSpace.webSocket;
 
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
 
-export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
-export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
-export type JopiErrorHandler = (req: JopiRequest, error?: Error|string) => Response|Promise<Response>;
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
-export type RequestBody = ReadableStream<Uint8Array> | null;
-export type SendingBody = ReadableStream<Uint8Array> | string | FormData | null;
-
-type WebSiteMap = {[hostname: string]: WebSite};
-
-export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Promise<Response>;
-export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
-export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
-
-export class NotAuthorizedException extends Error {
-}
-
-export interface CookieOptions {
-    maxAge?: number;
-}
-
-export interface UserInfos {
-    id: string;
-
-    roles?: string[];
-    email?: string;
-
-    fullName?: string;
-    nickName?: string;
-
-    firstName?: string;
-    lastName?: string;
-
-    avatarUrl?: string;
-
-    [key: string]: any;
-}
-
-export interface AuthResult {
-    isOk: boolean;
-    errorMessage?: string;
-    authToken?: string;
-    userInfos?: UserInfos;
-}
-
-export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
+//region JopiRequest
 
 export class JopiRequest {
     public cache: PageCache;
@@ -95,8 +58,8 @@ export class JopiRequest {
                 public readonly coreServer: ServerInstance,
                 public readonly route: WebSiteRoute)
     {
-        this.cache = webSite.mainCache;
-        this.mainCache = webSite.mainCache;
+        this.cache = (webSite as WebSiteImpl).mainCache;
+        this.mainCache = this.cache;
         this._headers = this.coreRequest.headers;
     }
 
@@ -406,7 +369,7 @@ export class JopiRequest {
     //region Fetch / Proxy
 
     directProxyToServer(): Promise<Response> {
-        return this.webSite.loadBalancer.directProxy(this);
+        return (this.webSite as WebSiteImpl).loadBalancer.directProxy(this);
     }
 
     directProxyWith(server: ServerFetch<any>): Promise<Response> {
@@ -415,7 +378,7 @@ export class JopiRequest {
 
     fetchServer(headers?: Headers, method: string="GET", url?: URL, body?: RequestBody): Promise<Response> {
         if (!url) url = this.urlInfos;
-        return this.webSite.loadBalancer.fetch(method, url, body, headers);
+        return (this.webSite as WebSiteImpl).loadBalancer.fetch(method, url, body, headers);
     }
 
     //endregion
@@ -452,11 +415,11 @@ export class JopiRequest {
     }
 
     addToCache_Compressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
-        return this.cache.addToCache(this.urlInfos, response, this.webSite.getHeadersToCache(), false, metaUpdater);
+        return this.cache.addToCache(this.urlInfos, response, (this.webSite as WebSiteImpl).getHeadersToCache(), false, metaUpdater);
     }
 
     addToCache_Uncompressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
-        return this.cache.addToCache(this.urlInfos, response, this.webSite.getHeadersToCache(), true, metaUpdater);
+        return this.cache.addToCache(this.urlInfos, response, (this.webSite as WebSiteImpl).getHeadersToCache(), true, metaUpdater);
     }
 
     /**
@@ -794,7 +757,7 @@ export class JopiRequest {
 
     private postProcessHtml(html: string): string {
         if (InternalConfig.mustEnableBrowserRefresh()) {
-            html += `<script type="module" src="${this.webSite.welcomeUrl}/jopi-autorefresh-rkrkrjrktht/script.js"></script>`;
+            html += `<script type="module" src="${(this.webSite as WebSiteImpl).welcomeUrl}/jopi-autorefresh-rkrkrjrktht/script.js"></script>`;
         }
 
         if (hasExternalCssBundled() || this.isUsingReact && hasHydrateComponents()) {
@@ -1015,40 +978,125 @@ export interface JopiRequestSpyData {
 
 export type JopiRequestSpy = (data: JopiRequestSpyData, req: JopiRequest) => void;
 
-const gEmptyObject = {};
+export enum ContentTypeCategory {
+    OTHER,
 
-export interface ServeFileOptions {
-    /*
-        If true, then /index.html is replaced by / in the browser nav bar.
-        Default is true.
-     */
-    replaceIndexHtml?: boolean;
+    _TEXT_              = 10,
+    TEXT_HTML           = 11,
+    TEXT_CSS            = 12,
+    TEXT_JAVASCRIPT     = 13,
+    TEXT_JSON           = 14,
 
-    /**
-     * If the request file is not found, then call this function.
-     * If undefined, then will directly return a 404 error.
-     */
-    onNotFound?: (req: JopiRequest) => Response|Promise<Response>;
+    _FORM_              = 20,
+    FORM_MULTIPART      = 20,
+    FORM_URL_ENCODED    = 21,
+
+    _BINARY_            = 30,
+    IMAGE
 }
 
-export class WebSiteOptions {
-    /**
-     * The TLS certificate to use;
-     */
-    certificate?: SslCertificatePath;
+//endregion
+
+//region WebSite
+
+export interface WebSite {
+    data: any;
+
+    onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+
+    onGET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+
+    onPOST(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+
+    onPUT(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+
+    onDELETE(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+
+    onPATCH(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+
+    onHEAD(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+
+    onOPTIONS(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+
+    onNotFound(handler: JopiRouteHandler): void;
+
+    onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
+
+    on404(handler: JopiRouteHandler): void;
+
+    return404(req: JopiRequest): Response | Promise<Response>;
+
+    on500(handler: JopiRouteHandler): void;
+
+    return500(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
 
     /**
-     * Allow defining our own cache for this website and don't use the common one.
+     * Try to authenticate a user.
+     *
+     * @param loginInfo
+     *      Information about the user login/password.
+     *      The real type is depending on what you use with the Website.setAuthHandler function.
      */
-    cache?: PageCache;
+    tryAuthUser(loginInfo: any): Promise<AuthResult>;
+
+    /**
+     * Set the function which will verify user authentification
+     * and returns information about this user once connected.
+     */
+    setAuthHandler<T>(authHandler: AuthHandler<T>): void;
+
+    /**
+     * Create a JWT token with the data.
+     */
+    createJwtToken(data: UserInfos): string | undefined;
+
+    /**
+     * Verify and decode the JWT token.
+     * Returns the data this token contains, or undefined if the token is invalid.
+     */
+    decodeJwtToken(token: string): UserInfos | undefined;
+
+    /**
+     * Set the secret token for JWT cookies.
+     */
+    setJwtSecret(secret: string): void;
+
+    /**
+     * Allow hooking how the JWT token is stored in the user response.
+     */
+    setJwtTokenStore(store: JwtTokenStore): void;
+
+    /**
+     * If you are using HTTPs, allow creating an HTTP website
+     * which will automatically redirect to the HTTP.
+     */
+    getOrCreateHttpRedirectWebsite(): WebSite;
+
+    /**
+     * Ask to update the current SSL certificate.
+     * Will allow updating without restarting the server, nor losing connections.
+     * Warning: only works with bun.js, node.js implementation does nothing.
+     */
+    updateSslCertificate(certificate: SslCertificatePath): void;
+
+    getHeadersToCache(): string[];
+
+    addHeaderToCache(header: string): void;
+
+    addMiddleware(middleware: JopiMiddleware): void;
+
+    addPostMiddleware(middleware: JopiPostMiddleware): void;
+
+    addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number): void;
+
+    enableCors(allows?: string[]): void;
 }
 
-export interface WebSiteRoute {
-    handler: JopiRouteHandler;
-    searchParamFilter?: SearchParamFilterFunction;
+export function newWebSite(url: string, options?: WebSiteOptions): WebSite {
+    return new WebSiteImpl(url, options);
 }
 
-export class WebSite {
+export class WebSiteImpl implements WebSite {
     readonly port: number;
     readonly hostName: string;
     readonly welcomeUrl: string;
@@ -1269,9 +1317,6 @@ export class WebSite {
         this.addPostMiddleware(PostMiddlewares.cors({accessControlAllowOrigin: allows}));
     }
 
-    /**
-     * Create a JWT token with the data.
-     */
     createJwtToken(data: UserInfos): string|undefined {
         try {
             return jwt.sign(data as object, this.JWT_SECRET!, this.jwtSignInOptions);
@@ -1280,10 +1325,6 @@ export class WebSite {
         }
     }
 
-    /**
-     * Verify and decode the JWT token.
-     * Returns the data this token contains, or undefined if the token is invalid.
-     */
     decodeJwtToken(token: string): UserInfos|undefined {
         if (!this.JWT_SECRET) return undefined;
 
@@ -1328,16 +1369,13 @@ export class WebSite {
         }
     }
 
-    /**
-     * Allow hooking how the JWT token is stored in the user response.
-     */
     public setJwtTokenStore(store: JwtTokenStore) {
         this.jwtTokenStore = store;
     }
 
     private applyMiddlewares(handler: JopiRouteHandler): JopiRouteHandler {
         return async function(req) {
-            const mdw = req.webSite.middlewares;
+            const mdw = (req.webSite as WebSiteImpl).middlewares;
 
             if (mdw) {
                 const count = mdw.length;
@@ -1355,11 +1393,11 @@ export class WebSite {
             let res = pRes instanceof Promise ? await pRes : pRes;
 
             if (req.getJwtToken()) {
-                req.webSite.storeJwtToken(req, res);
+                (req.webSite as WebSiteImpl).storeJwtToken(req, res);
             }
 
-            if (req.webSite.postMiddlewares) {
-                const pMdw = req.webSite.postMiddlewares;
+            if ((req.webSite as WebSiteImpl).postMiddlewares) {
+                const pMdw = (req.webSite as WebSiteImpl).postMiddlewares!;
                 const count = pMdw.length;
 
                 for (let i = 0; i < count; i++) {
@@ -1382,7 +1420,7 @@ export class WebSite {
         urlInfos.port = "";
         urlInfos.protocol = "http";
 
-        const webSite = new WebSite(urlInfos.href);
+        const webSite = new WebSiteImpl(urlInfos.href);
         this.http80WebSite = webSite;
 
         webSite.onGET("/**", async req => {
@@ -1419,6 +1457,37 @@ export class WebSite {
     }
 }
 
+export interface ServeFileOptions {
+    /*
+        If true, then /index.html is replaced by / in the browser nav bar.
+        Default is true.
+     */
+    replaceIndexHtml?: boolean;
+
+    /**
+     * If the request file is not found, then call this function.
+     * If undefined, then will directly return a 404 error.
+     */
+    onNotFound?: (req: JopiRequest) => Response|Promise<Response>;
+}
+
+export class WebSiteOptions {
+    /**
+     * The TLS certificate to use;
+     */
+    certificate?: SslCertificatePath;
+
+    /**
+     * Allow defining our own cache for this website and don't use the common one.
+     */
+    cache?: PageCache;
+}
+
+export interface WebSiteRoute {
+    handler: JopiRouteHandler;
+    searchParamFilter?: SearchParamFilterFunction;
+}
+
 export class JopiWebSocket {
     constructor(private readonly webSite: WebSite, private readonly server: ServerInstance, private readonly webSocket: WebSocket) {
     }
@@ -1436,11 +1505,58 @@ export class JopiWebSocket {
     }
 }
 
-export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
+export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
+export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
+export type JopiErrorHandler = (req: JopiRequest, error?: Error|string) => Response|Promise<Response>;
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
+export type RequestBody = ReadableStream<Uint8Array> | null;
+export type SendingBody = ReadableStream<Uint8Array> | string | FormData | null;
 
-export interface WithRoles {
-    roles?: string[];
+type WebSiteMap = {[hostname: string]: WebSite};
+
+export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Promise<Response>;
+export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
+export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
+
+export class NotAuthorizedException extends Error {
 }
+
+export class ServerAlreadyStartedError extends Error {
+    constructor() {
+        super("the server is already");
+    }
+}
+
+export interface CookieOptions {
+    maxAge?: number;
+}
+
+export interface UserInfos {
+    id: string;
+
+    roles?: string[];
+    email?: string;
+
+    fullName?: string;
+    nickName?: string;
+
+    firstName?: string;
+    lastName?: string;
+
+    avatarUrl?: string;
+
+    [key: string]: any;
+}
+
+export interface AuthResult {
+    isOk: boolean;
+    errorMessage?: string;
+    authToken?: string;
+    userInfos?: UserInfos;
+}
+
+export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
+export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
 
 export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response> | null;
 export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response | Promise<Response>;
@@ -1451,11 +1567,9 @@ export interface SslCertificatePath {
     cert: string;
 }
 
-export class ServerAlreadyStartedError extends Error {
-    constructor() {
-        super("the server is already");
-    }
-}
+//endregion
+
+//region Jopi Server
 
 export class JopiServer {
     private readonly webSites: WebSiteMap = {};
@@ -1464,7 +1578,7 @@ export class JopiServer {
 
     addWebsite(webSite: WebSite): WebSite {
         if (this._isStarted) throw new ServerAlreadyStartedError();
-        this.webSites[webSite.hostName] = webSite;
+        this.webSites[(webSite as WebSiteImpl).hostName] = webSite;
         return webSite;
     }
 
@@ -1489,15 +1603,18 @@ export class JopiServer {
         const byPorts: { [port: number]: WebSiteMap } = {};
 
         Object.values(this.webSites).forEach(e => {
-            if (!byPorts[e.port]) byPorts[e.port] = {};
-            byPorts[e.port][e.hostName] = e;
+            const webSite = e as WebSiteImpl;
+            if (!byPorts[webSite.port]) byPorts[webSite.port] = {};
+            byPorts[webSite.port][webSite.hostName] = e;
         });
 
         for (let port in byPorts) {
             function rebuildCertificates() {
                 certificates = [];
 
-                Object.values(hostNameMap).forEach(webSite => {
+                Object.values(hostNameMap).forEach(e => {
+                    const webSite = e as WebSiteImpl;
+
                     if (webSite.certificate) {
                         const keyFile = path.resolve(webSite.certificate.key);
                         const certFile = path.resolve(webSite.certificate.cert);
@@ -1516,7 +1633,7 @@ export class JopiServer {
 
             rebuildCertificates();
 
-            Object.values(hostNameMap).forEach(webSite => webSite._onRebuildCertificate = () => {
+            Object.values(hostNameMap).forEach(webSite => (webSite as WebSiteImpl)._onRebuildCertificate = () => {
                 rebuildCertificates();
 
                 let certificate = selectCertificate(certificates);
@@ -1534,7 +1651,7 @@ export class JopiServer {
                     const urlInfos = new URL(req.url);
                     const webSite = hostNameMap[urlInfos.hostname];
                     if (!webSite) return new Response("", {status: 404});
-                    return webSite.processRequest(urlInfos, req, myServerInstance);
+                    return (webSite as WebSiteImpl).processRequest(urlInfos, req, myServerInstance);
                 },
 
                 async onWebSocketConnection(ws: WebSocket, infos: WebSocketConnectionInfos) {
@@ -1547,13 +1664,13 @@ export class JopiServer {
                     }
 
                     const jws = new JopiWebSocket(webSite, myServerInstance, ws);
-                    webSite.declareNewWebSocketConnection(jws, infos, urlInfos);
+                    (webSite as WebSiteImpl).declareNewWebSocketConnection(jws, infos, urlInfos);
                 }
             };
 
             const myServerInstance = serverImpl.startServer(myServerOptions);
 
-            Object.values(hostNameMap).forEach(webSite => webSite.onServerStarted());
+            Object.values(hostNameMap).forEach(webSite => (webSite as WebSiteImpl).onServerStarted());
             this.servers.push(myServerInstance);
         }
     }
@@ -1577,11 +1694,13 @@ export class JopiServer {
     }
 }
 
-const gServerStartGlobalOptions: StartServerCoreOptions = {};
-
 export function getServerStartOptions(): StartServerCoreOptions {
     return gServerStartGlobalOptions;
 }
+
+//endregion
+
+//region Meta Updater
 
 /**
  * Update the meta-data.
@@ -1594,6 +1713,10 @@ export interface MetaUpdater<T> {
 }
 
 export enum MetaUpdaterResult { IS_NOT_UPDATED, IS_UPDATED, MUST_DELETE}
+
+//endregion
+
+//region Cache
 
 export interface CacheRole {
     isUserCache?: boolean;
@@ -1765,22 +1888,7 @@ export interface CacheEntry {
     _refCountSinceGC?: number;
 }
 
-export enum ContentTypeCategory {
-    OTHER,
-
-    _TEXT_              = 10,
-    TEXT_HTML           = 11,
-    TEXT_CSS            = 12,
-    TEXT_JAVASCRIPT     = 13,
-    TEXT_JSON           = 14,
-
-    _FORM_              = 20,
-    FORM_MULTIPART      = 20,
-    FORM_URL_ENCODED    = 21,
-
-    _BINARY_            = 30,
-    IMAGE
-}
+//endregion
 
 //region Auto-refresh browser
 
@@ -1795,7 +1903,7 @@ async function tryInstallBrowserRefreshHandler(webSite: WebSite) {
                 status: 200, headers: {"content-type": "text/javascript"}
             }));
 
-    webSite.addWsRoute("/jopi-autorefresh-rkrkrjrktht/wssocket", () => {
+    webSite.onWebSocketConnect("/jopi-autorefresh-rkrkrjrktht/wssocket", () => {
         // Nothing to do, only keep it open.
         // The only role of this socket is to detect server down (since the socket connection close).
     });
@@ -1912,5 +2020,8 @@ export const ONE_KILO_OCTET = 1024;
 export const ONE_MEGA_OCTET = 1024 * ONE_KILO_OCTET;
 
 export const HTTP_VERBS: HttpMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
+
+const gEmptyObject = {};
+const gServerStartGlobalOptions: StartServerCoreOptions = {};
 
 //endregion

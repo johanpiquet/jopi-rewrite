@@ -1,7 +1,7 @@
 import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
 import path from "node:path";
 import React from "react";
-import { WebSite } from "./core.js";
+import { WebSiteImpl } from "./core.js";
 import { setNewHydrateListener, setNewMustBundleExternalCssListener, useCssModule } from "jopi-rewrite-ui";
 import { esBuildBundle, jopiReplaceServerPlugin } from "./bundler_esBuild.js";
 import { esBuildBundleExternal } from "./bundler_esBuildExternal.js";

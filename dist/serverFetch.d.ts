@@ -38,7 +38,7 @@ export interface ServerFetchOptions<T> {
     };
     verbose?: boolean;
     /**
-     * The public url of the website.
+     * The public URL of the website.
      * It's the url that he must use to build the url in his content.
      * It's not the url of the server where he can be reached.
      *
@@ -69,8 +69,8 @@ export declare class ServerFetch<T> {
     loadBalancer?: LoadBalancer;
     /**
      * Create an instance that translates urls from an origin to a destination.
-     *      Ex: http://127.0.0.1                --> https://www.mywebiste.com
-     *      Ex: https://my-server.com           --> https://134.555.666.66:7890  (with hostname: my-server.com)
+     *      Ex: http://127.0.0.1 --> https://www.mywebiste.com
+     *      Ex: https://my-server.com --> https://134.555.666.66:7890 (with hostname: my-server.com)
      *
      * @param sPublicUrl
      *      The origin of our current website.
@@ -90,7 +90,7 @@ export declare class ServerFetch<T> {
     private useDefaultHeaders;
     private compileCookies;
     /**
-     * Allow directly proxy a request as-if we were directly asking the target server.
+     * Allow directly proxy a request as if we were directly asking the target server.
      */
     directProxy(req: JopiRequest): Promise<Response>;
     fetch(method: string, url: URL, body?: SendingBody, headers?: Headers): Promise<Response>;

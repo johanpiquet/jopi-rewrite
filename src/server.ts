@@ -1,7 +1,6 @@
 import "jopi-node-space";
 import nodeJsServer from "./server_nodejs.ts"
 import bunJsServer from "./server_bunjs.ts"
-import type {JopiWebSocket} from "./core.js";
 
 export interface StartServerCoreOptions {
     /**

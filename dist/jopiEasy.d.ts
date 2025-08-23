@@ -1,4 +1,4 @@
-import { type AuthHandler, type HttpMethod, JopiRequest, type JopiWsRouteHandler, type UserInfos, WebSite, WebSiteOptions } from "./core.ts";
+import { type AuthHandler, type HttpMethod, JopiRequest, type JopiWsRouteHandler, type UserInfos, type WebSite, WebSiteOptions } from "./core.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
 import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.ts";
 declare class JopiApp {

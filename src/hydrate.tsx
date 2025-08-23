@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import React from "react";
-import {type JopiRequest, WebSite} from "./core.tsx";
+import {type JopiRequest, type WebSite, WebSiteImpl} from "./core.tsx";
 import {setNewHydrateListener, setNewMustBundleExternalCssListener, useCssModule} from "jopi-rewrite-ui";
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
@@ -39,7 +39,7 @@ async function generateScript(outputDir: string, components: {[key: string]: str
 }
 
 export function getBundleUrl(webSite: WebSite) {
-    return webSite.welcomeUrl + "/_bundle";
+    return (webSite as WebSiteImpl).welcomeUrl + "/_bundle";
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
@@ -59,10 +59,10 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
 async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
     const components = getHydrateComponents();
-    const outputDir = path.join(gTempDirPath, webSite.hostName);
+    const outputDir = path.join(gTempDirPath, (webSite as WebSiteImpl).hostName);
 
     if (hasHydrateComponents()) {
-        const publicUrl = webSite.welcomeUrl + '/_bundle/';
+        const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
 
         // Empty the dir, this makes tests easier.
         await nFS.rmDir(gTempDirPath);
@@ -90,11 +90,11 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
 
 async function createBundle_esbuild(webSite: WebSite): Promise<void> {
     const components = getHydrateComponents();
-    const outputDir = path.join(gTempDirPath, webSite.hostName);
+    const outputDir = path.join(gTempDirPath, (webSite as WebSiteImpl).hostName);
 
     if (hasHydrateComponents()) {
         const entryPoint = await generateScript(outputDir, components);
-        const publicUrl = webSite.welcomeUrl + '/_bundle/';
+        const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
 
         await esBuildBundle({
             entryPoint, outputDir,
@@ -168,7 +168,7 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     const pathName = req.urlInfos.pathname;
     let idx = pathName.lastIndexOf("/");
     const fileName = pathName.substring(idx);
-    const filePath = path.resolve(path.join(gTempDirPath, req.webSite.hostName, fileName));
+    const filePath = path.resolve(path.join(gTempDirPath, (req.webSite as WebSiteImpl).hostName, fileName));
 
     let contentType = nFS.getMimeTypeFromName(filePath);
     let isJS = false;

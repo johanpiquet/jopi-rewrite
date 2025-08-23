@@ -1,5 +1,4 @@
 import type {ServerInstance, StartServerOptions, ServerImpl, WebSocketConnectionInfos} from "./server.ts";
-import type {JopiWebSocket} from "./core.js";
 
 const impl: ServerImpl = {
     startServer(options: StartServerOptions): ServerInstance {

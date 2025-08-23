@@ -1,5 +1,6 @@
 **2025-08-23**
 * Auto-refreshing the browser when sources change.
+* WebSite is now an interface, which hide internals.
 
 **2025-08-22**
 * Added WebSocket support.

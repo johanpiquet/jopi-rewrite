@@ -1,5 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
-import { HTTP_VERBS, JopiRequest, JopiServer, WebSite, WebSiteOptions } from "./core.js";
+import { HTTP_VERBS, JopiRequest, JopiServer, WebSiteImpl, WebSiteOptions } from "./core.js";
 import path from "node:path";
 import fsc from "node:fs";
 import { ServerFetch } from "./serverFetch.js";
@@ -94,7 +94,7 @@ class JopiEasyWebSite {
         if (!this.webSite) {
             for (let hook of this.beforeHook)
                 await hook();
-            this.webSite = new WebSite(this.origin, this.options);
+            this.webSite = new WebSiteImpl(this.origin, this.options);
             this.afterHook.forEach(c => c(this.webSite));
             myServer.addWebsite(this.webSite);
             autoStartServer();

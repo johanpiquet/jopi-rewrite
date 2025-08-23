@@ -1,4 +1,4 @@
-import type { WebSite } from "./core.tsx";
+import { type WebSite } from "./core.tsx";
 export type OnTimeoutError = (webSite: WebSite, isRenew: boolean) => void;
 export interface LetsEncryptParams {
     email: string;

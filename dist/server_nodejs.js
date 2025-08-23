@@ -84,7 +84,7 @@ function startServer(options) {
     server.start();
     return server;
 }
-function updateSslCertificate(server, options, newSslCertificate) {
+function updateSslCertificate() {
     // Not supported ...
 }
 const serverImpl = { startServer, updateSslCertificate };

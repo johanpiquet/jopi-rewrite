@@ -1,27 +1,26 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 // noinspection JSUnusedGlobalSymbols
 import * as path from "node:path";
-import { addRoute, createRouter, findRoute } from "rou3";
-import { ServerFetch } from "./serverFetch.js";
-import * as ReactServer from 'react-dom/server';
-import React, {} from "react";
-import { Page, PageController } from "jopi-rewrite-ui";
-import { createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents, hasExternalCssBundled } from "./hydrate.js";
-import * as cheerio from "cheerio";
-import { LoadBalancer } from "./loadBalancing.js";
 import fs from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { addRoute, createRouter, findRoute } from "rou3";
+import * as jwt from 'jsonwebtoken';
+import * as cheerio from "cheerio";
+import React, {} from "react";
+import * as ReactServer from 'react-dom/server';
+import { Page, PageController } from "jopi-rewrite-ui";
+import { ServerFetch } from "./serverFetch.js";
+import { createBundle, getBundleUrl, handleBundleRequest, hasHydrateComponents, hasExternalCssBundled } from "./hydrate.js";
+import { LoadBalancer } from "./loadBalancing.js";
 // noinspection ES6PreferShortImport
 import { PostMiddlewares } from "./middlewares/index.js";
-import * as jwt from 'jsonwebtoken';
 import serverImpl, {} from "./server.js";
 import * as InternalConfig from "./internalConfig.js";
-import { fileURLToPath } from "node:url";
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
 const nSocket = NodeSpace.webSocket;
 const ONE_DAY = NodeSpace.timer.ONE_DAY;
-export class NotAuthorizedException extends Error {
-}
+//region JopiRequest
 export class JopiRequest {
     webSite;
     urlInfos;
@@ -39,7 +38,7 @@ export class JopiRequest {
         this.coreServer = coreServer;
         this.route = route;
         this.cache = webSite.mainCache;
-        this.mainCache = webSite.mainCache;
+        this.mainCache = this.cache;
         this._headers = this.coreRequest.headers;
     }
     //region Properties
@@ -786,18 +785,24 @@ export class JopiRequest {
         return this.error404Response();
     }
 }
-const gEmptyObject = {};
-export class WebSiteOptions {
-    /**
-     * The TLS certificate to use;
-     */
-    certificate;
-    /**
-     * Allow defining our own cache for this website and don't use the common one.
-     */
-    cache;
+export var ContentTypeCategory;
+(function (ContentTypeCategory) {
+    ContentTypeCategory[ContentTypeCategory["OTHER"] = 0] = "OTHER";
+    ContentTypeCategory[ContentTypeCategory["_TEXT_"] = 10] = "_TEXT_";
+    ContentTypeCategory[ContentTypeCategory["TEXT_HTML"] = 11] = "TEXT_HTML";
+    ContentTypeCategory[ContentTypeCategory["TEXT_CSS"] = 12] = "TEXT_CSS";
+    ContentTypeCategory[ContentTypeCategory["TEXT_JAVASCRIPT"] = 13] = "TEXT_JAVASCRIPT";
+    ContentTypeCategory[ContentTypeCategory["TEXT_JSON"] = 14] = "TEXT_JSON";
+    ContentTypeCategory[ContentTypeCategory["_FORM_"] = 20] = "_FORM_";
+    ContentTypeCategory[ContentTypeCategory["FORM_MULTIPART"] = 20] = "FORM_MULTIPART";
+    ContentTypeCategory[ContentTypeCategory["FORM_URL_ENCODED"] = 21] = "FORM_URL_ENCODED";
+    ContentTypeCategory[ContentTypeCategory["_BINARY_"] = 30] = "_BINARY_";
+    ContentTypeCategory[ContentTypeCategory["IMAGE"] = 31] = "IMAGE";
+})(ContentTypeCategory || (ContentTypeCategory = {}));
+export function newWebSite(url, options) {
+    return new WebSiteImpl(url, options);
 }
-export class WebSite {
+export class WebSiteImpl {
     port;
     hostName;
     welcomeUrl;
@@ -979,9 +984,6 @@ export class WebSite {
             allows = [this.welcomeUrl];
         this.addPostMiddleware(PostMiddlewares.cors({ accessControlAllowOrigin: allows }));
     }
-    /**
-     * Create a JWT token with the data.
-     */
     createJwtToken(data) {
         try {
             return jwt.sign(data, this.JWT_SECRET, this.jwtSignInOptions);
@@ -990,10 +992,6 @@ export class WebSite {
             return undefined;
         }
     }
-    /**
-     * Verify and decode the JWT token.
-     * Returns the data this token contains, or undefined if the token is invalid.
-     */
     decodeJwtToken(token) {
         if (!this.JWT_SECRET)
             return undefined;
@@ -1035,9 +1033,6 @@ export class WebSite {
             req.addCookie(res, "authorization", "jwt " + token, { maxAge: ONE_DAY * 7 });
         }
     }
-    /**
-     * Allow hooking how the JWT token is stored in the user response.
-     */
     setJwtTokenStore(store) {
         this.jwtTokenStore = store;
     }
@@ -1080,7 +1075,7 @@ export class WebSite {
         let urlInfos = new URL(this.welcomeUrl);
         urlInfos.port = "";
         urlInfos.protocol = "http";
-        const webSite = new WebSite(urlInfos.href);
+        const webSite = new WebSiteImpl(urlInfos.href);
         this.http80WebSite = webSite;
         webSite.onGET("/**", async (req) => {
             req.urlInfos.port = "";
@@ -1112,6 +1107,16 @@ export class WebSite {
         return this.addWsRoute(path, handler);
     }
 }
+export class WebSiteOptions {
+    /**
+     * The TLS certificate to use;
+     */
+    certificate;
+    /**
+     * Allow defining our own cache for this website and don't use the common one.
+     */
+    cache;
+}
 export class JopiWebSocket {
     webSite;
     server;
@@ -1131,11 +1136,15 @@ export class JopiWebSocket {
         nSocket.sendMessage(this.webSocket, msg);
     }
 }
+export class NotAuthorizedException extends Error {
+}
 export class ServerAlreadyStartedError extends Error {
     constructor() {
         super("the server is already");
     }
 }
+//endregion
+//region Jopi Server
 export class JopiServer {
     webSites = {};
     servers = [];
@@ -1167,14 +1176,16 @@ export class JopiServer {
         }
         const byPorts = {};
         Object.values(this.webSites).forEach(e => {
-            if (!byPorts[e.port])
-                byPorts[e.port] = {};
-            byPorts[e.port][e.hostName] = e;
+            const webSite = e;
+            if (!byPorts[webSite.port])
+                byPorts[webSite.port] = {};
+            byPorts[webSite.port][webSite.hostName] = e;
         });
         for (let port in byPorts) {
             function rebuildCertificates() {
                 certificates = [];
-                Object.values(hostNameMap).forEach(webSite => {
+                Object.values(hostNameMap).forEach(e => {
+                    const webSite = e;
                     if (webSite.certificate) {
                         const keyFile = path.resolve(webSite.certificate.key);
                         const certFile = path.resolve(webSite.certificate.cert);
@@ -1238,7 +1249,6 @@ export class JopiServer {
         return { key: keyFilePath, cert: certFilePath };
     }
 }
-const gServerStartGlobalOptions = {};
 export function getServerStartOptions() {
     return gServerStartGlobalOptions;
 }
@@ -1359,20 +1369,7 @@ export class VoidPageCache {
     }
 }
 const gVoidCache = new VoidPageCache();
-export var ContentTypeCategory;
-(function (ContentTypeCategory) {
-    ContentTypeCategory[ContentTypeCategory["OTHER"] = 0] = "OTHER";
-    ContentTypeCategory[ContentTypeCategory["_TEXT_"] = 10] = "_TEXT_";
-    ContentTypeCategory[ContentTypeCategory["TEXT_HTML"] = 11] = "TEXT_HTML";
-    ContentTypeCategory[ContentTypeCategory["TEXT_CSS"] = 12] = "TEXT_CSS";
-    ContentTypeCategory[ContentTypeCategory["TEXT_JAVASCRIPT"] = 13] = "TEXT_JAVASCRIPT";
-    ContentTypeCategory[ContentTypeCategory["TEXT_JSON"] = 14] = "TEXT_JSON";
-    ContentTypeCategory[ContentTypeCategory["_FORM_"] = 20] = "_FORM_";
-    ContentTypeCategory[ContentTypeCategory["FORM_MULTIPART"] = 20] = "FORM_MULTIPART";
-    ContentTypeCategory[ContentTypeCategory["FORM_URL_ENCODED"] = 21] = "FORM_URL_ENCODED";
-    ContentTypeCategory[ContentTypeCategory["_BINARY_"] = 30] = "_BINARY_";
-    ContentTypeCategory[ContentTypeCategory["IMAGE"] = 31] = "IMAGE";
-})(ContentTypeCategory || (ContentTypeCategory = {}));
+//endregion
 //region Auto-refresh browser
 async function tryInstallBrowserRefreshHandler(webSite) {
     if (!InternalConfig.mustEnableBrowserRefresh())
@@ -1382,7 +1379,7 @@ async function tryInstallBrowserRefreshHandler(webSite) {
     webSite.onGET("/jopi-autorefresh-rkrkrjrktht/script.js", async (_) => new Response(scriptJS, {
         status: 200, headers: { "content-type": "text/javascript" }
     }));
-    webSite.addWsRoute("/jopi-autorefresh-rkrkrjrktht/wssocket", () => {
+    webSite.onWebSocketConnect("/jopi-autorefresh-rkrkrjrktht/wssocket", () => {
         // Nothing to do, only keep it open.
         // The only role of this socket is to detect server down (since the socket connection close).
     });
@@ -1475,4 +1472,6 @@ export function octetToMo(size) {
 export const ONE_KILO_OCTET = 1024;
 export const ONE_MEGA_OCTET = 1024 * ONE_KILO_OCTET;
 export const HTTP_VERBS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
+const gEmptyObject = {};
+const gServerStartGlobalOptions = {};
 //# sourceMappingURL=core.js.map

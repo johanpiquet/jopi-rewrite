@@ -1,5 +1,3 @@
-//region DevMod
-
 let gIsDevMode: boolean|undefined;
 
 export function isDevMode(): boolean {
@@ -17,5 +15,3 @@ export function enableDevMode(devMode: boolean) {
 
     gIsDevMode = devMode;
 }
-
-//endregion

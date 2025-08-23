@@ -45,7 +45,7 @@ export interface ServerFetchOptions<T> {
     verbose?: boolean;
 
     /**
-     * The public url of the website.
+     * The public URL of the website.
      * It's the url that he must use to build the url in his content.
      * It's not the url of the server where he can be reached.
      *
@@ -82,8 +82,8 @@ export class ServerFetch<T> {
 
     /**
      * Create an instance that translates urls from an origin to a destination.
-     *      Ex: http://127.0.0.1                --> https://www.mywebiste.com
-     *      Ex: https://my-server.com           --> https://134.555.666.66:7890  (with hostname: my-server.com)
+     *      Ex: http://127.0.0.1 --> https://www.mywebiste.com
+     *      Ex: https://my-server.com --> https://134.555.666.66:7890 (with hostname: my-server.com)
      *
      * @param sPublicUrl
      *      The origin of our current website.
@@ -242,7 +242,7 @@ export class ServerFetch<T> {
     }
 
     /**
-     * Allow directly proxy a request as-if we were directly asking the target server.
+     * Allow directly proxy a request as if we were directly asking the target server.
      */
     async directProxy(req: JopiRequest): Promise<Response> {
         return this.doFetch(req.method, req.urlInfos.href, req.body, req.headers);
@@ -257,7 +257,7 @@ export class ServerFetch<T> {
     }
 
     normalizeUrl(urlInfos: URL): string {
-        // To known: urlInfos.toString() always add a "/" at the end for the root.
+        // To known: urlInfos.toString() always add a "/" at the end of the root.
         // new URL("http://127.0.0.1") --> http://127.0.0.1/
 
         if (urlInfos.pathname.length<=1 && this.options.removeRootTrailingSlash) {
@@ -374,5 +374,8 @@ export class ServerFetch<T> {
     }
 }
 
-// Allow disable ssl certificate verification.
-//process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// Allow disabling ssl certificate verification.
+//
+if (NodeSpace.what.isNodeJS) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}

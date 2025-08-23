@@ -1,40 +1,8 @@
+import { type ReactNode } from "react";
 import { ServerFetch } from "./serverFetch.ts";
 import type { SearchParamFilterFunction } from "./searchParamFilter.ts";
-import { type ReactNode } from "react";
 import { LoadBalancer } from "./loadBalancing.ts";
 import { type ServerInstance, type ServerSocketAddress, type StartServerCoreOptions, type WebSocketConnectionInfos } from "./server.ts";
-export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
-export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
-export type JopiErrorHandler = (req: JopiRequest, error?: Error | string) => Response | Promise<Response>;
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
-export type RequestBody = ReadableStream<Uint8Array> | null;
-export type SendingBody = ReadableStream<Uint8Array> | string | FormData | null;
-export type ResponseModifier = (res: Response, req: JopiRequest) => Response | Promise<Response>;
-export type TextModifier = (text: string, req: JopiRequest) => string | Promise<string>;
-export type TestCookieValue = (value: string) => boolean | Promise<boolean>;
-export declare class NotAuthorizedException extends Error {
-}
-export interface CookieOptions {
-    maxAge?: number;
-}
-export interface UserInfos {
-    id: string;
-    roles?: string[];
-    email?: string;
-    fullName?: string;
-    nickName?: string;
-    firstName?: string;
-    lastName?: string;
-    avatarUrl?: string;
-    [key: string]: any;
-}
-export interface AuthResult {
-    isOk: boolean;
-    errorMessage?: string;
-    authToken?: string;
-    userInfos?: UserInfos;
-}
-export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
 export declare class JopiRequest {
     readonly webSite: WebSite;
     readonly urlInfos: URL;
@@ -244,29 +212,85 @@ export interface JopiRequestSpyData {
     resCookieSet: string[] | null;
 }
 export type JopiRequestSpy = (data: JopiRequestSpyData, req: JopiRequest) => void;
-export interface ServeFileOptions {
-    replaceIndexHtml?: boolean;
-    /**
-     * If the request file is not found, then call this function.
-     * If undefined, then will directly return a 404 error.
-     */
-    onNotFound?: (req: JopiRequest) => Response | Promise<Response>;
+export declare enum ContentTypeCategory {
+    OTHER = 0,
+    _TEXT_ = 10,
+    TEXT_HTML = 11,
+    TEXT_CSS = 12,
+    TEXT_JAVASCRIPT = 13,
+    TEXT_JSON = 14,
+    _FORM_ = 20,
+    FORM_MULTIPART = 20,
+    FORM_URL_ENCODED = 21,
+    _BINARY_ = 30,
+    IMAGE = 31
 }
-export declare class WebSiteOptions {
+export interface WebSite {
+    data: any;
+    onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onGET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onPOST(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onPUT(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onDELETE(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onPATCH(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onHEAD(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onOPTIONS(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onNotFound(handler: JopiRouteHandler): void;
+    onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
+    on404(handler: JopiRouteHandler): void;
+    return404(req: JopiRequest): Response | Promise<Response>;
+    on500(handler: JopiRouteHandler): void;
+    return500(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
     /**
-     * The TLS certificate to use;
+     * Try to authenticate a user.
+     *
+     * @param loginInfo
+     *      Information about the user login/password.
+     *      The real type is depending on what you use with the Website.setAuthHandler function.
      */
-    certificate?: SslCertificatePath;
+    tryAuthUser(loginInfo: any): Promise<AuthResult>;
     /**
-     * Allow defining our own cache for this website and don't use the common one.
+     * Set the function which will verify user authentification
+     * and returns information about this user once connected.
      */
-    cache?: PageCache;
+    setAuthHandler<T>(authHandler: AuthHandler<T>): void;
+    /**
+     * Create a JWT token with the data.
+     */
+    createJwtToken(data: UserInfos): string | undefined;
+    /**
+     * Verify and decode the JWT token.
+     * Returns the data this token contains, or undefined if the token is invalid.
+     */
+    decodeJwtToken(token: string): UserInfos | undefined;
+    /**
+     * Set the secret token for JWT cookies.
+     */
+    setJwtSecret(secret: string): void;
+    /**
+     * Allow hooking how the JWT token is stored in the user response.
+     */
+    setJwtTokenStore(store: JwtTokenStore): void;
+    /**
+     * If you are using HTTPs, allow creating an HTTP website
+     * which will automatically redirect to the HTTP.
+     */
+    getOrCreateHttpRedirectWebsite(): WebSite;
+    /**
+     * Ask to update the current SSL certificate.
+     * Will allow updating without restarting the server, nor losing connections.
+     * Warning: only works with bun.js, node.js implementation does nothing.
+     */
+    updateSslCertificate(certificate: SslCertificatePath): void;
+    getHeadersToCache(): string[];
+    addHeaderToCache(header: string): void;
+    addMiddleware(middleware: JopiMiddleware): void;
+    addPostMiddleware(middleware: JopiPostMiddleware): void;
+    addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number): void;
+    enableCors(allows?: string[]): void;
 }
-export interface WebSiteRoute {
-    handler: JopiRouteHandler;
-    searchParamFilter?: SearchParamFilterFunction;
-}
-export declare class WebSite {
+export declare function newWebSite(url: string, options?: WebSiteOptions): WebSite;
+export declare class WebSiteImpl implements WebSite {
     readonly port: number;
     readonly hostName: string;
     readonly welcomeUrl: string;
@@ -314,23 +338,13 @@ export declare class WebSite {
     addPostMiddleware(middleware: JopiPostMiddleware): void;
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number): void;
     enableCors(allows?: string[]): void;
-    /**
-     * Create a JWT token with the data.
-     */
     createJwtToken(data: UserInfos): string | undefined;
-    /**
-     * Verify and decode the JWT token.
-     * Returns the data this token contains, or undefined if the token is invalid.
-     */
     decodeJwtToken(token: string): UserInfos | undefined;
     setJwtSecret(secret: string): void;
     tryAuthUser(loginInfo: any): Promise<AuthResult>;
     setAuthHandler<T>(authHandler: AuthHandler<T>): void;
     private ifRouteNotFound;
     storeJwtToken(req: JopiRequest, res: Response): void;
-    /**
-     * Allow hooking how the JWT token is stored in the user response.
-     */
     setJwtTokenStore(store: JwtTokenStore): void;
     private applyMiddlewares;
     private http80WebSite?;
@@ -339,6 +353,28 @@ export declare class WebSite {
     updateSslCertificate(certificate: SslCertificatePath): void;
     declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL): void;
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
+}
+export interface ServeFileOptions {
+    replaceIndexHtml?: boolean;
+    /**
+     * If the request file is not found, then call this function.
+     * If undefined, then will directly return a 404 error.
+     */
+    onNotFound?: (req: JopiRequest) => Response | Promise<Response>;
+}
+export declare class WebSiteOptions {
+    /**
+     * The TLS certificate to use;
+     */
+    certificate?: SslCertificatePath;
+    /**
+     * Allow defining our own cache for this website and don't use the common one.
+     */
+    cache?: PageCache;
+}
+export interface WebSiteRoute {
+    handler: JopiRouteHandler;
+    searchParamFilter?: SearchParamFilterFunction;
 }
 export declare class JopiWebSocket {
     private readonly webSite;
@@ -349,19 +385,48 @@ export declare class JopiWebSocket {
     onMessage(listener: (msg: string | Buffer) => void): void;
     sendMessage(msg: string | Buffer | Uint8Array | ArrayBuffer): void;
 }
-export type AuthHandler<T> = (loginInfo: T) => AuthResult | Promise<AuthResult>;
-export interface WithRoles {
-    roles?: string[];
+export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
+export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
+export type JopiErrorHandler = (req: JopiRequest, error?: Error | string) => Response | Promise<Response>;
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
+export type RequestBody = ReadableStream<Uint8Array> | null;
+export type SendingBody = ReadableStream<Uint8Array> | string | FormData | null;
+export type ResponseModifier = (res: Response, req: JopiRequest) => Response | Promise<Response>;
+export type TextModifier = (text: string, req: JopiRequest) => string | Promise<string>;
+export type TestCookieValue = (value: string) => boolean | Promise<boolean>;
+export declare class NotAuthorizedException extends Error {
 }
+export declare class ServerAlreadyStartedError extends Error {
+    constructor();
+}
+export interface CookieOptions {
+    maxAge?: number;
+}
+export interface UserInfos {
+    id: string;
+    roles?: string[];
+    email?: string;
+    fullName?: string;
+    nickName?: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
+    [key: string]: any;
+}
+export interface AuthResult {
+    isOk: boolean;
+    errorMessage?: string;
+    authToken?: string;
+    userInfos?: UserInfos;
+}
+export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
+export type AuthHandler<T> = (loginInfo: T) => AuthResult | Promise<AuthResult>;
 export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response> | null;
 export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response | Promise<Response>;
 export type JopiMiddlewareBuilder<T> = (options?: T) => JopiMiddleware;
 export interface SslCertificatePath {
     key: string;
     cert: string;
-}
-export declare class ServerAlreadyStartedError extends Error {
-    constructor();
 }
 export declare class JopiServer {
     private readonly webSites;
@@ -436,19 +501,6 @@ export interface CacheEntry {
     status?: number;
     _refCount?: number;
     _refCountSinceGC?: number;
-}
-export declare enum ContentTypeCategory {
-    OTHER = 0,
-    _TEXT_ = 10,
-    TEXT_HTML = 11,
-    TEXT_CSS = 12,
-    TEXT_JAVASCRIPT = 13,
-    TEXT_JSON = 14,
-    _FORM_ = 20,
-    FORM_MULTIPART = 20,
-    FORM_URL_ENCODED = 21,
-    _BINARY_ = 30,
-    IMAGE = 31
 }
 export declare function parseCookies(headers: Headers): {
     [name: string]: string;

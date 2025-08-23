@@ -7,7 +7,7 @@ import {
     type JopiRouteHandler,
     JopiServer, type JopiWsRouteHandler,
     type UserInfos,
-    WebSite,
+    type WebSite, WebSiteImpl,
     WebSiteOptions
 } from "./core.ts";
 
@@ -92,7 +92,7 @@ export const jopiApp = new JopiApp();
 class JopiEasyWebSite {
     protected readonly origin: string;
     protected readonly hostName: string;
-    private webSite?: WebSite;
+    private webSite?: WebSiteImpl;
     protected readonly options: WebSiteOptions = {};
 
     protected readonly afterHook: ((webSite: WebSite)=>void)[] = [];
@@ -125,7 +125,7 @@ class JopiEasyWebSite {
     private async initWebSiteInstance(): Promise<void> {
         if (!this.webSite) {
             for (let hook of this.beforeHook) await hook();
-            this.webSite = new WebSite(this.origin, this.options);
+            this.webSite = new WebSiteImpl(this.origin, this.options);
             this.afterHook.forEach(c => c(this.webSite!));
 
             myServer.addWebsite(this.webSite);
@@ -292,7 +292,7 @@ class ReverseProxyBuilder {
         this.internals.afterHook.push(webSite => {
             this.targets.forEach(target => {
                 let sf = target.compile();
-                webSite.addSourceServer(sf);
+                (webSite as WebSiteImpl).addSourceServer(sf);
             });
 
             const handler: JopiRouteHandler = req => {
