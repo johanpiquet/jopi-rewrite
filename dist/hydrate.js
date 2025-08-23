@@ -12,11 +12,15 @@ import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
+const isWin32 = process.platform == "win32";
 //region Bundle
 async function generateScript(outputDir, components) {
     let declarations = "";
     for (const componentKey in components) {
-        const componentPath = await searchSourceOf(components[componentKey]);
+        let componentPath = await searchSourceOf(components[componentKey]);
+        // Patch for windows. Require a linux-like path.
+        if (isWin32)
+            componentPath = pathToFileURL(componentPath).href.substring("file:///".length);
         declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
     }
     let resolvedPath = import.meta.resolve("./../src/template.jsx");

@@ -16,13 +16,19 @@ import type { Config as TailwindConfig } from 'tailwindcss';
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
 
+const isWin32 = process.platform == "win32";
+
 //region Bundle
 
 async function generateScript(outputDir: string, components: {[key: string]: string}): Promise<string> {
     let declarations = "";
 
     for (const componentKey in components) {
-        const componentPath = await searchSourceOf(components[componentKey]);
+        let componentPath = await searchSourceOf(components[componentKey]);
+
+        // Patch for windows. Require a linux-like path.
+        if (isWin32) componentPath = pathToFileURL(componentPath).href.substring("file:///".length);
+
         declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
     }
 
