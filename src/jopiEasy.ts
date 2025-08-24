@@ -18,7 +18,6 @@ import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
 import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.ts";
 import {setConfig_disableTailwind} from "./hydrate.ts";
-import {enableDevMode, isDevMode} from "./devMode.ts";
 import {serverInitChrono} from "./internalHelpers.js";
 
 serverInitChrono.start("jopiEasy lib");
@@ -31,17 +30,10 @@ class JopiApp {
         return new GlobalConfigBuilder();
     }
 
-    set_devMode(devMod: boolean) {
-        if (this._isStartAppSet) throw "App is already started";
-        enableDevMode(devMod);
-        return this;
-    }
-
     startApp(f: (jopi: JopiEasy) => void) {
         if (this._isStartAppSet) throw "App is already started";
         this._isStartAppSet = true;
 
-        if (isDevMode()) redLogger("Executing in dev mode.");
         f(new JopiEasy());
     }
 }
@@ -666,11 +658,6 @@ class GlobalConfigBuilder {
     disable_tailwind() {
         setConfig_disableTailwind();
     }
-
-    enable_devMode(value: boolean = true) {
-        enableDevMode(value);
-        return this;
-    }
 }
 
 //endregion
@@ -689,7 +676,5 @@ interface WebSiteInternal {
 
     onHookWebSite?: (webSite: WebSite) => void;
 }
-
-const redLogger = NodeSpace.term.buildLogger(NodeSpace.term.B_RED);
 
 //endregion

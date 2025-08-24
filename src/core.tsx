@@ -2,7 +2,6 @@
 
 import * as path from "node:path";
 import fs from "node:fs/promises";
-import {fileURLToPath} from "node:url";
 
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
 import * as jwt from 'jsonwebtoken';
@@ -36,7 +35,7 @@ import serverImpl, {
     type StartServerOptions, type WebSocketConnectionInfos
 } from "./server.ts";
 
-import * as InternalConfig from "./internalConfig.ts";
+import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "@jopi-loader/client";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -756,8 +755,8 @@ export class JopiRequest {
     //region Post processing
 
     private postProcessHtml(html: string): string {
-        if (InternalConfig.mustEnableBrowserRefresh()) {
-            html += `<script type="module" src="${(this.webSite as WebSiteImpl).welcomeUrl}/jopi-autorefresh-rkrkrjrktht/script.js"></script>`;
+        if (isBrowserRefreshEnabled()) {
+            html += getBrowserRefreshHtmlSnippet();
         }
 
         if (hasExternalCssBundled() || this.isUsingReact && hasHydrateComponents()) {
@@ -1287,7 +1286,6 @@ export class WebSiteImpl implements WebSite {
 
     async onServerStarted() {
         await createBundle(this);
-        await tryInstallBrowserRefreshHandler(this);
 
         if (this.welcomeUrl) {
             console.log("Website started:", this.welcomeUrl);
@@ -1891,27 +1889,6 @@ export interface CacheEntry {
 
     _refCount?: number;
     _refCountSinceGC?: number;
-}
-
-//endregion
-
-//region Auto-refresh browser
-
-async function tryInstallBrowserRefreshHandler(webSite: WebSite) {
-    if (!InternalConfig.mustEnableBrowserRefresh()) return;
-
-    let scriptPath = fileURLToPath(import.meta.resolve("./browserRefreshScript.js"));
-    let scriptJS = await nFS.readTextFromFile(scriptPath);
-
-    webSite.onGET("/jopi-autorefresh-rkrkrjrktht/script.js",
-            async _ => new Response(scriptJS, {
-                status: 200, headers: {"content-type": "text/javascript"}
-            }));
-
-    webSite.onWebSocketConnect("/jopi-autorefresh-rkrkrjrktht/wssocket", () => {
-        // Nothing to do, only keep it open.
-        // The only role of this socket is to detect server down (since the socket connection close).
-    });
 }
 
 //endregion
