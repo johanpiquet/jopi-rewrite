@@ -35,7 +35,12 @@ import serverImpl, {
     type StartServerOptions, type WebSocketConnectionInfos
 } from "./server.ts";
 
-import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "@jopi-loader/client";
+import {
+    declareServerReady,
+    getBrowserRefreshHtmlSnippet,
+    isBrowserRefreshEnabled,
+    mustWaitServerReady
+} from "@jopi-loader/client";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -1287,6 +1292,11 @@ export class WebSiteImpl implements WebSite {
     async onServerStarted() {
         await createBundle(this);
 
+        // In case we use jopin with browser refresh,
+        // then we manually declare that the server is ok.
+        //
+        declareServerReady();
+
         if (this.welcomeUrl) {
             console.log("Website started:", this.welcomeUrl);
         }
@@ -2007,3 +2017,11 @@ const gEmptyObject = {};
 const gServerStartGlobalOptions: StartServerCoreOptions = {};
 
 //endregion
+
+// In case we are using Jopi Loader (jopin).
+//
+// The load must not refresh the browser once this process created but wait until we are ready.
+// The main reason is that we create as JavaScript bundle that takes time to create, and the
+// browser must not refresh too soon (event if it's only one second)
+//
+mustWaitServerReady();

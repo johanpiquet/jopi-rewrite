@@ -52,8 +52,6 @@ export function getBundleUrl(webSite: WebSite) {
 export async function createBundle(webSite: WebSite): Promise<void> {
     serverInitChrono.start("createBrowserBundle", "Time for building browser bundler")
 
-    let startTime = Date.now();
-
     if (NodeSpace.what.isBunJs) {
         await createBundle_esbuild(webSite);
     } else {
@@ -66,8 +64,6 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         //
         await createBundle_esbuild_external(webSite);
     }
-
-    let timeDiff = ((Date.now() - startTime) / 1000).toFixed(2);
 
     serverInitChrono.end();
 }
