@@ -1,3 +1,3 @@
-export declare const redBckLogger: (...params: any[]) => void;
-export declare const greenLogger: (...params: any[]) => void;
-export declare const blueLogger: (...params: any[]) => void;
+export declare const redBckLogger: import("jopi-node-space").TermLogger;
+export declare const greenLogger: import("jopi-node-space").TermLogger;
+export declare const blueLogger: import("jopi-node-space").TermLogger;

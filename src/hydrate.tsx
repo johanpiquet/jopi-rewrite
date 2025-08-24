@@ -12,7 +12,7 @@ import {pathToFileURL, fileURLToPath} from "node:url";
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
 import type { Config as TailwindConfig } from 'tailwindcss';
-import {blueLogger, greenLogger} from "./consoleHelper.ts";
+import {serverInitChrono} from "./internalHelpers.js";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
@@ -50,6 +50,8 @@ export function getBundleUrl(webSite: WebSite) {
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
+    serverInitChrono.start("createBrowserBundle", "Time for building browser bundler")
+
     let startTime = Date.now();
 
     if (NodeSpace.what.isBunJs) {
@@ -67,7 +69,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
     let timeDiff = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    greenLogger("Time for building browser bundler:", timeDiff + "sec");
+    serverInitChrono.end();
 }
 
 async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {

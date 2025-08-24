@@ -10,7 +10,7 @@ import { scssToCss, searchSourceOf } from "@jopi-loader/tools";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
-import { blueLogger, greenLogger } from "./consoleHelper.js";
+import { serverInitChrono } from "./internalHelpers.js";
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
 const isWin32 = process.platform == "win32";
@@ -36,6 +36,7 @@ export function getBundleUrl(webSite) {
     return webSite.welcomeUrl + "/_bundle";
 }
 export async function createBundle(webSite) {
+    serverInitChrono.start("createBrowserBundle", "Time for building browser bundler");
     let startTime = Date.now();
     if (NodeSpace.what.isBunJs) {
         await createBundle_esbuild(webSite);
@@ -51,7 +52,7 @@ export async function createBundle(webSite) {
         await createBundle_esbuild_external(webSite);
     }
     let timeDiff = ((Date.now() - startTime) / 1000).toFixed(2);
-    greenLogger("Time for building browser bundler:", timeDiff + "sec");
+    serverInitChrono.end();
 }
 async function createBundle_esbuild_external(webSite) {
     const components = getHydrateComponents();

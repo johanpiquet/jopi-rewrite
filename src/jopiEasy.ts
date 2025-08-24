@@ -20,6 +20,9 @@ import {setConfig_disableTailwind} from "./hydrate.ts";
 import SourceChangesWatcher from "./tools/sourceChangesWatcher.ts";
 import {getInternalConfig} from "./internalConfig.ts";
 import {enableDevMode, isDevMode} from "./devMode.ts";
+import {serverInitChrono} from "./internalHelpers.js";
+
+serverInitChrono.start("jopiEasy lib");
 
 class JopiApp {
     private _isStartAppSet: boolean = false;
@@ -45,6 +48,8 @@ class JopiApp {
 
         let canStart = true;
 
+        serverInitChrono.start("Begin of startApp");
+
         if (isDevMode() && !gIsFileWatcherDisabled) {
             // We are not in the main process? Then don't start the app.
             //
@@ -61,9 +66,15 @@ class JopiApp {
             }
         }
 
-        if (!canStart) return;
+        if (!canStart) {
+            serverInitChrono.start("Canceling start");
+            return;
+        }
+
+        serverInitChrono.start("Is in spawn");
 
         if (isDevMode()) {
+            serverInitChrono.start("Dev mode message");
             redLogger("Executing in dev mode. File change watching is enabled.");
         }
 
