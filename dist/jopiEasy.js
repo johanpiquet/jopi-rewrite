@@ -6,8 +6,6 @@ import { ServerFetch } from "./serverFetch.js";
 import { getLetsEncryptCertificate } from "./letsEncrypt.js";
 import { UserStore_WithLoginPassword } from "./userStores.js";
 import { setConfig_disableTailwind } from "./hydrate.js";
-import SourceChangesWatcher from "./tools/sourceChangesWatcher.js";
-import { getInternalConfig } from "./internalConfig.js";
 import { enableDevMode, isDevMode } from "./devMode.js";
 import { serverInitChrono } from "./internalHelpers.js";
 serverInitChrono.start("jopiEasy lib");
@@ -18,44 +16,18 @@ class JopiApp {
             throw "App is already started";
         return new GlobalConfigBuilder();
     }
-    if_devMode(setDevMod) {
+    set_devMode(devMod) {
         if (this._isStartAppSet)
             throw "App is already started";
-        if (setDevMod !== undefined) {
-            enableDevMode(setDevMod);
-        }
-        return new DevModeConfigBuilder();
+        enableDevMode(devMod);
+        return this;
     }
     startApp(f) {
         if (this._isStartAppSet)
             throw "App is already started";
         this._isStartAppSet = true;
-        let canStart = true;
-        serverInitChrono.start("Begin of startApp");
-        if (isDevMode() && !gIsFileWatcherDisabled) {
-            // We are not in the main process? Then don't start the app.
-            //
-            // Will avoid the app to start.
-            //      Why? Because this process becomes the controller.
-            //      He must keep things minimal and avoid binding to external resources (ports).
-            //
-            // Using a controller allows not killing/replacing this process.
-            // It's important, since without that the IDE can't kill the app.
-            //
-            if (!gIsRestartSpawn) {
-                canStart = false;
-                gWatcher.start().then();
-            }
-        }
-        if (!canStart) {
-            serverInitChrono.start("Canceling start");
-            return;
-        }
-        serverInitChrono.start("Is in spawn");
-        if (isDevMode()) {
-            serverInitChrono.start("Dev mode message");
-            redLogger("Executing in dev mode. File change watching is enabled.");
-        }
+        if (isDevMode())
+            redLogger("Executing in dev mode.");
         f(new JopiEasy());
     }
 }
@@ -559,37 +531,6 @@ class GlobalConfigBuilder {
         return this;
     }
 }
-class DevModeConfigBuilder {
-    disable_refreshBrowserOnSourceChange() {
-        getInternalConfig().enableBrowserRefresh = false;
-        return this;
-    }
-    disable_restartServerOnSourceChange() {
-        gIsFileWatcherDisabled = true;
-        return this;
-    }
-    add_directoryToWatch(dirPath) {
-        dirPath = path.resolve(dirPath);
-        gWatcher.addWatchDir(dirPath);
-        return this;
-    }
-    set_restartDelay(delay_ms, enableLogs) {
-        gWatcher.setRestartDelay(delay_ms);
-        if (enableLogs !== undefined)
-            gWatcher.enableLogs(enableLogs);
-        return this;
-    }
-}
-//endregion
-//region Auto restart
-let gIsFileWatcherDisabled = false;
-let gWatcher = new SourceChangesWatcher();
-/**
- * jopi_is_restart_spawn is set by the controller process
- * for the child they are creating. Then, if he is set, it means
- * the restarted has created this process and control him.
- */
-const gIsRestartSpawn = process.env["jopi_is_restart_spawn"];
 const redLogger = NodeSpace.term.buildLogger(NodeSpace.term.B_RED);
 //endregion
 //# sourceMappingURL=jopiEasy.js.map

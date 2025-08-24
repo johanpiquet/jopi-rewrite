@@ -4,7 +4,7 @@ import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from ".
 declare class JopiApp {
     private _isStartAppSet;
     globalConfig(): GlobalConfigBuilder;
-    if_devMode(setDevMod?: boolean): DevModeConfigBuilder;
+    set_devMode(devMod: boolean): this;
     startApp(f: (jopi: JopiEasy) => void): void;
 }
 declare class JopiEasy {
@@ -176,12 +176,6 @@ declare class LetsEncryptCertificateBuilder {
 declare class GlobalConfigBuilder {
     disable_tailwind(): void;
     enable_devMode(value?: boolean): this;
-}
-declare class DevModeConfigBuilder {
-    disable_refreshBrowserOnSourceChange(): this;
-    disable_restartServerOnSourceChange(): this;
-    add_directoryToWatch(dirPath: string): this;
-    set_restartDelay(delay_ms: number, enableLogs?: boolean): this;
 }
 type GetValue<T> = (value: T) => void;
 interface WebSiteInternal {
