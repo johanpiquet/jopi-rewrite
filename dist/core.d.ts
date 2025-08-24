@@ -259,6 +259,8 @@ export declare enum ContentTypeCategory {
 //region WebSite
 export interface WebSite {
     data: any;
+    getWelcomeUrl(): string;
+    getCache(): PageCache;
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
     onGET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
     onPOST(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
@@ -349,6 +351,8 @@ export declare class WebSiteImpl implements WebSite {
     readonly data: any;
     readonly loadBalancer: LoadBalancer;
     constructor(url: string, options?: WebSiteOptions);
+    getWelcomeUrl(): string;
+    getCache(): PageCache;
     addRoute(method: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
     addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void): void;
     addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler): WebSiteRoute;

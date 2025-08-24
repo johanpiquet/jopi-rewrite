@@ -853,6 +853,12 @@ export class WebSiteImpl {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
     }
+    getWelcomeUrl() {
+        return this.welcomeUrl;
+    }
+    getCache() {
+        return this.mainCache;
+    }
     addRoute(method, path, handler) {
         const webSiteRoute = { handler };
         addRoute(this.router, method, path, webSiteRoute);
@@ -875,7 +881,7 @@ export class WebSiteImpl {
     onVerb(verb, path, handler) {
         handler = this.applyMiddlewares(handler);
         if (Array.isArray(path)) {
-            return this.addSharedRoute("GET", path, handler);
+            return this.addSharedRoute(verb, path, handler);
         }
         return this.addRoute(verb, path, handler);
     }

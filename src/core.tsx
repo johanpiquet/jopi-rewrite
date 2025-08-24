@@ -1006,6 +1006,9 @@ export enum ContentTypeCategory {
 export interface WebSite {
     data: any;
 
+    getWelcomeUrl(): string;
+    getCache(): PageCache;
+
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
 
     onGET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
@@ -1165,6 +1168,14 @@ export class WebSiteImpl implements WebSite {
         }
     }
 
+    getWelcomeUrl(): string {
+        return this.welcomeUrl;
+    }
+
+    getCache(): PageCache {
+        return this.mainCache;
+    }
+
     addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
         const webSiteRoute: WebSiteRoute = {handler};
         addRoute(this.router, method, path, webSiteRoute);
@@ -1191,7 +1202,7 @@ export class WebSiteImpl implements WebSite {
         handler = this.applyMiddlewares(handler);
 
         if (Array.isArray(path)) {
-            return this.addSharedRoute("GET", path, handler);
+            return this.addSharedRoute(verb, path, handler);
         }
 
         return this.addRoute(verb, path, handler);
