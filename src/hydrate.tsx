@@ -12,6 +12,7 @@ import {pathToFileURL, fileURLToPath} from "node:url";
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
 import type { Config as TailwindConfig } from 'tailwindcss';
+import {blueLogger, greenLogger} from "./consoleHelper.ts";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
@@ -49,8 +50,10 @@ export function getBundleUrl(webSite: WebSite) {
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
+    let startTime = Date.now();
+
     if (NodeSpace.what.isBunJs) {
-        return createBundle_esbuild(webSite);
+        await createBundle_esbuild(webSite);
     } else {
         // With node.js, import for CSS and other are not supported.
         //
@@ -59,8 +62,12 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         // - But EsBuild can't execute from this base code.
         // ==> We must execute it from a separate process.
         //
-        return createBundle_esbuild_external(webSite);
+        await createBundle_esbuild_external(webSite);
     }
+
+    let timeDiff = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    greenLogger("Time for building browser bundler:", timeDiff + "sec");
 }
 
 async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
