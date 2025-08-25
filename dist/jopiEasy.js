@@ -357,7 +357,7 @@ class CertificateBuilder {
     }
     generate_letsEncryptCert(email) {
         const params = { email };
-        this.internals.afterHook.push(async (webSite) => {
+        this.internals.afterHook.push(async webSite => {
             await getLetsEncryptCertificate(webSite, params);
         });
         return new LetsEncryptCertificateBuilder(this.parent, params);
@@ -417,7 +417,7 @@ class JwtTokenAuth_Builder {
     }
     //region setPrivateKey_STEP (BEGIN / root)
     setPrivateKey_STEP(privateKey) {
-        this.internals.afterHook.push(async (webSite) => {
+        this.internals.afterHook.push(async webSite => {
             webSite.setJwtSecret(privateKey);
         });
         return {

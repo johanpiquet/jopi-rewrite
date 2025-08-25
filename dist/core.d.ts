@@ -3,6 +3,7 @@ import { ServerFetch } from "./serverFetch.ts";
 import type { SearchParamFilterFunction } from "./searchParamFilter.ts";
 import { LoadBalancer } from "./loadBalancing.ts";
 import { type ServerInstance, type ServerSocketAddress, type StartServerCoreOptions, type WebSocketConnectionInfos } from "./server.ts";
+//region JopiRequest
 export declare class JopiRequest {
     readonly webSite: WebSite;
     readonly urlInfos: URL;
@@ -14,6 +15,7 @@ export declare class JopiRequest {
     private cookies?;
     private _headers;
     constructor(webSite: WebSite, urlInfos: URL, coreRequest: Request, coreServer: ServerInstance, route: WebSiteRoute);
+    //region Properties
     private _customData?;
     get customData(): any;
     /**
@@ -45,6 +47,8 @@ export declare class JopiRequest {
      */
     get requestIP(): ServerSocketAddress | null;
     get isFromLocalhost(): boolean;
+    //endregion
+    //region Body transforming
     /**
      * Returns all the data about the request.
      * It's concat all data source.
@@ -88,11 +92,15 @@ export declare class JopiRequest {
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/formData
      */
     reqBodyAsFormData(): Promise<FormData>;
+    //endregion
+    //region Request timeout
     /**
      * When DDOS protection is enabled, the request has a timeout of 60 seconds.
      * Here it'd allow you to extend this time for a request you knew was slow.
      */
     extendTimeout_sec(sec: number): void;
+    //endregion
+    //region Response helpers
     redirectResponse(permanent?: boolean, url?: string | URL): Response;
     textResponse(text: string, statusCode?: number): Response;
     htmlResponse(html: string, statusCode?: number): Response;
@@ -100,9 +108,13 @@ export declare class JopiRequest {
     jsonStringResponse(json: string, statusCode?: number): Response;
     error404Response(): Response | Promise<Response>;
     error500Response(error?: Error | string): Response | Promise<Response>;
+    //endregion
+    //region Fetch / Proxy
     directProxyToServer(): Promise<Response>;
     directProxyWith(server: ServerFetch<any>): Promise<Response>;
     fetchServer(headers?: Headers, method?: string, url?: URL, body?: RequestBody): Promise<Response>;
+    //endregion
+    //region Cache
     /**
      * Get from the cache the entry corresponding to the curent url.
      *
@@ -123,6 +135,8 @@ export declare class JopiRequest {
      */
     useCache(cache: PageCache): void;
     getSubCache(name: string): PageCache;
+    //endregion
+    //region Test type / React on type
     getContentTypeCategory(response: Response): ContentTypeCategory;
     isHtml(response: Response): boolean;
     isCss(response: Response): boolean;
@@ -134,23 +148,35 @@ export declare class JopiRequest {
     hookIfJavascript(res: Response, ...hooks: TextModifier[]): Promise<Response>;
     applyTextModifiers(res: Response, hooks: TextModifier[]): Promise<string>;
     executeModifiers(res: Response, hooks: ResponseModifier[]): Promise<Response>;
+    //endregion
+    //region Spy
     duplicateReadableStream(stream: ReadableStream | null): Promise<(ReadableStream<any> | null)[]>;
     duplicateRawRequest(raw: Request): Promise<[Request, Request]>;
     duplicateResponse(raw: Response): Promise<[Response, Response]>;
     spyRequest(handleRequest: (req: JopiRequest) => Promise<Response>): Promise<Response>;
     printSpyRequestData(data: JopiRequestSpyData): Promise<void>;
     spyRequestData(handleRequest: JopiRouteHandler, onSpy: JopiRequestSpy): Promise<Response>;
+    //endregion
+    //region Cookies
     hasCookie(name: string, value?: string): boolean;
     getCookie(name: string): string | undefined;
     hookIfCookie(res: Response, name: string, testCookieValue: null | undefined | TestCookieValue, ...hooks: TextModifier[]): Promise<Response>;
     addCookie(res: Response, cookieName: string, cookieValue: string, options?: CookieOptions): void;
+    //endregion
+    //region ReactJS
     private isUsingReactPage;
     private isUsingReact;
     reactResponse(element: ReactNode): Response;
     reactToString(element: ReactNode): string;
+    //endregion
+    //region JQuery
     asJquery(html: string): cheerio.Root;
     $(html: string): cheerio.Root;
+    //endregion
+    //region Post processing
     private postProcessHtml;
+    //endregion
+    //region JWT Tokens
     /**
      * Create a JWT token with the data.
      */
@@ -179,6 +205,8 @@ export declare class JopiRequest {
     private hasNoUserInfos;
     private userInfos?;
     private userJwtToken?;
+    //endregion
+    //region User roles
     /**
      * Returns the roles of the user.
      */
@@ -189,6 +217,7 @@ export declare class JopiRequest {
      */
     userHasRoles(requiredRoles: string[]): boolean;
     assertUserHasRoles(requiredRoles: string[]): void;
+    //endregion
     filterSearchParams(filter: SearchParamFilterFunction): void;
     getContentTypeOf(response: Response): string | null;
     /**
@@ -202,6 +231,7 @@ export interface JopiRequestSpyData {
     reqReferer: string | null;
     reqContentType: string | null;
     reqData: any;
+    // Allow avoiding printing the response content.
     res: (() => Response) | undefined | null;
     resContentType: string | null;
     resContentTypeCat: ContentTypeCategory;
@@ -225,6 +255,8 @@ export declare enum ContentTypeCategory {
     _BINARY_ = 30,
     IMAGE = 31
 }
+//endregion
+//region WebSite
 export interface WebSite {
     data: any;
     getWelcomeUrl(): string;
@@ -364,6 +396,10 @@ export declare class WebSiteImpl implements WebSite {
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
 }
 export interface ServeFileOptions {
+    /*
+        If true, then /index.html is replaced by / in the browser nav bar.
+        Default is true.
+     */
     replaceIndexHtml?: boolean;
     /**
      * If the request file is not found, then call this function.
@@ -437,6 +473,8 @@ export interface SslCertificatePath {
     key: string;
     cert: string;
 }
+//endregion
+//region Jopi Server
 export declare class JopiServer {
     private readonly webSites;
     private readonly servers;
@@ -452,6 +490,8 @@ export declare class JopiServer {
     createDevCertificate(hostName: string, certsDir?: string): Promise<SslCertificatePath>;
 }
 export declare function getServerStartOptions(): StartServerCoreOptions;
+//endregion
+//region Meta Updater
 /**
  * Update the meta-data.
  * Return true if a change has been done, false otherwise.
@@ -466,6 +506,8 @@ export declare enum MetaUpdaterResult {
     IS_UPDATED = 1,
     MUST_DELETE = 2
 }
+//endregion
+//region Cache
 export interface CacheRole {
     isUserCache?: boolean;
     isMobileCache?: boolean;
@@ -511,6 +553,8 @@ export interface CacheEntry {
     _refCount?: number;
     _refCountSinceGC?: number;
 }
+//endregion
+//region Tools
 export declare function parseCookies(headers: Headers): {
     [name: string]: string;
 };
