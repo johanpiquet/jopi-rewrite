@@ -7,8 +7,5 @@ export interface EsBuildParams {
     overrideConfig?: BuildOptions;
 }
 export declare function esBuildBundle(params: EsBuildParams): Promise<void>;
-// Allow replacing jopi-node-space-server by jopi-node-space-browser.
-// Is required by jopi-node-space.
-//
 export declare const jopiReplaceServerPlugin: Plugin;
 export declare const jopiCssPlugin: Plugin;

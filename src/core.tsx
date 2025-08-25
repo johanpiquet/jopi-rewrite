@@ -41,6 +41,7 @@ import {
     isBrowserRefreshEnabled,
     mustWaitServerReady
 } from "@jopi-loader/client";
+import {findExecutable} from "@jopi-loader/tools/dist/tools.js";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -1704,14 +1705,20 @@ export class JopiServer {
      * Require "mkcert" to be installed.
      * See: https://github.com/FiloSottile/mkcert
      */
-    async createDevCertificate(hostName: string, certsDir: string = "certs"): Promise<SslCertificatePath>  {
+    async createDevCertificate(hostName: string, certsDir: string = "certs"): Promise<SslCertificatePath> {
         const sslDirPath = path.resolve(certsDir, hostName);
         const keyFilePath = path.join(sslDirPath, "certificate.key");
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
 
         if (!await nFS.isFile(certFilePath)) {
-            await fs.mkdir(sslDirPath, {recursive: true});
-            await nOS.exec(`cd ${sslDirPath}; mkcert -install; mkcert --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
+            let mkCertToolPath = findExecutable("mkcert", null);
+
+            if (mkCertToolPath) {
+                await fs.mkdir(sslDirPath, {recursive: true});
+                await nOS.exec(`cd ${sslDirPath}; ${mkCertToolPath} -install; ${mkCertToolPath} --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
+            } else {
+                throw "Can't generate certificate, mkcert tool not found. See here for installation: https://github.com/FiloSottile/mkcert";
+            }
         }
 
         return {key: keyFilePath, cert: certFilePath};

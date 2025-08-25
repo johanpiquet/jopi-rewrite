@@ -1,5 +1,4 @@
 export interface SearchParamFilter {
-    //region Transform
     /**
      * If true, transform the search param value to uppercase.
      * The default value is false.
@@ -16,8 +15,6 @@ export interface SearchParamFilter {
      * The default value is false.
      */
     ignoreCase?: boolean;
-    //endregion
-    //region Values
     /**
      * If true, all values are allowed.
      * Default is false.
@@ -33,8 +30,6 @@ export interface SearchParamFilter {
      * Default is false.
      */
     allowsNameOnly?: boolean;
-    //endregion
-    //region Multiple / Default value
     /**
      * The max number of time this search params can be present.
      * The default value is 1.
@@ -44,7 +39,6 @@ export interface SearchParamFilter {
      * If this search param is not present, then add it with this value.
      */
     defaultValue?: string;
-    //endregion
     /**
      * For dev tests.
      * Allow calling "debugger" when processing this rule.

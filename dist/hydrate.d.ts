@@ -2,12 +2,9 @@ import { type JopiRequest, type WebSite } from "./core.tsx";
 export declare function getBundleUrl(webSite: WebSite): string;
 export declare function createBundle(webSite: WebSite): Promise<void>;
 export declare function handleBundleRequest(req: JopiRequest): Promise<Response>;
-//endregion
-//region UI
 export declare function hasHydrateComponents(): boolean;
 export declare function hasExternalCssBundled(): boolean;
 export declare function getHydrateComponents(): {
     [key: string]: string;
 };
 export declare function setConfig_disableTailwind(): void;
-//endregion

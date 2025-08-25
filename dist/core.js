@@ -15,6 +15,7 @@ import { LoadBalancer } from "./loadBalancing.js";
 import { PostMiddlewares } from "./middlewares/index.js";
 import serverImpl, {} from "./server.js";
 import { declareServerReady, getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled, mustWaitServerReady } from "@jopi-loader/client";
+import { findExecutable } from "@jopi-loader/tools/dist/tools.js";
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
 const nSocket = NodeSpace.webSocket;
@@ -784,8 +785,7 @@ export class JopiRequest {
         return this.error404Response();
     }
 }
-export { ContentTypeCategory };
-var ContentTypeCategory;
+export var ContentTypeCategory;
 (function (ContentTypeCategory) {
     ContentTypeCategory[ContentTypeCategory["OTHER"] = 0] = "OTHER";
     ContentTypeCategory[ContentTypeCategory["_TEXT_"] = 10] = "_TEXT_";
@@ -1086,7 +1086,7 @@ export class WebSiteImpl {
         urlInfos.protocol = "http";
         const webSite = new WebSiteImpl(urlInfos.href);
         this.http80WebSite = webSite;
-        webSite.onGET("/**", async req => {
+        webSite.onGET("/**", async (req) => {
             req.urlInfos.port = "";
             req.urlInfos.protocol = "https";
             return req.redirectResponse(true, req.urlInfos.href);
@@ -1252,8 +1252,14 @@ export class JopiServer {
         const keyFilePath = path.join(sslDirPath, "certificate.key");
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
         if (!await nFS.isFile(certFilePath)) {
-            await fs.mkdir(sslDirPath, { recursive: true });
-            await nOS.exec(`cd ${sslDirPath}; mkcert -install; mkcert --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
+            let mkCertToolPath = findExecutable("mkcert", null);
+            if (mkCertToolPath) {
+                await fs.mkdir(sslDirPath, { recursive: true });
+                await nOS.exec(`cd ${sslDirPath}; ${mkCertToolPath} -install; ${mkCertToolPath} --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
+            }
+            else {
+                throw "Can't generate certificate, mkcert tool not found. See here for installation: https://github.com/FiloSottile/mkcert";
+            }
         }
         return { key: keyFilePath, cert: certFilePath };
     }
@@ -1261,8 +1267,7 @@ export class JopiServer {
 export function getServerStartOptions() {
     return gServerStartGlobalOptions;
 }
-export { MetaUpdaterResult };
-var MetaUpdaterResult;
+export var MetaUpdaterResult;
 (function (MetaUpdaterResult) {
     MetaUpdaterResult[MetaUpdaterResult["IS_NOT_UPDATED"] = 0] = "IS_NOT_UPDATED";
     MetaUpdaterResult[MetaUpdaterResult["IS_UPDATED"] = 1] = "IS_UPDATED";

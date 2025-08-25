@@ -1,4 +1,3 @@
-// noinspection JSUnusedGlobalSymbols
 import { type AuthHandler, type HttpMethod, JopiRequest, type JopiWsRouteHandler, type UserInfos, type WebSite, WebSiteOptions } from "./core.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
 import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.ts";
@@ -13,7 +12,6 @@ declare class JopiEasy {
     new_fileServer(url: string): FileServerBuilder;
 }
 export declare const jopiApp: JopiApp;
-//region WebSite
 declare class JopiEasyWebSite {
     protected readonly origin: string;
     protected readonly hostName: string;
@@ -32,9 +30,9 @@ declare class JopiEasyWebSite {
         step_setPrivateKey: (privateKey: string) => {
             step_setUserStore: () => {
                 use_simpleLoginPassword: () => {
-                    getStoreRef: (h: GetValue<UserStore_WithLoginPassword>) => any;
-                    addOne: (login: string, password: string, userInfos: UserInfos) => any;
-                    addMany: (users: UserInfos_WithLoginPassword[]) => any;
+                    getStoreRef: (h: GetValue<UserStore_WithLoginPassword>) => /*elided*/ any;
+                    addOne: (login: string, password: string, userInfos: UserInfos) => /*elided*/ any;
+                    addMany: (users: UserInfos_WithLoginPassword[]) => /*elided*/ any;
                     DONE_use_simpleLoginPassword: () => {
                         stepOptional_setTokenStore: () => {
                             use_cookie: (expirationDuration_days?: number) => {
@@ -120,8 +118,6 @@ declare class WebSiteContentBuilder {
         DONE_add_path: () => JopiEasyWebSite;
     };
 }
-//endregion
-//region Reverse proxy
 declare class ReverseProxyBuilder {
     private readonly webSite;
     private readonly internals;
@@ -152,9 +148,6 @@ declare class FileServerBuilder {
     set_onNotFound(handler: (req: JopiRequest) => Response | Promise<Response>): this;
     DONE_new_fileServer(): JopiEasyWebSite_ExposePrivate;
 }
-//endregion
-//region TLS Certificates
-//region CertificateBuilder
 declare class CertificateBuilder {
     private readonly parent;
     private readonly internals;
@@ -167,8 +160,6 @@ declare class CertificateBuilder {
     };
     generate_letsEncryptCert(email: string): LetsEncryptCertificateBuilder;
 }
-//endregion
-//region LetsEncryptCertificateBuilder
 declare class LetsEncryptCertificateBuilder {
     private readonly parent;
     private readonly params;
@@ -181,13 +172,9 @@ declare class LetsEncryptCertificateBuilder {
     force_timout_sec(value: number): this;
     if_timeOutError(handler: OnTimeoutError): this;
 }
-//endregion
-//region Config
 declare class GlobalConfigBuilder {
     disable_tailwind(): void;
 }
-//endregion
-//region Helpers
 type GetValue<T> = (value: T) => void;
 interface WebSiteInternal {
     origin: string;
@@ -198,4 +185,3 @@ interface WebSiteInternal {
     onHookWebSite?: (webSite: WebSite) => void;
 }
 export {};
-//endregion

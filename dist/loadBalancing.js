@@ -100,7 +100,7 @@ export class LoadBalancer {
     }
     onTimer() {
         let hasServerDown = false;
-        this.servers.forEach(async server => {
+        this.servers.forEach(async (server) => {
             if (!server.isServerDown)
                 return;
             if (await server.fetcher.checkIfServerOk()) {

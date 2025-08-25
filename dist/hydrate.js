@@ -1,4 +1,4 @@
-import { Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
 import path from "node:path";
 import React from "react";
 import { WebSiteImpl } from "./core.js";
