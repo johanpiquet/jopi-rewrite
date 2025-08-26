@@ -1,4 +1,3 @@
-// noinspection JSUnusedGlobalSymbols
 import { JopiRequest, type SendingBody } from "./core.tsx";
 import type { LoadBalancer } from "./loadBalancing.ts";
 export interface ServerDownResult<T> {
@@ -97,5 +96,8 @@ export declare class ServerFetch<T> {
     fetch(method: string, url: URL, body?: SendingBody, headers?: Headers): Promise<Response>;
     fetch2(method: string, url: string, body?: SendingBody, headers?: Headers): Promise<Response>;
     normalizeUrl(urlInfos: URL): string;
+    /**
+     * Allow fetching some content.
+     */
     private doFetch;
 }

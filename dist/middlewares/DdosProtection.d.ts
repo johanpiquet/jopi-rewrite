@@ -1,5 +1,4 @@
 import { type JopiMiddleware } from "../core.tsx";
-// slowhttptest -c 1000 -H -i 10 -r 200 -t GET -u http://my-server -x 24 -p 3
 export interface DdosProtectionOptions {
     /**
      * If the request takes more than n-milliseconds to send his headers, then we reject this request.

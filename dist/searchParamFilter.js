@@ -1,5 +1,4 @@
-export { SortValues };
-var SortValues;
+export var SortValues;
 (function (SortValues) {
     SortValues["ASC"] = "asc";
     SortValues["DESC"] = "desc";

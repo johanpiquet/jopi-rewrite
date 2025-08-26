@@ -2,8 +2,7 @@ import "jopi-node-space";
 const Term = NodeSpace.term;
 const ONE_MINUTE = NodeSpace.timer.ONE_MINUTE;
 const newInterval = NodeSpace.timer.newInterval;
-export { AutomaticStartStopState };
-var AutomaticStartStopState;
+export var AutomaticStartStopState;
 (function (AutomaticStartStopState) {
     AutomaticStartStopState[AutomaticStartStopState["Stopped"] = 0] = "Stopped";
     AutomaticStartStopState[AutomaticStartStopState["Starting"] = 1] = "Starting";

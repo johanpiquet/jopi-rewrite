@@ -785,8 +785,7 @@ export class JopiRequest {
         return this.error404Response();
     }
 }
-export { ContentTypeCategory };
-var ContentTypeCategory;
+export var ContentTypeCategory;
 (function (ContentTypeCategory) {
     ContentTypeCategory[ContentTypeCategory["OTHER"] = 0] = "OTHER";
     ContentTypeCategory[ContentTypeCategory["_TEXT_"] = 10] = "_TEXT_";
@@ -1087,7 +1086,7 @@ export class WebSiteImpl {
         urlInfos.protocol = "http";
         const webSite = new WebSiteImpl(urlInfos.href);
         this.http80WebSite = webSite;
-        webSite.onGET("/**", async req => {
+        webSite.onGET("/**", async (req) => {
             req.urlInfos.port = "";
             req.urlInfos.protocol = "https";
             return req.redirectResponse(true, req.urlInfos.href);
@@ -1268,8 +1267,7 @@ export class JopiServer {
 export function getServerStartOptions() {
     return gServerStartGlobalOptions;
 }
-export { MetaUpdaterResult };
-var MetaUpdaterResult;
+export var MetaUpdaterResult;
 (function (MetaUpdaterResult) {
     MetaUpdaterResult[MetaUpdaterResult["IS_NOT_UPDATED"] = 0] = "IS_NOT_UPDATED";
     MetaUpdaterResult[MetaUpdaterResult["IS_UPDATED"] = 1] = "IS_UPDATED";

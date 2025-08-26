@@ -1,6 +1,6 @@
 {
   "name": "jopi-rewrite",
-  "version": "2.0.0-next.1",
+  "version": "2.0.0-next.7",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
@@ -16,7 +16,7 @@
   "scripts": {
     "build": "npx tsgo",
     "tsc": "npx tsc",
-    "bun-publish": "tsc; bun publish --tag next"
+    "bun-publish": "npx tsc && bun publish"
   },
   "devDependencies": {
     "@types/bun": "^1.2.20",
