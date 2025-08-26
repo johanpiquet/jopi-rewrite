@@ -134,7 +134,9 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
     // Jopi Loader hooks the CSS. It's why EsBuild can't automatically catch the CSS.
     // And why, here we bundle it manually.
 
-    const outFilePath = path.join(outputDir, "loader.css");
+    const outFilePath = path.resolve(outputDir, "loader.css");
+
+    await nFS.mkDir(outputDir);
 
     if (await nFS.isFile(outFilePath)) {
         await nFS.unlink(outFilePath);
@@ -240,7 +242,7 @@ global.jopiOnCssImported = function(cssFilePath: string) {
 //
 // TODO: allow configuring it.
 //
-let gTempDirPath = path.join("temp", ".reactHydrateCache");
+let gTempDirPath = path.resolve(process.cwd(), "temp", ".reactHydrateCache");
 
 const gAllCssFiles: string[] = [];
 
