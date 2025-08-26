@@ -1,6 +1,7 @@
 ## Create the package.jsonc file
 
-Once Bun.js is installed, we can create our project. Here, everything works just like with Node.js, so we will start by creating a `./package.json` file. However, here it will be a *jsonc*: which is JSON with the possibility to insert comments.
+Once Node.js, or Bun.js, is installed, we can create our project.
+Here we will use a *jsonc* which allows me to add comments.
 
 ```json title="Our package.jsonc file"
 {
@@ -11,36 +12,55 @@ Once Bun.js is installed, we can create our project. Here, everything works just
         "jopi-rewrite-ui": "latest"
     },
     "devDependencies": {
-        // Allow support for bun.js
+        // It allows importing CSS/image in server side.
+        // Lile with Vites.js / WebPack, but for server code.
+        // (it's a must have for React Server Side project)
+        //
+        "jopi-loader": "latest",
+      
+        // Allow support for bun.js.
+        // It's include "@types/nodes" so we only need this one.
         "@types/bun": "latest"
     },
 
     "scripts": {
-        "start": "bun ./src/index.ts",
+        "start-bun": "bun --preload jopi-loader ./index.ts",
+        "start-node": "node --import jopi-loader ./index.js",
 
-        // Allow restarting when changes are detected in our source code.
-        "watch": "bun --watch ./src/index.ts"
+        // It's shortcuts avoiding the preload/import.
+        "start-bun-with-loader": "jopib ./index.ts",
+        "start-node-with-loader": "jopin ./index.js",
+      
+        // For node.js, transforming ".ts" to ".js".
+        "tsc": "npx tsc"
     },
-
-    // Optional, allows you to specify that it's a bun project.
-    "engines": {
-        "bun": "^1.2.18"
-    },
-
+    
     // Optional, required if you create a library.
-    "main": "index.ts"
+    // (must be index.js for node.js)
+    "main": "index.ts",
+  
+    // Because we are using "import" and not "require".
+    "type": "module"
 }
 ```
 
+> `jopib` and `jopin` are available when `jopi-loader` is installed globally.  
+> **npm install jopi-loader --global**
+> or **bun install jopi-loader --global**
+
 ## Create the tsconfig.json file
 
-We will now create a `./tsconfig.json` file to enable the TypeScript engine. This step is optional, but important if you work with WebStorm or Visual Studio Code to get code auto-completion and code analysis to receive warnings in case of errors or bad practices.
+We will now create a `./tsconfig.json` file to enable the TypeScript engine. This step is optional but important
+if you work with WebStorm or Visual Studio Code to get code auto-completion and code analysis to receive warnings
+in case of errors or bad practices.
 
 ```json title="Our tsconfig.json file"
 {
   "compilerOptions": {
     // We don't want to transform TypeScript to JavaScript
     // but only check the TypeScript.
+    //
+    // (must be false for node.js)
     //
     "noEmit": true,
 
@@ -56,9 +76,8 @@ We will now create a `./tsconfig.json` file to enable the TypeScript engine. Thi
     "module": "ESNext",
     "moduleResolution": "Bundler",
 
-    // Allow things like "import "./myFile"
-    // where we don't put the .ts at the end of the file name.
-    // Bun doesn't require it, but the TypeScript checker needs this option.
+    // Allow things like "import "./myFile.ts"
+    // where the .ts is translated to .js
     //
     "rewriteRelativeImportExtensions": true,
 
@@ -68,40 +87,35 @@ We will now create a `./tsconfig.json` file to enable the TypeScript engine. Thi
     "skipLibCheck": true,
     "verbatimModuleSyntax": true
   },
-
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ],
   
   // Makes it much faster!
   "exclude": [ "node_modules" ]
 }
 ```
 
-## Create the src/index.ts file
+## Create the index.ts file
 
-We will now create the `/src/index.ts` file containing the code for our application.
+We will now create the `index.ts` file containing the code for our application.  
 Here is a minimal example to get started with Jopi Rewrite.
 
 ```typescript title="Our ./src/index.ts"
-import {JopiServer, WebSite} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-// Start our server.
-const server = new JopiServer();
-const myWebSite = server.addWebsite(new WebSite("http://127.0.0.1"));
-server.startServer();
-
-// Bind a handler.
-myWebSite.onGET("/", req => req.htmlResponse("Hello !"));
+// Start the app.
+//
+// Doing this allow registering handlers
+// for when the app exists, for cleanup.
+//
+jopiApp.startApp(jopiEasy => {
+    // Create a website.
+    jopiEasy.new_webSite("http://127.0.0.1:3000")
+        // Add a listener for http://127.0.0.1:3000/welcome
+        .add_path("/welcome")
+        // ... which response to GET.
+        .onGET(async req => req.htmlResponse("hello world"))
+        .DONE_add_path();
+});
 ```
 
-## Run our application
-
-All that's left is to start our server.
-
-```bash tile="Starting the app"
-bun run start
-```
-
-If you visit the URL http://127.0.0.1 you will see the message displayed.
+> Jopi Rewrite has a special API which guides you.
+> This API is designed to only show you what is relevant in your current use case. 
