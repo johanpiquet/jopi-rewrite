@@ -29,6 +29,10 @@ to process them, and in the same time the new version will process the new incom
   * With automatic certificat renew.
   * And this, without a server restart required!
 
+✓ Tailwind CSS support
+* Is automatic, no configuration required!
+* Is fast, thanks to a blazing fast compiler!
+
 # Tutorials
 
 You can found articles and tutorials on my Dev.to page [link](https://dev.to/johanpiquet).
