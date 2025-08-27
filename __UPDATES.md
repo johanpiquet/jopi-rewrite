@@ -1,3 +1,6 @@
+**2025-08-27**
+* Correcting a bug with tailwind when not in monorepo.
+
 **2025-08-23**
 * Auto-refreshing the browser when sources change.
 * WebSite is now an interface, which hide internals.

@@ -52,17 +52,22 @@ export function getBundleUrl(webSite: WebSite) {
 export async function createBundle(webSite: WebSite): Promise<void> {
     serverInitChrono.start("createBrowserBundle", "Time for building browser bundler")
 
-    if (NodeSpace.what.isBunJs) {
-        await createBundle_esbuild(webSite);
-    } else {
-        // With node.js, import for CSS and other are not supported.
-        //
-        // It's why:
-        // - A special loader allows ignoring it.
-        // - But EsBuild can't execute from this base code.
-        // ==> We must execute it from a separate process.
-        //
-        await createBundle_esbuild_external(webSite);
+    try {
+        if (NodeSpace.what.isBunJs) {
+            await createBundle_esbuild(webSite);
+        } else {
+            // With node.js, import for CSS and other are not supported.
+            //
+            // It's why:
+            // - A special loader allows ignoring it.
+            // - But EsBuild can't execute from this base code.
+            // ==> We must execute it from a separate process.
+            //
+            await createBundle_esbuild_external(webSite);
+        }
+    }
+    catch (e) {
+        console.error("Error executing EsBuild", e);
     }
 
     serverInitChrono.end();
@@ -209,10 +214,12 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
  *       The CSS or undefined.
  */
 async function compileForTailwind(sourceFiles: string[]): Promise<string|undefined> {
+    if (!sourceFiles.length) return "";
+
     const tailwindConfig: TailwindConfig = {
         content: sourceFiles,
         theme: {extend: {}},
-        plugins: [],
+        plugins: []
     };
 
     const inputCss = `@import "tailwindcss";`;
@@ -222,7 +229,15 @@ async function compileForTailwind(sourceFiles: string[]): Promise<string|undefin
             tailwindPostcss(tailwindConfig as any),
         ]);
 
-        const result = await processor.process(inputCss, {from: undefined});
+        const result = await processor.process(inputCss, {
+            // Setting from allows resolving correctly the node_modules resolving.
+            // Without that, the compiler emits an error saying he doesn't found his
+            // dependencies (he searches package.json in the bad folder, is ok in monorep
+            // but ko in a solo project).
+            //
+            from: path.resolve(sourceFiles[0])
+        });
+
         return result.css;
     }
     catch (e: any) {
