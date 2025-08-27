@@ -45,25 +45,21 @@ For that you have three choices:
 // With a local certificat.
 jopiEasy.new_webSite("https://127.0.0.1")
     .add_httpCertificate().use_dirStore("certs").DONE_add_httpCertificate()
-    .add_path("/").onGET(async req => req.htmlResponse("hello HTTPS !")).DONE_add_path();}
-});
+    .add_path_GET("/", async req => req.htmlResponse("hello HTTPS !"));
 
-// Generating a dev certificate.
-jopiApp.startApp(jopiEasy => {
-    jopiEasy.new_webSite("https://127.0.0.1")
-        .add_httpCertificate().generate_localDevCert().DONE_add_httpCertificate()
-        .add_path("/").onGET(async req => req.htmlResponse("hello HTTPS !")).DONE_add_path();
-});
+// Generating a dev certificate.{
+jopiEasy.new_webSite("https://127.0.0.1")
+    .add_httpCertificate().generate_localDevCert().DONE_add_httpCertificate()
+    .add_path_GET("/", async req => req.htmlResponse("hello HTTPS !"));
 
 // With LetsEncrypt.
-jopiApp.startApp(jopiEasy => {
-    jopiEasy.new_webSite("https://127.0.0.1")
-        .add_httpCertificate()
-            .generate_letsEncryptCert("mymail@gmail.com")
-            .enable_production()
-            .DONE_add_httpCertificate()
-        .add_path("/").onGET(async req => req.htmlResponse("hello HTTPS !")).DONE_add_path();
-});
+
+jopiEasy.new_webSite("https://127.0.0.1")
+    .add_httpCertificate()
+        .generate_letsEncryptCert("mymail@gmail.com")
+        .enable_production()
+        .DONE_add_httpCertificate()
+    .add_path_GET("/", async req => req.htmlResponse("hello HTTPS !"));
 ```
 
 :::info
@@ -186,9 +182,7 @@ jopiApp.startApp(jopiEasy => {
         })
     
         // Sample showing how to return a 404.
-        .add_path("/doesnt-exist")
-            .onGET(async req => req.error404Response())
-            .DONE_add_path()
+        .add_path_GET("/", async req => req.error404Response())
 });
 ```
 

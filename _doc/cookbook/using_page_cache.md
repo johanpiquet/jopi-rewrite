@@ -18,43 +18,22 @@ Here we will create a server that displays the date and time.
 The result will be cached, which will allow us to see how the logic works.
 
 ```typescript
-import {getInMemoryCache, JopiServer, WebSite} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-// Our cache. It stores all data in memory.
-const cache = getInMemoryCache();
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_cache().use_inMemoryCache().END_add_cache()
 
-// Create the server.
+        .add_path_GET("/", async req => {
+            let res = await req.getFromCache();
 
-const server = new JopiServer();
-const myWebSite = server.addWebsite(new WebSite(
-    "http://127.0.0.1", 
+            if (!res) {
+                res = req.textResponse(new Date().toISOString());
+                res = await req.addToCache(res);
+            }
 
-    // The server options.
-    {
-        // This is where we set the cache to use.
-        cache: cache
-    }
-));
-
-server.startServer();
-
-// "/**" allows catching all the requests.
-myWebSite.onGET("/**", async req => {
-    // Get the resource from the cache.
-    let res = await req.getFromCache(true);
-
-    // Not in the cache?
-    if (!res) {
-        // We create the content.
-        // Here it shows the current date/hour/seconds.
-        res = req.htmlResponse("Date is " + new Date().toLocaleString());
-
-        // Now we add this content to the cache.
-        res = await req.addToCache_Compressed(res);
-    }
-
-    // Now we return the response.
-    return res;
+            return res;
+        })
 });
 ```
 
@@ -68,188 +47,54 @@ Here we will create a proxy, that is, a tool that sits between the browser and t
 The purpose of this proxy is to cache the pages in order to reduce the load on the server.
 
 The logic is as follows:
-1- The browser requests a page.
-2- Our proxy receives this request.
-3- If it has the page in its cache, it returns it.
-4- Otherwise, it requests the page from the server.
-5- Then it puts it in its cache.
-6- Before returning it to the browser.
+1- The browser requests a page.  
+2- Our proxy receives this request.  
+3- If it has the page in its cache, it returns it.  
+4- Otherwise, it requests the page from the server.  
+5- Then it puts it in its cache.  
+6- Before returning it to the browser.  
 
 Here, as an example, we will cache the pages of the site `https://developer.mozilla.org`. We will browse on a local address `http://127.0.0.1` while our cache will request the pages from the Mozilla site.
 
 The logic will be the same as for the previous example, only the server configuration will change slightly.
 
 ```typescript
-import {getInMemoryCache, JopiServer, WebSite, ServerFetch} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-const myCache = getInMemoryCache();
-const server = new JopiServer();
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_sourceServer()
+            .useOrigin("https://developer.mozilla.org")
+            .END_add_sourceServer()
 
-const myWebSite = server.addWebsite(
-    new WebSite("http://127.0.0.1:3000", {cache: myCache}));
+        .add_cache().use_inMemoryCache().END_add_cache()
 
-// The main difference is here.
-// It allows configuring a tool which will help us
-// to get the page from the Mozilla website.
-//
-//highlight-start
-myWebSite.addSourceServer(new ServerFetch({
-    useHostname: "developer.mozilla.org",
-    usePort: 443
-}));
-//highlight-end
+        .add_path_GET("/**", async req => {
+            let res = await req.fetchServer();
 
-server.startServer();
+            if (!res) {
+                res = req.textResponse(new Date().toISOString());
+                res = await req.addToCache(res);
+            }
 
-myWebSite.onGET("/**", async req => {
-    let res = await req.getFromCache();
-
-    if (!res) {
-        console.log("Adding page", req.urlInfos.toString(), "to cache");
-
-        // We only need this line of code to get the page from mozilla.
-        // The target url is automatically calculated for us.
-        res = await req.fetchServer();
-
-        res = await req.addToCache_Compressed(res);
-    }
-
-    return res;
+            return res;
+        })
 });
 ```
 
 That's it, you can now open your browser at the address `http://127.0.0.1` and test.
 
-## The different caches
+## The file cache
 
-### InMemoryCache
+In the previous example, we used the `InMemoryCache`. It is a cache that keeps all data in memory. He is shared between all website instance which allow to be more efficient.
 
-In the previous example, we used the `InMemoryCache`.
-It is a cache that keeps all data in memory.
-
-You can configure its default behaviors using the `initMemoryCache` method.
+Another cache is the `SimpleFileCache` which stores all its data on the hard disk. It keeps nothing in memory.
 
 ```typescript
-import {getInMemoryCache, initMemoryCache, ONE_KILO_OCTET, ONE_MEGA_OCTET} from "jopi-rewrite";
-
-initMemoryCache({
-    // Don't add if the resource size is more than 600 KB.
-    maxContentLength: ONE_KILO_OCTET * 600,
-
-    // Only store 1000 resources.
-    maxItemCount: 1000,
-
-    // Limit the total size to 10 MB.
-    // (it's only for the resource, size of meta isn't counted).
-    //
-    maxMemoryUsage_mo: ONE_MEGA_OCTET * 10
-});
-
-// We have only one instance of InMemoryCache which is shared with all our websites.
-// (it's the only cache engine which is shared)
-//
-const myCache = getInMemoryCache();
-```
-:::info
-When the memory limit is reached, or the maximum number of allowed items, then a garbage collector runs. If the problem is a lack of memory, it will start by deleting the items taking up the most memory. If the problem is too many entries, it will start by deleting the least requested items.
-:::
-
-### SimpleFileCache
-
-The `SimpleFileCache` stores all its data on the hard disk. It keeps nothing in memory.
-
-```typescript
-import {SimpleFileCache} from "jopi-rewrite";
-
-// The only parameter is where to store the files.
-// (the target directory is automatically created if missing)
-//
-const myCache = new SimpleFileCache("./temp/cache");
-```
-
-### WebSiteMirrorCache
-
-The `WebSiteMirrorCache` is a special cache because it builds a static site as resources are cached. If you open the cache directory and look at its contents, you will have the equivalent of a downloaded site that you can browse locally.
-
-This cache offers a very interesting option allowing you to modify the content of HTML pages before saving them.
-This allows you to modify URLs to make them relative URLs.
-
-The following example allows you to create a fully local version of the Mozilla site, where the URLs to resources are converted to internal URLs.
-
-```typescript
-const urlToTransform = "https://developer.mozilla.org/";
-const urlReplaceBy = "/"
-
-// rewriteHtml will be called by WebSiteMirrorCache every time an HTML page is found.
-function rewriteHtml(html: string, _webSite: WebSite) {
-    // HTMLRewriter is exposed by Bun.js.
-    // It's a high performance page parser.
-    const rewriter = new HTMLRewriter();
-
-    // transformUrl will be called every time something like <a href="..."></a> is found.
-    rewriter.on("a", { element(node) { transformUrl("href", node); } });
-
-    // The same for the others.
-    rewriter.on("img", { element(node) { transformUrl("src", node); }});
-    rewriter.on("script", { element(node) { transformUrl("src", node); }});
-    rewriter.on("link", { element(node) { transformUrl("href", node); }});
-
-    return rewriter.transform(html);
-}
-
-// Transform a url.
-function transformUrl(propName: string, node: HTMLRewriterTypes.Element) {
-    let url = node.getAttribute(propName);
-    if (!url) return;
-
-    if (url.startsWith(urlToTransform)) {
-        url = url.substring(urlToTransform.length);
-        url = urlReplaceBy + url;
-        node.setAttribute(propName, url);
-    }
-}
-
-// Our cache.
-// We give it the directory where we want to store the file
-// and our function whose role is to rewrite the url.
-//
-const myCache = new WebSiteMirrorCache("./temp/cache-mirror-mozilla", rewriteHtml);
-```
-
-You can now browse from the URL `http://127.0.0.1` and navigate this mirror of the Mozilla site, then go to the folder `./temp/cache-mirror-mozilla`
-and open the file `index.html` in your browser.
-
-### ChainedCache
-
-The `SimpleFileCache` is often used with an `InMemoryCache`. The idea is that the `InMemoryCache` will automatically keep the most requested resources in memory, while the `SimpleFileCache` will be consulted for entries that are not in memory.
-
-Being able to do this is the role of `ChainedCache`.
-
-```typescript
-import {getInMemoryCache, ChainedCache, SimpleFileCache} from "jopi-rewrite";
-
-const inMemoryCache = getInMemoryCache();
-const fileCache = new SimpleFileCache("./cache");
-const chainedCache = new ChainedCache(inMemoryCache, fileCache);
-
-// It's the cache to use with our server.
-const myCache = chainedCache;
-```
-
-## Metadata
-
-The cache allows you to associate metadata with each cache entry. These are JSON data whose use is free, you can put whatever you want. The advantage of this metadata is that they are deleted with the cache entries they correspond to.
-
-```typescript
-// Get the meta corresponding to the current page.
-let resMeta = await req.getCacheMeta();
-
-// Or get the meta of another page.
-resMeta = await req.getCacheMeta(new URL("http://127.0.0.1/my-page"));
-
-// addToCache_Compressed allows a second parameter
-// in order to set meta-data for our page.
-await req.addToCache_Compressed(res, {"some": "data", "about": "this resource"});
+jopiEasy.new_webSite("http://127.0.0.1")
+        .add_cache()
+            .use_fileSystemCache("myCacheDir")
+            .END_add_cache()
 ```
 
 ## Using a sub-cache
@@ -262,43 +107,41 @@ The logic of using a sub-cache is as follows: when you are on a particular URL
 Here is a complete example to illustrate this principle:
 
 ```typescript
-import {getInMemoryCache, JopiServer, WebSite} from "jopi-rewrite";
-
-const memoryCache = getInMemoryCache();
-
-const server = new JopiServer();
-const myWebSite = server.addWebsite(
-    new WebSite("http://127.0.0.1", {cache: memoryCache}));
-
-server.startServer();
+import {jopiApp, JopiRequest} from "jopi-rewrite";
 
 // The page for which we need a cache per user.
 const urlForUserCache = ["/card", "/card/**", "/user", "/user/**"];
 
-myWebSite.onGET(urlForUserCache, async req => {
-    // If this cookie is set, then it means the user is logged in.
-    const userLogin = req.getCookie("conected-user-login");
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_cache().use_inMemoryCache().END_add_cache()
 
-    if (userLogin) {
-        // This allows to create a sub-cache compatible with the current cache.
-        const subCache = req.getSubCache(userLogin);
+        // Use the main cache.
+        .add_path_GET("/**", defaultHandler)
 
-        // Ask to use this sub-cache for this request.
-        // (and only this request)
-        req.useCache(subCache);
-    }
+        .add_path_GET(urlForUserCache, async req => {
+            // If this cookie is set, then it means the user is logged in.
+            const userLogin = req.getCookie("conected-user-login");
 
-    // >>> Here it's what we already know.
-    
-    let res = await req.getFromCache(true);
+            if (userLogin) {
+                // This allows creating a sub-cache compatible with the current cache.
+                const subCache = req.getSubCache(userLogin);
+            }
+
+            return defaultHandler(req);
+        })
+});
+
+const defaultHandler = async (req: JopiRequest) => {
+    let res = await req.fetchServer();
 
     if (!res) {
-        res = await req.fetchServer();
-        req.addToCache_Compressed(res)
+        res = req.textResponse(new Date().toISOString());
+        res = await req.addToCache(res);
     }
 
     return res;
-});
+};
 ```
 
 ## Avoiding cache poisoning

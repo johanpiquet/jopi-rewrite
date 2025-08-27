@@ -6,7 +6,7 @@ Here we will see how to get the data the server receives when a request is made.
 There is more than one source of data, since there is:
 - Data coming from the URL:
     - The query string: https://my-site/ `?sort=asc&filter=jopi`.
-    - A part of the URL which can be used as a parameter: https://my-site/category/ `programming` / listing
+    - A part of the URL which can be used as a parameter: https://my-site/category/`:namedPart`/ listing
 - Data coming from POST and PUT requests, which can be HTML, plain text, JSON or FormData
 
 ## JopiRequest.getReqData
@@ -16,12 +16,16 @@ There is more than one source of data, since there is:
 Thanks to the `getReqData` method, obtaining incoming data is really simple because it will automatically aggregate all the data received.
 It will take all sources of data (those mentioned in the introduction) and merge them together, without needing to know exactly where the data comes from.
 
-```typescript title="Sample of using getReqData"
-myWebSite.onPOST("/", async req => {
-    const myData = await req.getReqData();
+Sample of using getReqData:
+```typescript
+import {jopiApp} from "jopi-rewrite";
 
-    // Return the result as-is.
-    return req.jsonResponse(myData);
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_path("/").onGET(async req => {
+            const myData = await req.getReqData();
+            return req.jsonResponse(myData);
+        })
 });
 ```
 
@@ -34,37 +38,36 @@ Here we will create a test laboratory to experiment with the `getReqData` functi
 Here is the complete code for the server. What it does is very simple: it calls `getReqData` and then returns the received data as a JSON response.
 We do this for several types of requests.
 
-```typescript title="The server app"
-import {JopiServer, WebSite} from "jopi-rewrite";
+```typescript
+import {jopiApp} from "jopi-rewrite";
 
-const server = new JopiServer();
-const myWebSite = server.addWebsite(new WebSite("http://127.0.0.1"));
-server.startServer();
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_path("/")
+        .onGET(async req => {
+            const myData = await req.getReqData();
+            return req.jsonResponse(myData);
+        })
+        .onPOST(async req => {
+            const myData = await req.getReqData<any>();
 
-myWebSite.onGET("/", async req => {
-    const myData = await req.getReqData();
-    return req.jsonResponse(myData);
-});
+            // Handle the file.
+            if (myData["myFile"] && (myData["myFile"] instanceof Blob)) {
+                myData["myFile"] = await (myData["myFile"] as Blob).text();
+            }
 
-myWebSite.onPOST("/", async req => {
-    const myData = await req.getReqData<any>();
-
-    // Handle the file.
-    if (myData["myFile"] && (myData["myFile"] instanceof Blob)) {
-        myData["myFile"] = await (myData["myFile"] as Blob).text();
-    }
-
-    return req.jsonResponse(myData);
-});
-
-myWebSite.onGET("/category/:category/list", async req => {
-    const myData = await req.getReqData();
-    return req.jsonResponse(myData);
-});
-
-myWebSite.onPOST("/category/:category/list", async req => {
-    const myData = await req.getReqData();
-    return req.jsonResponse(myData);
+            return req.jsonResponse(myData);
+        })
+    .DONE_add_path()
+        .add_path("/category/:category/list")
+        .onGET(async req => {
+            const myData = await req.getReqData();
+            return req.jsonResponse(myData);
+        })
+        .onPOST(async req => {
+            const myData = await req.getReqData();
+            return req.jsonResponse(myData);
+        })
 });
 ```
 
@@ -72,20 +75,7 @@ myWebSite.onPOST("/category/:category/list", async req => {
 
 GET requests can be tested from a browser by entering the URL. However, we will need a tool for POST requests, requests receiving JSON, requests receiving a form, and those receiving a file. That's why we need a test application, which is the purpose of the following script. This is also a BunJS application. Since it has no dependencies, just create the file and run `bun ./testApp.ts`
 
-```typescript title="The test app testApp.ts"
-
-// doFetch does a fetch to call the server and print the result.
-async function doFetch(method: string, url: string, body?: any, contentType?: string) {
-    // If object, then transform it to string.
-    if (body && (!(body instanceof FormData)) && (typeof (body) !== "string")) body = JSON.stringify(body);
-
-    let headers: any = {};
-    if (contentType) headers["Content-Type"] = contentType;
-
-    const res = await fetch(url, {method, body, headers});
-    if (!res.ok) { console.log("❌ Error with request", "[" + method + "]", url); return; }
-    console.log("👍 Result of request ", "[" + method + "]", url, "-->", await res.json());
-}
+```typescript
 
 async function testGET() {
     console.log("Test GET --->");
@@ -143,12 +133,24 @@ async function testSendingFile() {
 }
 
 async function test() {
-    //await testGET();
-    //await testPOST();
-    //await testJson();
-    //await testFormData();
+    await testGET();
+    await testPOST();
+    await testJson();
+    await testFormData();
     await testSendingFile();
+}
 
+// doFetch does a fetch to call the server and print the result.
+async function doFetch(method: string, url: string, body?: any, contentType?: string) {
+    // If object, then transform it to string.
+    if (body && (!(body instanceof FormData)) && (typeof (body) !== "string")) body = JSON.stringify(body);
+
+    let headers: any = {};
+    if (contentType) headers["Content-Type"] = contentType;
+
+    const res = await fetch(url, {method, body, headers});
+    if (!res.ok) { console.log("❌ Error with request", "[" + method + "]", url); return; }
+    console.log("👍 Result of request ", "[" + method + "]", url, "-->", await res.json());
 }
 
 test().then();
@@ -166,11 +168,16 @@ As you may have seen in the example, there is a priority order in case of confli
 
 `urlParts` allows transforming some parts of the url into data.
 
-```typescript title="Sample"
-// Note that here we have ":" before selectedCategory.
-myWebSite.onGET("/category/:selectedCategory/list", async req => {
-    const myData = await req.urlParts;
-    return req.jsonResponse(myData);
+```typescript
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_path("/category/:selectedCategory/list")
+        .onGET(async req => {
+            const myData = await req.urlParts["selectedCategory"];
+            return req.htmlResponse("Category is: " + myData);
+        })
 });
 ```
 
