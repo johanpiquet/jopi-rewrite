@@ -141,10 +141,7 @@ class WebSiteContentBuilder {
     onRequest(verb, handler) {
         this.verb = verb;
         this.handler = handler;
-        return {
-            add_path: (path) => new WebSiteContentBuilder(this.webSite, this.internals, path),
-            DONE_add_path: () => this.webSite
-        };
+        return this;
     }
     onGET(handler) {
         return this.onRequest("GET", handler);
@@ -173,6 +170,9 @@ class WebSiteContentBuilder {
             add_path: (path) => new WebSiteContentBuilder(this.webSite, this.internals, path),
             DONE_add_path: () => this.webSite
         };
+    }
+    DONE_add_path() {
+        return this.webSite;
     }
 }
 //endregion

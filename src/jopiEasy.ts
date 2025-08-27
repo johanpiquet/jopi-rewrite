@@ -176,11 +176,7 @@ class WebSiteContentBuilder {
     onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>) {
         this.verb = verb;
         this.handler = handler;
-
-        return {
-            add_path: (path: string) => new WebSiteContentBuilder(this.webSite, this.internals, path),
-            DONE_add_path: () => this.webSite
-        }
+        return this;
     }
 
     onGET(handler: (req: JopiRequest) => Promise<Response>) {
@@ -218,6 +214,10 @@ class WebSiteContentBuilder {
             add_path: (path: string) => new WebSiteContentBuilder(this.webSite, this.internals, path),
             DONE_add_path: () => this.webSite
         }
+    }
+
+    DONE_add_path() {
+        return this.webSite;
     }
 }
 

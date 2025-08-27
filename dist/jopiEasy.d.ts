@@ -80,42 +80,19 @@ declare class WebSiteContentBuilder {
     constructor(webSite: JopiEasyWebSite, internals: WebSiteInternal, path: string);
     add_requiredRole(role: string): this;
     add_requiredRoles(roles: string[]): this;
-    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): {
-        add_path: (path: string) => WebSiteContentBuilder;
-        DONE_add_path: () => JopiEasyWebSite;
-    };
-    onGET(handler: (req: JopiRequest) => Promise<Response>): {
-        add_path: (path: string) => WebSiteContentBuilder;
-        DONE_add_path: () => JopiEasyWebSite;
-    };
-    onPOST(handler: (req: JopiRequest) => Promise<Response>): {
-        add_path: (path: string) => WebSiteContentBuilder;
-        DONE_add_path: () => JopiEasyWebSite;
-    };
-    onPUT(handler: (req: JopiRequest) => Promise<Response>): {
-        add_path: (path: string) => WebSiteContentBuilder;
-        DONE_add_path: () => JopiEasyWebSite;
-    };
-    onDELETE(handler: (req: JopiRequest) => Promise<Response>): {
-        add_path: (path: string) => WebSiteContentBuilder;
-        DONE_add_path: () => JopiEasyWebSite;
-    };
-    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): {
-        add_path: (path: string) => WebSiteContentBuilder;
-        DONE_add_path: () => JopiEasyWebSite;
-    };
-    onPATCH(handler: (req: JopiRequest) => Promise<Response>): {
-        add_path: (path: string) => WebSiteContentBuilder;
-        DONE_add_path: () => JopiEasyWebSite;
-    };
-    onHEAD(handler: (req: JopiRequest) => Promise<Response>): {
-        add_path: (path: string) => WebSiteContentBuilder;
-        DONE_add_path: () => JopiEasyWebSite;
-    };
+    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): this;
+    onGET(handler: (req: JopiRequest) => Promise<Response>): this;
+    onPOST(handler: (req: JopiRequest) => Promise<Response>): this;
+    onPUT(handler: (req: JopiRequest) => Promise<Response>): this;
+    onDELETE(handler: (req: JopiRequest) => Promise<Response>): this;
+    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): this;
+    onPATCH(handler: (req: JopiRequest) => Promise<Response>): this;
+    onHEAD(handler: (req: JopiRequest) => Promise<Response>): this;
     onWebSocketConnect(handler: JopiWsRouteHandler): {
         add_path: (path: string) => WebSiteContentBuilder;
         DONE_add_path: () => JopiEasyWebSite;
     };
+    DONE_add_path(): JopiEasyWebSite;
 }
 declare class ReverseProxyBuilder {
     private readonly webSite;
