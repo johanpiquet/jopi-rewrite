@@ -21,7 +21,6 @@ declare class JopiEasyWebSite {
     protected readonly beforeHook: (() => Promise<void>)[];
     protected readonly internals: WebSiteInternal;
     constructor(url: string);
-    protected initialize(): void;
     private initWebSiteInstance;
     hook_webSite(hook: (webSite: WebSite) => void): this;
     DONE_createWebSite(): JopiApp;

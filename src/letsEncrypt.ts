@@ -126,7 +126,7 @@ export async function checkWebSite(httpsWebSite: WebSite, params: LetsEncryptPar
     // ACME challenge requires port 80 of the server.
     const webSite80 = httpsWebSite.getOrCreateHttpRedirectWebsite();
 
-    const certPaths = getCertificateDir(params.certificateDir, (webSite80 as WebSiteImpl).hostName);
+    const certPaths = getCertificateDir(params.certificateDir, (webSite80 as WebSiteImpl).host);
     let canLog = params.log;
 
     let certState = await getCertificateState(certPaths, params);

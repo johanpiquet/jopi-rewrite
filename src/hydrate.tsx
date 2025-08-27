@@ -75,7 +75,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
 async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
     const components = getHydrateComponents();
-    const outputDir = path.join(gTempDirPath, (webSite as WebSiteImpl).hostName);
+    const outputDir = path.join(gTempDirPath, (webSite as WebSiteImpl).host);
 
     if (hasHydrateComponents()) {
         const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
@@ -106,7 +106,7 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
 
 async function createBundle_esbuild(webSite: WebSite): Promise<void> {
     const components = getHydrateComponents();
-    const outputDir = path.join(gTempDirPath, (webSite as WebSiteImpl).hostName);
+    const outputDir = path.join(gTempDirPath, (webSite as WebSiteImpl).host);
 
     if (hasHydrateComponents()) {
         const entryPoint = await generateScript(outputDir, components);
@@ -186,7 +186,7 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     const pathName = req.urlInfos.pathname;
     let idx = pathName.lastIndexOf("/");
     const fileName = pathName.substring(idx);
-    const filePath = path.resolve(path.join(gTempDirPath, (req.webSite as WebSiteImpl).hostName, fileName));
+    const filePath = path.resolve(path.join(gTempDirPath, (req.webSite as WebSiteImpl).host, fileName));
 
     let contentType = nFS.getMimeTypeFromName(filePath);
     let isJS = false;

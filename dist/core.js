@@ -804,7 +804,7 @@ export function newWebSite(url, options) {
 }
 export class WebSiteImpl {
     port;
-    hostName;
+    host;
     welcomeUrl;
     isHttps = false;
     certificate;
@@ -845,7 +845,7 @@ export class WebSiteImpl {
             else
                 this.port = 80;
         }
-        this.hostName = urlInfos.hostname;
+        this.host = urlInfos.host;
         this.mainCache = options.cache || gVoidCache;
         this.router = createRouter();
         this.wsRouter = createRouter();
@@ -1161,7 +1161,8 @@ export class JopiServer {
     addWebsite(webSite) {
         if (this._isStarted)
             throw new ServerAlreadyStartedError();
-        this.webSites[webSite.hostName] = webSite;
+        const host = webSite.host;
+        this.webSites[host] = webSite;
         return webSite;
     }
     async stopServer() {
@@ -1188,7 +1189,7 @@ export class JopiServer {
             const webSite = e;
             if (!byPorts[webSite.port])
                 byPorts[webSite.port] = {};
-            byPorts[webSite.port][webSite.hostName] = e;
+            byPorts[webSite.port][webSite.host] = e;
         });
         for (let port in byPorts) {
             function rebuildCertificates() {
@@ -1201,7 +1202,7 @@ export class JopiServer {
                         certificates.push({
                             key: nFS.readTextSyncFromFile(keyFile),
                             cert: nFS.readTextSyncFromFile(certFile),
-                            serverName: webSite.hostName
+                            serverName: webSite.host
                         });
                     }
                 });
@@ -1221,7 +1222,7 @@ export class JopiServer {
                 tls: selectCertificate(certificates),
                 fetch: req => {
                     const urlInfos = new URL(req.url);
-                    const webSite = hostNameMap[urlInfos.hostname];
+                    const webSite = hostNameMap[urlInfos.host];
                     if (!webSite)
                         return new Response("", { status: 404 });
                     return webSite.processRequest(urlInfos, req, myServerInstance);

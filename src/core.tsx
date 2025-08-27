@@ -1111,7 +1111,7 @@ export function newWebSite(url: string, options?: WebSiteOptions): WebSite {
 
 export class WebSiteImpl implements WebSite {
     readonly port: number;
-    readonly hostName: string;
+    readonly host: string;
     readonly welcomeUrl: string;
     readonly isHttps?: boolean = false;
 
@@ -1159,7 +1159,8 @@ export class WebSiteImpl implements WebSite {
             else this.port = 80;
         }
 
-        this.hostName = urlInfos.hostname;
+        this.host = urlInfos.host;
+
         this.mainCache = options.cache || gVoidCache;
         this.router = createRouter<WebSiteRoute>();
         this.wsRouter = createRouter<JopiWsRouteHandler>();
@@ -1603,7 +1604,8 @@ export class JopiServer {
 
     addWebsite(webSite: WebSite): WebSite {
         if (this._isStarted) throw new ServerAlreadyStartedError();
-        this.webSites[(webSite as WebSiteImpl).hostName] = webSite;
+        const host = (webSite as WebSiteImpl).host;
+        this.webSites[host] = webSite;
         return webSite;
     }
 
@@ -1630,7 +1632,7 @@ export class JopiServer {
         Object.values(this.webSites).forEach(e => {
             const webSite = e as WebSiteImpl;
             if (!byPorts[webSite.port]) byPorts[webSite.port] = {};
-            byPorts[webSite.port][webSite.hostName] = e;
+            byPorts[webSite.port][webSite.host] = e;
         });
 
         for (let port in byPorts) {
@@ -1647,7 +1649,7 @@ export class JopiServer {
                         certificates.push({
                             key: nFS.readTextSyncFromFile(keyFile),
                             cert: nFS.readTextSyncFromFile(certFile),
-                            serverName: webSite.hostName
+                            serverName: webSite.host
                         });
                     }
                 });
@@ -1674,7 +1676,7 @@ export class JopiServer {
 
                 fetch: req => {
                     const urlInfos = new URL(req.url);
-                    const webSite = hostNameMap[urlInfos.hostname];
+                    const webSite = hostNameMap[urlInfos.host];
                     if (!webSite) return new Response("", {status: 404});
                     return (webSite as WebSiteImpl).processRequest(urlInfos, req, myServerInstance);
                 },

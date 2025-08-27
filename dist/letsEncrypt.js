@@ -90,7 +90,7 @@ export async function checkWebSite(httpsWebSite, params, isFromCron) {
     }
     // ACME challenge requires port 80 of the server.
     const webSite80 = httpsWebSite.getOrCreateHttpRedirectWebsite();
-    const certPaths = getCertificateDir(params.certificateDir, webSite80.hostName);
+    const certPaths = getCertificateDir(params.certificateDir, webSite80.host);
     let canLog = params.log;
     let certState = await getCertificateState(certPaths, params);
     if (certState === CertificateState.IsOk) {

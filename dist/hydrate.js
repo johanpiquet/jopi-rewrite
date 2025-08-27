@@ -59,7 +59,7 @@ export async function createBundle(webSite) {
 }
 async function createBundle_esbuild_external(webSite) {
     const components = getHydrateComponents();
-    const outputDir = path.join(gTempDirPath, webSite.hostName);
+    const outputDir = path.join(gTempDirPath, webSite.host);
     if (hasHydrateComponents()) {
         const publicUrl = webSite.welcomeUrl + '/_bundle/';
         // Empty the dir, this makes tests easier.
@@ -83,7 +83,7 @@ async function createBundle_esbuild_external(webSite) {
 }
 async function createBundle_esbuild(webSite) {
     const components = getHydrateComponents();
-    const outputDir = path.join(gTempDirPath, webSite.hostName);
+    const outputDir = path.join(gTempDirPath, webSite.host);
     if (hasHydrateComponents()) {
         const entryPoint = await generateScript(outputDir, components);
         const publicUrl = webSite.welcomeUrl + '/_bundle/';
@@ -146,7 +146,7 @@ export async function handleBundleRequest(req) {
     const pathName = req.urlInfos.pathname;
     let idx = pathName.lastIndexOf("/");
     const fileName = pathName.substring(idx);
-    const filePath = path.resolve(path.join(gTempDirPath, req.webSite.hostName, fileName));
+    const filePath = path.resolve(path.join(gTempDirPath, req.webSite.host, fileName));
     let contentType = nFS.getMimeTypeFromName(filePath);
     let isJS = false;
     if (contentType.startsWith("text/javascript")) {

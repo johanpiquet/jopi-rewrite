@@ -81,12 +81,6 @@ class JopiEasyWebSite {
             afterHook: this.afterHook,
             beforeHook: this.beforeHook
         };
-
-        this.initialize();
-    }
-
-    protected initialize() {
-        // Allow overriding init.
     }
 
     private async initWebSiteInstance(): Promise<void> {

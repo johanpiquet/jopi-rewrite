@@ -299,7 +299,7 @@ export interface WebSite {
 export declare function newWebSite(url: string, options?: WebSiteOptions): WebSite;
 export declare class WebSiteImpl implements WebSite {
     readonly port: number;
-    readonly hostName: string;
+    readonly host: string;
     readonly welcomeUrl: string;
     readonly isHttps?: boolean;
     certificate?: SslCertificatePath;

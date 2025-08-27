@@ -6,29 +6,24 @@ Jopi Rewrite allows you to create servers exposing multiple websites, which is u
 For this reason, the creation of the server and the creation of the *WebSite* are done in two steps.
 
 ```typescript title="Simple server sample"
-import {JopiServer, WebSite} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-// Create the server.
-const server = new JopiServer();
-
-// Create the website.
-const myWebSite = new WebSite("http://127.0.0.1");
-
-// Bind our website to this server.
-// You can add other websites, but it must
-// be done before the server is started.
+// Start the app.
 //
-server.addWebsite(myWebSite);
+// Doing this allows registering handlers
+// for when the app exists, for cleanup.
+//
+jopiApp.startApp(jopiEasy => {
+    // Create a website.
+    jopiEasy.new_webSite("http://127.0.0.1")
+        // Add a listener for http://127.0.0.1:3000/welcome
+        .add_path("/welcome")
+        // ... which response to GET.
+        .onGET(async req => req.htmlResponse("hello world"))
+        .DONE_add_path();
 
-// A second website.
-const myWebSite2 = server.addWebsite(new WebSite("http://127.0.0.1:3000"));
-
-// Start the server.
-server.startServer();
-
-// Routes can be added before or after the server is started.
-myWebSite.onGET("/", async req => {
-    return req.htmlResponse("Hello world !")
+    // Jopi Rewrite support multi-website.
+    jopiEasy.new_webSite("http://127.0.0.1:8080");
 });
 ```
 
