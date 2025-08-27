@@ -10,7 +10,7 @@ This consists of distributing the workload between several servers.
 Which will be automatically used if the main server is under maintenance.
 - **Translating http to https.**  
 So that Jopi Rewrite exposes https, where your native server only handles http.
-- **Restricting access to certain resources.**  
+- **Restricting access to some resources.**  
 By specifying allowed URLs to exclude all others.
 - **Securing access to the back office.**  
 By adding IP control or an additional authentication mechanism.
@@ -34,7 +34,7 @@ Jopi Rewrite provides you with tools to easily create your own proxy, offering s
 - Tools that allow you to directly send the request to the target server while directly returning its response to the browser. Or that allow you to intercept this response before returning it.
 - Tools that make it easy to observe the content of requests and responses, and modify them if necessary.
 - Tools that allow you to implement load-balancing strategies to define which server should be solicited more and which should receive fewer requests.
-- Tools that allow you to start a `docker` container when needed, then stop it when it is no longer useful.
+- Tools that allow you to start a `docker` container when needed, then stop it when it is no longer used.
 
 ## Load-balancing
 
@@ -62,61 +62,22 @@ For Windows: `C:\Windows\System32\drivers\etc\hosts`
 Here we will set up load-balancing where all target servers are called equally. The server called will be indicated in the console for each request made, which will allow you to see that our proxy is running on several servers.
 
 ```typescript
-import {JopiServer, ServerFetch, WebSite} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-// url of Mozilla web-site.
-const targetUrl = "https://developer.mozilla.org";
-// ip of this server.
-const targetIp = "34.111.97.67";
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_sourceServer().useOrigin("http://my-source-server-a.local").set_weight(1)
+        .add_sourceServer().useOrigin("http://my-source-server-b.local").set_weight(1)
+        .add_sourceServer().useOrigin("http://my-source-server-c.local").set_weight(1)
+        .END_add_sourceServer()
 
-const server = new JopiServer();
-
-// Create a dev certificate for HTTPS.
-// Require the tool 'mkcert' to be installed.
-// See: https://github.com/FiloSottile/mkcert
-//
-const sslCertificate = await server.createDevCertificate(new URL(targetUrl).hostname);
-
-// Our website, with our https certificate.
-const myWebSite = new WebSite(targetUrl, {certificate: sslCertificate});
-
-// Return our target server.
-// We only have one real target server.
-// But for this sample we emulate 3 servers.
-//
-function targetServer(offset: number) {
-    return ServerFetch.useOrigin(
-        // We will send requests of type https://34.111.97.67
-        // Why? Because now https://developer.mozilla.org is our proxy
-        // and not the real Mozilla server.
-        //
-        "https://" + targetIp, "developer.mozilla.org", {
-            // Allow knowing which server we use.
-            beforeRequesting(url) { console.log("Using server", offset, "for url", url) }
-        }
-    );
-}
-
-// Add the servers to our loadbalancer.
-myWebSite.addSourceServer(targetServer(1));
-myWebSite.addSourceServer(targetServer(2));
-myWebSite.addSourceServer(targetServer(3));
-
-server.addWebsite(myWebSite);
-server.startServer();
-
-myWebSite.onGET("/**", req => {
-    // directProxyToServer allows to directly send the request
-    // to the server, and the response will be directly
-    // sent to the browser.
-    //
-    return req.directProxyToServer();
-
-    // You can also do this, where fetchServer is the function
-    // we were using when creating a cache. The main difference
-    // here is that fetchServer doesn't send and return all the headers.
-    //
-    // return req.fetchServer();
+        .add_path_GET("/**", req => {
+            // directProxyToServer allows directly sending the request
+            // to our source server, and the response will be directly
+            // sent to the browser.
+            //
+            return req.directProxyToServer();
+        })
 });
 ```
 
@@ -125,12 +86,20 @@ myWebSite.onGET("/**", req => {
 In the previous example, all servers are called equally, with the same priority.
 Here we will change this priority so that our first server is called twice as often as the others.
 
-This is done by associating a weight to the server, which is between 0 and 1. Internally, the system creates a random number between [0...1] and compares it to the server's weight. If its weight is higher, then the server is selected. That's why a server with a weight of 1 will always be selected. While a server with a weight of 0 will never be selected.
+This is done by associating a weight with the server, which is between 0 and 1. A weight of 1 means
+that this server is a server called in priority. And a weight of 0 means it's only called of no
+other server are available (for example, if they are down). Intermediate values are bound to a
+random selection algorithm where high values are more frequently selected.
 
 ```typescript
-myWebSite.addSourceServer(targetServer(1), 1);
-myWebSite.addSourceServer(targetServer(2), 0.5);
-myWebSite.addSourceServer(targetServer(3), 0.5);
+ jopiEasy.new_webSite("http://127.0.0.1")
+    // Main server.
+    .add_sourceServer().useOrigin("http://my-source-server-a.local").set_weight(1)
+    // Is called less times than the main server
+    .add_sourceServer().useOrigin("http://my-source-server-b.local").set_weight(0.5)
+    // Is caleld if others servers are down.
+    .add_sourceServer().useOrigin("http://my-backup-server.local").set_weight(0)
+    .END_add_sourceServer();
 ```
 
 ### When a server is down
@@ -140,64 +109,35 @@ When this happens, the server is marked and will no longer be used.
 However, in parallel, Jopi Rewrite will regularly try to contact this server
 to see if it is working again.
 
-The following configuration allows you to have a main server, and a backup server
-in case the main server becomes unreachable.
+This example shows how to be notified when a server goes down and how to replace it.
 
 ```typescript
-myWebSite.addSourceServer(targetServer(1), 1);
-myWebSite.addSourceServer(targetServer(2), 0);
-```
+import {jopiApp, ServerFetch} from "jopi-rewrite";
 
-Here the weights mean that the second server is never called. However, there is a subtlety,
-because if no other server is available, then Jopi Rewrite selects servers
-with weight 0. It will therefore use our second server.
-
-This second example shows how to be notified when a server goes down and how to replace it.
-
-```typescript
-function buildServer(offset: number) {
-    return ServerFetch.useOrigin("https://" + targetIp, "developer.mozilla.org", {
-        beforeRequesting(url) { console.log("Using server", offset, "for url", url) }
-    });
-}
-
-function buildKoServer(offset: number) {
-    return ServerFetch.useOrigin("http://donexist_111ddndkdhd", undefined, {
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_sourceServer().useOrigin("http://my-source-server-a.local", {
         beforeRequesting(url) {
-            console.log("Using ko server", offset, "for url", url)
+            console.log("Sending a request to " + url);
         },
 
         ifServerIsDown() {
-            console.log("Server is ko:", "donexist_111ddndkdhd");
+            console.log("Server is ko: http://my-source-server-a.local");
 
             // Return nothing, or the replacement server.
             return Promise.resolve({
-                newServer: buildServer(offset),
+                newServer: ServerFetch.useOrigin("http://my-source-server-a.local"),
                 newServerWeight: 1 // Optional
             });
         }
-    });
-}
-myWebSite.addSourceServer(buildKoServer(1));
-
-server.addWebsite(myWebSite);
-server.startServer();
+    })
+});
 ```
 
 ## X-Forward
 
 Here the `req.directProxyToServer` function does not modify the headers of the request we send to the servers.
 If you want to add headers, especially `X-Forward` headers, you must add them manually.
-
-```typescript title="Example of adding a request header"
-myWebSite.addSourceServer(ServerFetch.useAsIs({
-    // Is called before each request.
-    beforeRequesting: (url: string, fetchOptions: FetchOptions) => {
-        console.log("Will call url:", url);
-        fetchOptions.headers?.set("X-Forwarded-Host", "www.mywebsite.com")
-    }
-}));
-```
 
 :::info
 The philosophy of Jopi Rewrite is to avoid doing things automatically
