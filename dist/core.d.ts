@@ -115,6 +115,7 @@ export declare class JopiRequest {
     getFromCache(useGzippedVersion?: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response | undefined>;
     hasInCache(useGzippedVersion?: boolean | undefined): Promise<boolean>;
     removeFromCache(url?: URL): Promise<void>;
+    addToCache(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response>;
     addToCache_Compressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response>;
     addToCache_Uncompressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response>;
     /**
@@ -229,6 +230,7 @@ export interface WebSite {
     data: any;
     getWelcomeUrl(): string;
     getCache(): PageCache;
+    setCache(pageCache: PageCache): void;
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
     onGET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
     onPOST(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
@@ -303,7 +305,7 @@ export declare class WebSiteImpl implements WebSite {
     readonly welcomeUrl: string;
     readonly isHttps?: boolean;
     certificate?: SslCertificatePath;
-    readonly mainCache: PageCache;
+    mainCache: PageCache;
     private readonly router;
     private readonly wsRouter;
     private _onNotFound?;
@@ -321,6 +323,7 @@ export declare class WebSiteImpl implements WebSite {
     constructor(url: string, options?: WebSiteOptions);
     getWelcomeUrl(): string;
     getCache(): PageCache;
+    setCache(pageCache: PageCache): void;
     addRoute(method: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
     addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void): void;
     addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler): WebSiteRoute;

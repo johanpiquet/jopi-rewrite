@@ -1,6 +1,8 @@
 import { type AuthHandler, type HttpMethod, JopiRequest, type JopiWsRouteHandler, type UserInfos, type WebSite, WebSiteOptions } from "./core.ts";
+import { type ServerFetchOptions } from "./serverFetch.ts";
 import { type LetsEncryptParams, type OnTimeoutError } from "./letsEncrypt.ts";
 import { UserStore_WithLoginPassword, type UserInfos_WithLoginPassword } from "./userStores.ts";
+import { type InMemoryCacheOptions } from "./caches/InMemoryCache.js";
 declare class JopiApp {
     private _isStartAppSet;
     globalConfig(): GlobalConfigBuilder;
@@ -64,7 +66,26 @@ declare class JopiEasyWebSite {
             };
         };
     };
-    add_path(path: string): WebSiteContentBuilder;
+    add_path(path: string | string[]): WebSiteContentBuilder;
+    add_path_GET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): this;
+    add_cache(): WebSiteCacheBuilder;
+    add_sourceServer<T>(weight?: number): WebSite_AddSourceServerBuilder<unknown>;
+}
+declare class WebSite_AddSourceServerBuilder<T> {
+    private readonly webSite;
+    private readonly internals;
+    private weight;
+    private serverFetch?;
+    constructor(webSite: JopiEasyWebSite, internals: WebSiteInternal, weight: number);
+    set_weight(weight: number): void;
+    END_add_sourceServer(): JopiEasyWebSite;
+    /**
+     * The server will be call with his IP and not his hostname
+     * which will only be set in the headers. It's required when
+     * the DNS doesn't pinpoint to the god server.
+     */
+    useIp(serverOrigin: string, ip: string, options?: ServerFetchOptions<T>): this;
+    useOrigin(serverOrigin: string, options?: ServerFetchOptions<T>): this;
 }
 declare class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
     getInternals(): WebSiteInternal;
@@ -77,7 +98,7 @@ declare class WebSiteContentBuilder {
     private verb?;
     private handler?;
     private wsHandler?;
-    constructor(webSite: JopiEasyWebSite, internals: WebSiteInternal, path: string);
+    constructor(webSite: JopiEasyWebSite, internals: WebSiteInternal, path: string | string[]);
     add_requiredRole(role: string): this;
     add_requiredRoles(roles: string[]): this;
     onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): this;
@@ -93,6 +114,15 @@ declare class WebSiteContentBuilder {
         DONE_add_path: () => JopiEasyWebSite;
     };
     DONE_add_path(): JopiEasyWebSite;
+}
+declare class WebSiteCacheBuilder {
+    private readonly webSite;
+    private readonly internals;
+    private cache?;
+    constructor(webSite: JopiEasyWebSite, internals: WebSiteInternal);
+    use_inMemoryCache(options?: InMemoryCacheOptions): this;
+    use_fileSystemCache(rootDir: string): this;
+    END_add_cache(): JopiEasyWebSite;
 }
 declare class ReverseProxyBuilder {
     private readonly webSite;

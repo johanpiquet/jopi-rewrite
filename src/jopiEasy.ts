@@ -5,7 +5,7 @@ import {
     HTTP_VERBS, type HttpMethod,
     JopiRequest,
     type JopiRouteHandler,
-    JopiServer, type JopiWsRouteHandler,
+    JopiServer, type JopiWsRouteHandler, type PageCache,
     type UserInfos,
     type WebSite, WebSiteImpl,
     WebSiteOptions
@@ -19,6 +19,8 @@ import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} 
 import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.ts";
 import {setConfig_disableTailwind} from "./hydrate.ts";
 import {serverInitChrono} from "./internalHelpers.js";
+import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./caches/InMemoryCache.js";
+import {SimpleFileCache} from "./caches/SimpleFileCache.js";
 
 serverInitChrono.start("jopiEasy lib");
 
@@ -119,8 +121,62 @@ class JopiEasyWebSite {
         }
     }
 
-    add_path(path: string) {
+    add_path(path: string|string[]) {
         return new WebSiteContentBuilder(this, this.internals, path);
+    }
+
+    add_path_GET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>) {
+        let res = new WebSiteContentBuilder(this, this.internals, path);
+        res.onGET(handler);
+        return this;
+    }
+
+    add_cache() {
+        return new WebSiteCacheBuilder(this, this.internals);
+    }
+
+    add_sourceServer<T>(weight: number = 1) {
+        return new WebSite_AddSourceServerBuilder(this, this.internals, weight);
+    }
+}
+
+class WebSite_AddSourceServerBuilder<T> {
+    private serverFetch?: ServerFetch<T>;
+
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private weight: number) {
+        this.internals.afterHook.push(webSite => {
+            if (this.serverFetch) {
+                webSite.addSourceServer(this.serverFetch);
+            }
+        });
+    }
+
+    set_weight(weight: number) {
+        this.weight = weight;
+    }
+
+    END_add_sourceServer() {
+        return this.webSite;
+    }
+
+    /**
+     * The server will be call with his IP and not his hostname
+     * which will only be set in the headers. It's required when
+     * the DNS doesn't pinpoint to the god server.
+     */
+    useIp(serverOrigin: string, ip: string, options?: ServerFetchOptions<T>) {
+        let urlInfos = new URL(serverOrigin);
+        let hostName = urlInfos.hostname;
+        urlInfos.hostname = ip;
+        serverOrigin = urlInfos.href;
+
+        this.serverFetch = ServerFetch.useOrigin(serverOrigin, hostName, options);
+        return this;
+    }
+
+    useOrigin(serverOrigin: string, options?: ServerFetchOptions<T>) {
+        this.serverFetch = ServerFetch.useOrigin(serverOrigin, undefined, options);
+        return this;
     }
 }
 
@@ -136,10 +192,9 @@ class WebSiteContentBuilder {
     private handler?: (req: JopiRequest) => Promise<Response>;
     private wsHandler?: JopiWsRouteHandler;
 
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string) {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string|string[]) {
         this.internals.afterHook.push(webSite => {
             if (this.handler) {
-
                 let handler = this.handler;
 
                 if (this.requiredRoles) {
@@ -156,7 +211,11 @@ class WebSiteContentBuilder {
             }
 
             if (this.wsHandler) {
-                webSite.onWebSocketConnect(this.path, this.wsHandler)
+                if (this.path instanceof Array) {
+                    this.path.forEach(p => webSite.onWebSocketConnect(p, this.wsHandler!));
+                } else {
+                    webSite.onWebSocketConnect(this.path, this.wsHandler)
+                }
             }
         });
     }
@@ -217,6 +276,34 @@ class WebSiteContentBuilder {
     }
 
     DONE_add_path() {
+        return this.webSite;
+    }
+}
+
+class WebSiteCacheBuilder {
+    private cache?: PageCache;
+
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+        this.internals.afterHook.push(webSite => {
+            if (this.cache) {
+                webSite.setCache(this.cache);
+            }
+        });
+    }
+
+    use_inMemoryCache(options?: InMemoryCacheOptions) {
+        if (options) initMemoryCache(options);
+        this.cache = getInMemoryCache();
+
+        return this;
+    }
+
+    use_fileSystemCache(rootDir: string) {
+        this.cache = new SimpleFileCache(rootDir);
+        return this;
+    }
+
+    END_add_cache() {
         return this.webSite;
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "jopi-rewrite",
-  "version": "2.0.4",
+  "version": "2.0.8",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
@@ -26,7 +26,7 @@
     "@types/acme-client": "^3.3.4"
   },
   "dependencies": {
-    "@jopi-loader/tools": "workspace:^1.1.5",
+    "@jopi-loader/tools": "workspace:^1.1.6",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/ws": "^8.18.1",
     "acme-client": "^5.4.0",

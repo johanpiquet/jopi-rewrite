@@ -419,6 +419,10 @@ export class JopiRequest {
         return this.cache.removeFromCache(url || this.urlInfos);
     }
 
+    addToCache(response: Response, metaUpdater?: MetaUpdater<unknown>) {
+        return this.addToCache_Compressed(response, metaUpdater);
+    }
+
     addToCache_Compressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
         return this.cache.addToCache(this.urlInfos, response, (this.webSite as WebSiteImpl).getHeadersToCache(), false, metaUpdater);
     }
@@ -1009,6 +1013,7 @@ export interface WebSite {
 
     getWelcomeUrl(): string;
     getCache(): PageCache;
+    setCache(pageCache: PageCache): void;
 
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
 
@@ -1116,7 +1121,7 @@ export class WebSiteImpl implements WebSite {
     readonly isHttps?: boolean = false;
 
     certificate?: SslCertificatePath;
-    readonly mainCache: PageCache;
+    mainCache: PageCache;
 
     private readonly router: RouterContext<WebSiteRoute>;
     private readonly wsRouter: RouterContext<JopiWsRouteHandler>;
@@ -1176,6 +1181,10 @@ export class WebSiteImpl implements WebSite {
 
     getCache(): PageCache {
         return this.mainCache;
+    }
+
+    setCache(pageCache: PageCache) {
+        this.mainCache = pageCache || gVoidCache;
     }
 
     addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {

@@ -7,6 +7,8 @@ import { getLetsEncryptCertificate } from "./letsEncrypt.js";
 import { UserStore_WithLoginPassword } from "./userStores.js";
 import { setConfig_disableTailwind } from "./hydrate.js";
 import { serverInitChrono } from "./internalHelpers.js";
+import { getInMemoryCache, initMemoryCache } from "./caches/InMemoryCache.js";
+import { SimpleFileCache } from "./caches/SimpleFileCache.js";
 serverInitChrono.start("jopiEasy lib");
 class JopiApp {
     _isStartAppSet = false;
@@ -88,6 +90,56 @@ class JopiEasyWebSite {
     add_path(path) {
         return new WebSiteContentBuilder(this, this.internals, path);
     }
+    add_path_GET(path, handler) {
+        let res = new WebSiteContentBuilder(this, this.internals, path);
+        res.onGET(handler);
+        return this;
+    }
+    add_cache() {
+        return new WebSiteCacheBuilder(this, this.internals);
+    }
+    add_sourceServer(weight = 1) {
+        return new WebSite_AddSourceServerBuilder(this, this.internals, weight);
+    }
+}
+class WebSite_AddSourceServerBuilder {
+    webSite;
+    internals;
+    weight;
+    serverFetch;
+    constructor(webSite, internals, weight) {
+        this.webSite = webSite;
+        this.internals = internals;
+        this.weight = weight;
+        this.internals.afterHook.push(webSite => {
+            if (this.serverFetch) {
+                webSite.addSourceServer(this.serverFetch);
+            }
+        });
+    }
+    set_weight(weight) {
+        this.weight = weight;
+    }
+    END_add_sourceServer() {
+        return this.webSite;
+    }
+    /**
+     * The server will be call with his IP and not his hostname
+     * which will only be set in the headers. It's required when
+     * the DNS doesn't pinpoint to the god server.
+     */
+    useIp(serverOrigin, ip, options) {
+        let urlInfos = new URL(serverOrigin);
+        let hostName = urlInfos.hostname;
+        urlInfos.hostname = ip;
+        serverOrigin = urlInfos.href;
+        this.serverFetch = ServerFetch.useOrigin(serverOrigin, hostName, options);
+        return this;
+    }
+    useOrigin(serverOrigin, options) {
+        this.serverFetch = ServerFetch.useOrigin(serverOrigin, undefined, options);
+        return this;
+    }
 }
 class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
     getInternals() {
@@ -120,7 +172,12 @@ class WebSiteContentBuilder {
                 webSite.onVerb(this.verb, this.path, handler);
             }
             if (this.wsHandler) {
-                webSite.onWebSocketConnect(this.path, this.wsHandler);
+                if (this.path instanceof Array) {
+                    this.path.forEach(p => webSite.onWebSocketConnect(p, this.wsHandler));
+                }
+                else {
+                    webSite.onWebSocketConnect(this.path, this.wsHandler);
+                }
             }
         });
     }
@@ -172,6 +229,33 @@ class WebSiteContentBuilder {
         };
     }
     DONE_add_path() {
+        return this.webSite;
+    }
+}
+class WebSiteCacheBuilder {
+    webSite;
+    internals;
+    cache;
+    constructor(webSite, internals) {
+        this.webSite = webSite;
+        this.internals = internals;
+        this.internals.afterHook.push(webSite => {
+            if (this.cache) {
+                webSite.setCache(this.cache);
+            }
+        });
+    }
+    use_inMemoryCache(options) {
+        if (options)
+            initMemoryCache(options);
+        this.cache = getInMemoryCache();
+        return this;
+    }
+    use_fileSystemCache(rootDir) {
+        this.cache = new SimpleFileCache(rootDir);
+        return this;
+    }
+    END_add_cache() {
         return this.webSite;
     }
 }

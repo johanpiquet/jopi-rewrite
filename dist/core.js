@@ -338,6 +338,9 @@ export class JopiRequest {
         }
         return this.cache.removeFromCache(url || this.urlInfos);
     }
+    addToCache(response, metaUpdater) {
+        return this.addToCache_Compressed(response, metaUpdater);
+    }
     addToCache_Compressed(response, metaUpdater) {
         return this.cache.addToCache(this.urlInfos, response, this.webSite.getHeadersToCache(), false, metaUpdater);
     }
@@ -858,6 +861,9 @@ export class WebSiteImpl {
     }
     getCache() {
         return this.mainCache;
+    }
+    setCache(pageCache) {
+        this.mainCache = pageCache || gVoidCache;
     }
     addRoute(method, path, handler) {
         const webSiteRoute = { handler };
