@@ -34,7 +34,7 @@ class JopiApp {
         return new GlobalConfigBuilder();
     }
 
-    startApp(f: (jopi: JopiEasy) => void) {
+    startApp(f: (jopiEasy: JopiEasy) => void) {
         if (this._isStartAppSet) throw "App is already started";
         this._isStartAppSet = true;
 
@@ -242,6 +242,7 @@ class WebSite_AddSourceServerBuilder<T> {
 
     set_weight(weight: number) {
         this.weight = weight;
+        return this;
     }
 
     END_add_sourceServer() {
@@ -266,6 +267,10 @@ class WebSite_AddSourceServerBuilder<T> {
     useOrigin(serverOrigin: string, options?: ServerFetchOptions<T>) {
         this.serverFetch = ServerFetch.useOrigin(serverOrigin, undefined, options);
         return this;
+    }
+
+    add_sourceServer<T>(weight: number = 1) {
+        return new WebSite_AddSourceServerBuilder(this.webSite, this.internals, weight);
     }
 }
 
