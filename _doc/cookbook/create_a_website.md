@@ -30,41 +30,48 @@ jopiApp.startApp(jopiEasy => {
 ### Enable HTTPS
 
 Jopi Rewrite can manage several websites at the same time, and each of them
-can have its own SSL certificate.  
-To enable HTTPS, you need two things:
+can have its own SSL certificate. To enable HTTPS, you need two things:
 
 * Define an address with https.
-* Provide the path to both parts of the SSL certificate.
+* Define a SSL certificate.
+
+For that you have three choices:
+* Set your own certificat.
+* Let Jopi Rewrite generate a dev certificate.
+* Ask a LetsEncrypt certificate.
+
 
 ```typescript
-const myWebSite = new WebSite("https://127.0.0.1", {
-    certificate: {
-        key: "./my-cert.key",
-        cert: "./my-cert.crt.key"
-    }
+// With a local certificat.
+jopiEasy.new_webSite("https://127.0.0.1")
+    .add_httpCertificate().use_dirStore("certs").DONE_add_httpCertificate()
+    .add_path("/").onGET(async req => req.htmlResponse("hello HTTPS !")).DONE_add_path();}
+});
+
+// Generating a dev certificate.
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("https://127.0.0.1")
+        .add_httpCertificate().generate_localDevCert().DONE_add_httpCertificate()
+        .add_path("/").onGET(async req => req.htmlResponse("hello HTTPS !")).DONE_add_path();
+});
+
+// With LetsEncrypt.
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("https://127.0.0.1")
+        .add_httpCertificate()
+            .generate_letsEncryptCert("mymail@gmail.com")
+            .enable_production()
+            .DONE_add_httpCertificate()
+        .add_path("/").onGET(async req => req.htmlResponse("hello HTTPS !")).DONE_add_path();
 });
 ```
 
 :::info
-Jopi Rewrite allows having websites using http mixed with websites using https. You can also have a website listening on port 3000 and another on port 5000, Jopi Rewrite will handle all this internally.
-:::
+LetEncrypt are automatically renewed if you are using **bun.js**. It download an new certificate
+after 80 days (the max certificat age is 90 days) and it replace the current own, without the
+need to restart the server and without connection lost.
 
-### Dev SSL certificate
-
-Jopi Rewrite lets you generate SSL certificates for development, which allows you to use https on your development machine.
-
-```typescript
-import {JopiServer, WebSite} from "jopi-rewrite";
-
-const server = new JopiServer();
-const myCertificate = await server.createDevCertificate("127.0.0.1");
-const myWebSite = new WebSite("https://127.0.0.1", { certificate: myCertificate });
-```
-
-:::warning
-The mkcert tool is used internally to generate these certificates and install
-a root certificate. An error will occur if this tool is not installed
-and accessible globally.
+This feature doesn't work with node.js, which doesn't have the tecnical prerequist.
 :::
 
 ## Responding to requests
@@ -72,63 +79,93 @@ and accessible globally.
 JopiRewrite uses a router to respond to requests. This router allows you to associate
 a URL pattern with a function that will handle this URL.
 
-```typescript
-// For http//127.0.0.1/
-myWebSite.onGET("/", req => req.htmlResponse("Hello"));
-
-// In the same way, you can use:
-// onGET, onPOST, onPUT, onDELETE, onPATCH, onOPTIONS.
-//
-myWebSite.onPOST("/", req => req.htmlResponse("Hello"));
-
-// You can use an array for the path.
-myWebSite.onGET(["/hello", "/hi"], req => req.htmlResponse("Hello"));
-
-// Warning: http//127.0.0.1/hello
-// and http//127.0.0.1/hello/ aren't the same url !
-myWebSite.onGET(["/hello", "/hello/"], req => req.htmlResponse("Hello"));
-
-// You can use wildcards.
-myWebSite.onGET("/products/*", req => req.htmlResponse("a product"));
-myWebSite.onGET("/products/*/details", req => req.htmlResponse("details of a product"));
-
-// You can use named paths.
-myWebSite.onGET("/products/:productName", req =>
-    req.htmlResponse("Product is:" + req.urlParts["productName"]));
-
-myWebSite.onGET("/products/:productName/details", req =>
-    req.htmlResponse("Product listing of:" + req.urlParts["productName"]));
-
-// The wildcards ** allow to catch all.
-// --> A simple "*" replaces only one segment
-// --> A double "**" replaces all segments.
-//
-// It means that here we catch all the GET requests.
-myWebSite.onGET("/**", req => req.htmlResponse("Hello"));
-
-// It's the same idea, we catch all requests starting with /products.
-// Ex: http//127.0.0.1/product/my-product/info
-myWebSite.onGET("/products/**", req => req.htmlResponse("Hello"));
-
-myWebSite.onGET("/products/*/details", req => req.htmlResponse("details of a product"));
-
-```
-
-### Async response
-
-The route expects a `Response` object or a `Promise<Response>` as a response. Both are accepted.
+### Binding to GET / POST /...
 
 ```typescript
-myWebSite.onGET("/", async req => {
-    await pause(2000);
-    return req.htmlResponse("Hello");
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_path("/")
+            .onGET(async req => req.htmlResponse("A GET request"))
+            .onPOST(async req => req.htmlResponse("Received" + JSON.stringify(req.getReqData())))
+        .DONE_add_path();
 });
 ```
+
+### Using named path
+
+You can use named path in order to known the name of the product.
+Here you can try http://127.0.0.1/computer/listing for sample.
+
+```typescript
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+    // Note the ":" before name.
+    .add_path("/products/:name/listing")
+    .onGET(async req => req.htmlResponse("Product:" + req.urlParts["name"]))
+    .DONE_add_path();
+});
+````
+
+### Using wildcard
+
+The wildcard `/*` allows catching one level (and only one).
+
+```typescript
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        // Accept http://127.0.0.1/products/
+        // Accept http://127.0.0.1/products/listing
+        // But not http://127.0.0.1/products
+        // And not http://127.0.0.1/products/catagory/all
+        //
+        .add_path("/products/*")
+            .onGET(async req => req.htmlResponse("Path:" + req.url))
+            .DONE_add_path();
+});
+```
+
+The double wildcard `/**` allows catching every level.
+It's the most used pattern.
+
+```typescript
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        // Accept http://127.0.0.1/products/
+        // Accept http://127.0.0.1/products/listing
+        // Accept http://127.0.0.1/products/catagory/all
+        // But not http://127.0.0.1/products
+        //
+        .add_path("/products/**")
+            .onGET(async req => req.htmlResponse("Path:" + req.url))
+            .DONE_add_path();
+        // What is after have priority on wildcard.
+        .add_path("/products/special-product").
+            .onGET(async req => req.htmlResponse("Special product"))
+            .DONE_add_path();
+});
+```
+
+> The pattern `/**` is used to catch every requests for a website.
 
 ### Return a JSON
 
 ```typescript
-myWebSite.onGET("/my-json", req => req.jsonResponse({"value": 5}));
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_path("/json")
+        .onGET(async req => req.jsonResponse({myData: 123}))
+        .DONE_add_path()
+});
 ```
 
 ### Template for 404 (not-found)
@@ -137,28 +174,25 @@ Jopi Rewrite allows you to define a template for 404 pages to customize them.
 
 ```typescript
 
-// Returns a 404 page.
-myWebSite.onGET("/not-found", req => req.error404Response());
+import {jopiApp} from "jopi-rewrite";
 
-// Define the template for 404 pages.
-//highlight-next-line
-myWebSite.on404(req=> req.html("My not-found page content", 404));
-
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        // Hook allow using the core API.
+        .hook_webSite(website => {
+            website.on404(async req => {
+                return req.htmlResponse("My not-found page content", 404)
+            });
+        })
+    
+        // Sample showing how to return a 404.
+        .add_path("/doesnt-exist")
+            .onGET(async req => req.error404Response())
+            .DONE_add_path()
+});
 ```
 
-### Template for 500 (error)
-
-Jopi Rewrite allows you to define a template for 500 pages to customize them.
-This 500 page will automatically be displayed in case of an error.
-
-```typescript
-// Returns a 500 page.
-myWebSite.onGET("/error", req => req.error500Response("optional error info"));
-
-// Define the template for the 500 page.
-//highlight-next-line
-myWebSite.on500((req, error)=> req.html("My error page content<br/>" + error?.toString(), 500));
-```
+> You can do the same thing for page 500 (error).
 
 ## Middlewares
 
@@ -170,13 +204,10 @@ Jopi Rewrite also supports middlewares that run after the request.
 For example, to measure the execution time of the request, as in the example above.
 
 ```typescript
-import {JopiRequest, JopiServer, WebSite} from "jopi-rewrite";
-
-const server = new JopiServer();
-const myWebSite = new WebSite("http://127.0.0.1");
+import {jopiApp, JopiRequest} from "jopi-rewrite";
 
 const middlewareA = (req: JopiRequest) => {
-    // customData allows storing data inside the request.
+    // 'customData' allows storing data inside the request.
     req.customData.startTime = Date.now();
     return null;
 }
@@ -202,21 +233,27 @@ const postMiddlewareA = (req: JopiRequest, res: Response) => {
     return res;
 }
 
-const myRequestHandler = (req: JopiRequest) => req.htmlResponse("Hello !")
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .hook_webSite(website => {
+            // When a request occurs,
+            // middlewareA is automatically executed
+            // before the request handler.
+            website.addMiddleware(middlewareA);
 
-// When a request occurs, middlewareA is automatically executed.
-myWebSite.addMiddleware(middlewareA);
-// ... after that middlewareB is executed.
-myWebSite.addMiddleware(middlewareB);
+            //middlewareB will be executed after middlewareA.
+            website.addMiddleware(middlewareB);
 
-// ... once done, it's our request handler.
-myWebSite.onGET("/", myRequestHandler);
+            // Post-middleware is executed before returning the response.
+            // It allows altering this response.
+            website.addPostMiddleware(postMiddlewareA);
+        })
 
-// ... it's now our post-middleware.
-myWebSite.addPostMiddleware(postMiddlewareA);
-
-server.addWebsite(myWebSite);
-server.startServer();
+        // Sample showing how to return a 404.
+        .add_path("/")
+            .onGET(async req => req.htmlResponse("sample"))
+            .DONE_add_path()
+});
 ```
 
 ## Request timeout
@@ -227,23 +264,30 @@ This mechanism is enabled when DDOS protections are in place, and limits request
 to 2 minutes of execution time. In other cases, it is not enabled. You can
 however enable it manually if you are interested in this mechanism, through a middleware.
 
-```typescript
-import {JopiServer, Middlewares, WebSite} from "jopi-rewrite";
-
-const server = new JopiServer();
-const myWebSite = new WebSite("http://127.0.0.1");
-//highlight-next-line
-myWebSite.addMiddleware(Middlewares.requestTimeout_sec(2)); // 2 seconds max
-server.addWebsite(myWebSite);
-server.startServer();
-```
-
-If this time is too short, the request can decide to extend this time.
+> This feature is only available for bun.js
 
 ```typescript
-myWebSite.onGET("/**", req => {
-    req.extendTimeout_sec(5000);
-    return req.htmlResponse("I'm taking a lot of time ...")
+import {jopiApp, Middlewares} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .hook_webSite(website => {
+            // 2 seconds max
+            website.addMiddleware(Middlewares.requestTimeout_sec(2));
+        })
+
+        // Sample showing how to return a 404.
+        .add_path("/")
+            .onGET(async req => {
+                // We can extend the timeout manually.
+                req.extendTimeout_sec(5);
+
+                // Pause of 10 seconds.
+                await NodeSpace.timer.tick(10 * 1000);
+
+                return req.htmlResponse("I will be interupted before ...")
+            })
+            .DONE_add_path()
 });
 ```
 
@@ -279,18 +323,17 @@ is slightly slower when this protection is enabled, because it has to manage a r
 of IP addresses.
 
 ```typescript
-import {JopiServer, WebSite, Middlewares} from "jopi-rewrite";
+import {jopiApp, Middlewares} from "jopi-rewrite";
 
-myWebSite.addMiddleware(Middlewares.ddosProtection({
-    // There are a lot of options here
-    // but using defaults is ok for most websites.
-    
-    // It's optional, it allows us to hook how black requests are handled.
-    // (the default behavior is to do nothing)
-    //
-    onBlackRequest(req) {
-        console.log("Black request detected from IP", req.requestIP);
-        return new Response("Too many requests", { status: 429 });
-    }
-}));
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .hook_webSite(website => {
+            website.addMiddleware(Middlewares.ddosProtection({
+                onBlackRequest(req) {
+                    console.log("Black request detected from IP", req.requestIP);
+                    return req.error500Response();
+                }
+            }));
+        })
+});
 ```
