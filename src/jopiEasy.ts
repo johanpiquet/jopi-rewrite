@@ -2,7 +2,7 @@
 
 import {
     type AuthHandler,
-    HTTP_VERBS, type HttpMethod,
+    HTTP_VERBS, type HttpMethod, type JopiMiddleware, type JopiPostMiddleware,
     JopiRequest,
     type JopiRouteHandler,
     JopiServer, type JopiWsRouteHandler, type PageCache,
@@ -21,6 +21,8 @@ import {setConfig_disableTailwind} from "./hydrate.ts";
 import {serverInitChrono} from "./internalHelpers.js";
 import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./caches/InMemoryCache.js";
 import {SimpleFileCache} from "./caches/SimpleFileCache.js";
+import {Middlewares} from "./middlewares/index.js";
+import type {DdosProtectionOptions} from "./middlewares/DdosProtection.js";
 
 serverInitChrono.start("jopiEasy lib");
 
@@ -138,6 +140,93 @@ class JopiEasyWebSite {
     add_sourceServer<T>(weight: number = 1) {
         return new WebSite_AddSourceServerBuilder(this, this.internals, weight);
     }
+
+    add_middleware() {
+        return new WebSite_MiddlewareBuilder(this, this.internals);
+    }
+
+    add_postMiddleware() {
+        return new WebSite_PostMiddlewareBuilder(this, this.internals);
+    }
+
+    add_specialPageHandler() {
+        return new WebSite_AddSpecialPageHandler(this, this.internals);
+    }
+}
+
+class WebSite_AddSpecialPageHandler {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+    }
+
+    END_add_specialPageHandler() {
+        return this.webSite;
+    }
+
+    on_404_NotFound(handler: (req: JopiRequest) => Promise<Response>) {
+        this.internals.afterHook.push(webSite => {
+            webSite.on404_NotFound(handler);
+        });
+
+        return this;
+    }
+
+    on_500_Error(handler: (req: JopiRequest) => Promise<Response>) {
+        this.internals.afterHook.push(webSite => {
+            webSite.on500_Error(handler);
+        });
+
+        return this;
+    }
+
+    on_401_Unauthorized(handler: (req: JopiRequest) => Promise<Response>) {
+        this.internals.afterHook.push(webSite => {
+            webSite.on401_Unauthorized(handler);
+        });
+
+        return this;
+    }
+}
+
+class WebSite_PostMiddlewareBuilder {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+    }
+
+    END_add_postMiddleware() {
+        return this.webSite;
+    }
+
+    use_custom(myMiddleware: JopiPostMiddleware) {
+        this.internals.afterHook.push(webSite => {
+            webSite.addPostMiddleware(myMiddleware);
+        });
+
+        return this;
+    }
+}
+
+class WebSite_MiddlewareBuilder {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+    }
+
+    END_add_middleware() {
+        return this.webSite;
+    }
+
+    use_custom(myMiddleware: JopiMiddleware) {
+        this.internals.afterHook.push(webSite => {
+            webSite.addMiddleware(myMiddleware);
+        });
+
+        return this;
+    }
+
+    use_requestTimeout_sec(timeSec: number) {
+        return this.use_custom(Middlewares.requestTimeout_sec(timeSec));
+    }
+
+    use_ddosProtection(options?: DdosProtectionOptions) {
+        return this.use_custom(Middlewares.ddosProtection(options));
+    }
 }
 
 class WebSite_AddSourceServerBuilder<T> {
@@ -220,6 +309,14 @@ class WebSiteContentBuilder {
         });
     }
 
+    DONE_add_path() {
+        return this.webSite;
+    }
+
+    add_path(path: string|string[]) {
+        return new WebSiteContentBuilder(this.webSite, this.internals, path);
+    }
+
     add_requiredRole(role: string) {
         if (!this.requiredRoles) this.requiredRoles = [role];
         else this.requiredRoles.push(role);
@@ -273,10 +370,6 @@ class WebSiteContentBuilder {
             add_path: (path: string) => new WebSiteContentBuilder(this.webSite, this.internals, path),
             DONE_add_path: () => this.webSite
         }
-    }
-
-    DONE_add_path() {
-        return this.webSite;
     }
 }
 
@@ -450,7 +543,7 @@ class FileServerBuilder {
         this.options = {
             rootDir: "www",
             replaceIndexHtml: true,
-            onNotFound: req => req.error404Response()
+            onNotFound: req => req.returnError404_NotFound()
         };
 
         this.internals.afterHook.push(webSite => {

@@ -89,9 +89,9 @@ jopiApp.startApp(jopiEasy => {
 });
 ```
 
-### Using named path
+### Using a named path
 
-You can use named path in order to known the name of the product.
+You can use a named path in order to known the name of the product.
 Here you can try http://127.0.0.1/computer/listing for sample.
 
 ```typescript
@@ -169,24 +169,20 @@ jopiApp.startApp(jopiEasy => {
 Jopi Rewrite allows you to define a template for 404 pages to customize them.
 
 ```typescript
-
 import {jopiApp} from "jopi-rewrite";
 
 jopiApp.startApp(jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
-        // Hook allow using the core API.
-        .hook_webSite(website => {
-            website.on404(async req => {
-                return req.htmlResponse("My not-found page content", 404)
-            });
-        })
-    
+        .add_specialPageHandler()
+        .on_404_NotFound(async req => req.htmlResponse("My not-found page content", 404))
+        .END_add_specialPageHandler()
+
         // Sample showing how to return a 404.
-        .add_path_GET("/", async req => req.error404Response())
+        .add_path_GET("/", async req => req.returnError404_NotFound())
 });
 ```
 
-> You can do the same thing for page 500 (error).
+> You can do the same thing for page 500 (error) and 401 (unauthorized).
 
 ## Middlewares
 
@@ -229,24 +225,24 @@ const postMiddlewareA = (req: JopiRequest, res: Response) => {
 
 jopiApp.startApp(jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
-        .hook_webSite(website => {
+        .add_middleware()
             // When a request occurs,
             // middlewareA is automatically executed
             // before the request handler.
-            website.addMiddleware(middlewareA);
+            .use_custom(middlewareA)
 
             //middlewareB will be executed after middlewareA.
-            website.addMiddleware(middlewareB);
+            .use_custom(middlewareB)
+        .END_add_middleware()
 
+        .add_postMiddleware().
             // Post-middleware is executed before returning the response.
             // It allows altering this response.
-            website.addPostMiddleware(postMiddlewareA);
-        })
+            use_custom(postMiddlewareA)
+        .END_add_postMiddleware()
 
         // Sample showing how to return a 404.
-        .add_path("/")
-            .onGET(async req => req.htmlResponse("sample"))
-            .DONE_add_path()
+        .add_path_GET("/", async req => req.htmlResponse("sample"))
 });
 ```
 

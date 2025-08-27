@@ -361,12 +361,16 @@ export class JopiRequest {
         return new Response(json, {status: statusCode, headers:{"content-type": "application/json;charset=utf-8"}});
     }
 
-    error404Response(): Response|Promise<Response> {
+    returnError404_NotFound(): Response|Promise<Response> {
         return this.webSite.return404(this);
     }
 
-    error500Response(error?: Error|string): Response|Promise<Response> {
+    returnError500_ServerError(error?: Error|string): Response|Promise<Response> {
         return this.webSite.return500(this, error);
+    }
+
+    returnError401_Unauthorized(error?: Error|string): Response|Promise<Response> {
+        return this.webSite.return401(this, error);
     }
 
     //endregion
@@ -959,7 +963,7 @@ export class JopiRequest {
             return options.onNotFound(this);
         }
 
-        return this.error404Response();
+        return this.returnError404_NotFound();
     }
 }
 
@@ -1031,22 +1035,16 @@ export interface WebSite {
 
     onOPTIONS(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
 
-    /**
-     * Can be called when the page / resource is not found.
-     * Will return a personalized 404 page.
-     * @param handler
-     */
-    onNotFound(handler: JopiRouteHandler): void;
-
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
 
-    on404(handler: JopiRouteHandler): void;
-
+    on404_NotFound(handler: JopiRouteHandler): void;
     return404(req: JopiRequest): Response | Promise<Response>;
 
-    on500(handler: JopiRouteHandler): void;
-
+    on500_Error(handler: JopiRouteHandler): void;
     return500(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
+
+    on401_Unauthorized(handler: JopiRouteHandler): void;
+    return401(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
 
     /**
      * Try to authenticate a user.
@@ -1125,9 +1123,9 @@ export class WebSiteImpl implements WebSite {
 
     private readonly router: RouterContext<WebSiteRoute>;
     private readonly wsRouter: RouterContext<JopiWsRouteHandler>;
-    private _onNotFound?: JopiRouteHandler;
-    private _on404?: JopiRouteHandler;
-    private _on500?: JopiErrorHandler;
+    private _on404_NotFound?: JopiRouteHandler;
+    private _on500_Error?: JopiErrorHandler;
+    private _on401_Unauthorized?: JopiErrorHandler;
 
     private headersToCache: string[] = ["content-type", "etag", "last-modified"];
     private middlewares?: JopiMiddleware[];
@@ -1247,16 +1245,16 @@ export class WebSiteImpl implements WebSite {
         return this.onVerb("OPTIONS", path, handler);
     }
 
-    onNotFound(handler: JopiRouteHandler) {
-        this._onNotFound = handler;
+    on404_NotFound(handler: JopiRouteHandler) {
+        this._on404_NotFound = handler;
     }
 
-    on404(handler: JopiRouteHandler) {
-        this._on404 = handler;
+    on500_Error(handler: JopiRouteHandler) {
+        this._on500_Error = handler;
     }
 
-    on500(handler: JopiRouteHandler) {
-        this._on500 = handler;
+    on401_Unauthorized(handler: JopiRouteHandler) {
+        this._on401_Unauthorized = handler;
     }
 
     getRouteFor(url: string, method: string = "GET"): WebSiteRoute|undefined {
@@ -1296,19 +1294,27 @@ export class WebSiteImpl implements WebSite {
     }
 
     return404(req: JopiRequest): Response|Promise<Response> {
-        if (this._on404) {
-            return this._on404(req);
+        if (this._on404_NotFound) {
+            return this._on404_NotFound(req);
         }
 
         return new Response("", {status: 404});
     }
 
     return500(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
-        if (this._on500) {
-            return this._on500(req, error);
+        if (this._on500_Error) {
+            return this._on500_Error(req, error);
         }
 
         return new Response("", {status: 404});
+    }
+
+    return401(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
+        if (this._on401_Unauthorized) {
+            return this._on401_Unauthorized(req, error);
+        }
+
+        return new Response("", {status: 401});
     }
 
     async onServerStarted() {
@@ -1387,10 +1393,6 @@ export class WebSiteImpl implements WebSite {
     }
 
     private ifRouteNotFound(req: JopiRequest) {
-        if (this._onNotFound) {
-            return this._onNotFound(req);
-        }
-
         return this.return404(req);
     }
 

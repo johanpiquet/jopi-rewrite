@@ -157,7 +157,7 @@ export async function checkWebSite(httpsWebSite: WebSite, params: LetsEncryptPar
             return req.textResponse(vKeyAuthorization);
         }
 
-        return req.error404Response();
+        return req.returnError404_NotFound();
     });
 
     const client = new acme.Client({
