@@ -4,102 +4,61 @@
 
 The strength of the PHP language is that you can make changes without losing current connections: if a process is ongoing, it is not abruptly interrupted, and the server remains available without interruption.
 
-With Jopi Rewrite, we can do the same! We can modify our source code and see our server use the updated version, without interrupting ongoing connections.
+With Jopi Rewrite, we can do the same! We can modify our source code and see our server use the updated version without interrupting ongoing connections.
 
+> Current connections aren't lost when doing a hot-reload.
+> The request will be fully processed with the old version.
+ 
 ## Enabling hot-reload
 
-To enable this behavior, you need to start your application with hot-reload enabled.
+Hot-reloading is only available with `bun.js`. To enable this behavior, you only need to use the launcher `jopib`.
 
-* Instead of running: `bun myApp.ts`
-* You should run: `bun --hot myApp.ts`
+* Instead of doing: `bun myApp.ts`
+* You must do : `bun --hot myApp.ts`
+* Or: `jopib --hot myApp.ts`
 
-With this option, the application's internal cache is automatically cleared when a change is detected in the source code, and then the entry point (myApp.ts) is executed again.
+> If hot reload is enabled, then `jopib` internal file watching is disabled.  
 
-The consequence is that, for a short time, two versions of your application coexist in parallel, being completely detached from each other. The only shared area is `globalThis` (the equivalent of `window` in the browser).
+## Hot reload API
 
-## InMemoryCache
+Jopi Rewrite includes a full set of helpers for hot-reload. They allow :
+* To keep some data in memory without losing it when restarting.
+* Add functions which must be called when a restart has occurred. 
 
-The memory cache is automatically preserved during hot-reload, which is an advantage.
-The following example shows how to prevent it from being preserved.
+> To know: the memory cache data are not reset when a hot-reload occurs 
 
-```typescript
-import {getInMemoryCache, JopiServer, WebSite, initMemoryCache} from "jopi-rewrite";
+### NodeSpace
 
-// Memory cache is automatically protected against hot-reload.
-// This line allows disabling this cache protection.
-// You can try to comment/uncomment this line.
-//highlight-next-line
-initMemoryCache({clearOnHotReload: true});
-
-const memoryCache = getInMemoryCache();
-
-const server = new JopiServer();
-const myWebSite = server.addWebsite(new WebSite("http://127.0.0.1", {cache: memoryCache}));
-server.startServer();
-
-myWebSite.onGET("/", async req => {
-    let res = await req.getFromCache(true);
-
-    if (!res) {
-        // Will allow seeing if the cache is reset when a hot-reload occurs.
-        res = req.htmlResponse(new Date().toLocaleString());
-        res = await req.addToCache_Compressed(res);
-    }
-
-    return res;
-});
-```
-
-## Using Node Space Helpers
-
-### What is Node Space?
-
-`NodeSpace` comes from the library `jopi-node-space` which is referenced by Jopi Rewrite.
-It exposes a global named `NodeSpace` which contains tools which are three goals:
-* Make it easier to write a library for the browser with extra when on server-side.
-* Bring common and useful tools.
-* Detach some dependencies from Jopi Rewrite.
-
-> To use NodeSpace, you only need to do `import "jopi-node-space"` somewhere in your code.
-Not need to do it each time. It can be done by your code, or one of your dependencies.
-It why this import is optional, since he is already done by Jopi Rewrite.
+Jopi NodeSpace is a set of common tools for browser and server.
+It declares a global variable named NodeSpace. To use it, you
+have nothing to import.
 
 ### onHotReload
 
-The `onHotReload` function allows you to be notified when a hot-reload occurs.
-
+The `onHotReload` function allows you to be notified when a hot-reload has occurred.
 
 ```typescript
-import "jopi-node-space"; // Optional
 NodeSpace.app.onHotReload(() => { console.log("Hot reloading !") });
 ```
 
 ### keepIfHotReload
 
-The `keepIfHotReload` function allows you to preserve certain data during a hot-reload.
-This function will allow you to preserve the memory cache.
+The `keepIfHotReload` function allows you to preserve some data during a hot-reload.
+
 
 ```typescript
-import "jopi-node-space"; // Optional
-import {JopiServer, WebSite} from "jopi-rewrite";
-
-//highlight-next-line
-let statCounter = NodeSpace.app.keepOnHotReload("statCount", () => ({counter: 0}));
-
-const server = new JopiServer();
-const myWebSite = server.addWebsite(new WebSite("http://127.0.0.1"));
-server.startServer();
-
-myWebSite.onGET("/", async req => {
-    return req.htmlResponse("Is request #", statCounter.counter++);
-});
-
-NodeSpace.app.onHotReload(() => {console.log("Hot reloading !") });
+let statCounter = NodeSpace.app.keepOnHotReload(
+    // The name of the memorized value;
+    "statCount",
+    
+    // A function which is called the first time and put in cache.
+    () => ({counter: 0})
+);
 ```
 
 ### The case of timers
 
-Hot-reload works well, however it does not stop timers (setInterval, setTimeout). That’s why you need to handle these cases manually to be compatible with hot-reload.
+Hot-reload works well, but it does not stop timers (setInterval, setTimeout). That’s why you need to handle these cases manually to be compatible with hot-reload.
 
 ```typescript
 const myRandom = Math.trunc(Math.random() * 1000);
@@ -111,24 +70,26 @@ To help you, you can use the `newInterval` function, which is automatically prot
 This function is similar to setInterval, but with three differences:
 
 - It automatically unregisters itself in case of hot-reload.
-- The order of its arguments is reversed.
 - If the executed function explicitly returns `false`, the timer stops.
 
 ```typescript
-import "jopi-node-space"; // Optional
-
 const myRandom = Math.trunc(Math.random() * 1000);
-NodeSpace.timer.newInterval(1000, () => {console.log("Timer (newInterval)", myRandom) });
+
+NodeSpace.timer.newInterval(1000, () => {
+    console.log("Timer (newInterval)", myRandom);
+    // returning false stop the timer.
+    //return false;
+});
 ```
 
-## Organising your code
+## Organizing your code
 
 Hot-reload is triggered instantly, as soon as you modify any part of the code (your code or a library in node_modules). Reloading happens as soon as a change is detected.
 
-This speed can be a problem if you need to update several files. That’s why, in this case, I recommend organizing your code as follows:
+This speed can be a problem if you need to update several files. That’s why, in this case, we recommend you to organize your code as follows:
 
 ```text
-|- starter.ts            <-- contains only import "./version1"
+|- starter.ts            <-- contains only: import "./version1/index.ts"
 |- version1/index.ts     <-- contains my real app
 ```
 
@@ -140,4 +101,4 @@ Now, here is the procedure to update your code without triggering unwanted hot-r
 2. Modify `start.ts` so that it points to `version2`.
 3. Optional: delete `version1`.
 
-The advantage is that hot-reload will only be triggered when you modify `start.ts`.
+Here the hot-reload will only be triggered when you modify `start.ts`.

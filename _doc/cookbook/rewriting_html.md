@@ -3,58 +3,62 @@
 ## Modify HTML
 
 Jopi Rewrite offers tools to modify the HTML returned by a response.
-You can do this in two different ways: either in the request that creates the result, or through a middleware that will analyze all content.
+You can do this in two different ways: either in the request that creates the result, or through a post-middleware.
+
+Example: the request handler alters himself the HTML.
 
 ```typescript
-import {JopiServer, ServerFetch, WebSite} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-const server = new JopiServer();
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_sourceServer()
+        .useOrigin("http://127.0.0.1:8080")
+        .END_add_sourceServer()
+        .add_path_GET("/**", async req => {
+            const res = await req.directProxyToServer();
 
-const myWebSite = new WebSite("http://127.0.0.1");
-myWebSite.addSourceServer(ServerFetch.useOrigin("http://127.0.0.1:8080"));
-server.addWebsite(myWebSite);
-server.startServer();
+            // We alter the HTML directly from our request handler.
+            return req.hookIfHtml(res, (html)=> {
+                return html.replaceAll("Goodbye", "Bye");
+            });
+        })
+})
+```
 
-myWebSite.addPostMiddleware(async (req, res) => {
-    // We alter the html directly from a post-middleware.
-    res = await req.hookIfHtml(res, (html)=> {
-        return html.replaceAll("Hello", "Hi");
-    });
+Example: using a post-middleware for altering HTML.
 
-    return res;
+```typescript
+import {jopiApp} from "jopi-rewrite";
 
-});
-
-myWebSite.onGET("/**", async req => {
-    const res = await req.directProxyToServer();
-
-    // We alter the html directly from our request handler.
-    return req.hookIfHtml(res, (html)=> {
-        return html.replaceAll("Goodbye", "Bye");
-    });
-});
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_sourceServer().useOrigin("http://127.0.0.1:8080").END_add_sourceServer()
+        .add_postMiddleware().use_custom(async (req, res) => {
+            return req.hookIfHtml(res, (html) => {
+                return html.replaceAll("Goodbye", "Bye");
+            })
+        })
+        .END_add_postMiddleware()
+        .add_path_GET("/**", async req => req.directProxyToServer())
+})
 ```
 
 ## Server Side JQuery
 
-Jopi Rewrite allows you to use JQuery on the server side to select parts of the HTML and replace them. This feature makes working with HTML much easier!
+Jopi Rewrite allows you to use `JQuery` on the server side to select parts of the HTML and replace them.
+This feature makes working with HTML much easier!
 
 ```typescript
-myWebSite.onGET("/**", async req => {
-    const res = await req.directProxyToServer();
+return req.hookIfHtml(res, (html) => {
+    const $ = req.asJquery(html);
+    const $found = $(".label-wrapper.mfn-menu-label-wrapper > .menu-label").first();
 
-    // We alter the html directly from our request handler.
-    return req.hookIfHtml(res, (html) => {
-        const $ = req.asJquery(html);
-        const $found = $(".label-wrapper.mfn-menu-label-wrapper > .menu-label").first();
+    $found.html("Hello from Jopi Rewrite !");
+    $found.reactReplaceContentWith(<div>You can also use ReactJS !</div>);
 
-        $found.html("Hello from Jopi Rewrite !");
-        $found.reactReplaceContentWith(<div>You can also use ReactJS !</div>);
-
-        // Return the updated HTML.
-        return $.html();
-
-    });
+    // Return the updated HTML.
+    return $.html();
 });
 ```
 
@@ -63,49 +67,19 @@ myWebSite.onGET("/**", async req => {
 If you need a way to parse HTML very quickly, you can use `HTMLRewriter` (it's a Bun.js only feature). It is extremely fast, but it does not have the flexibility of JQuery to find and replace specific areas in the HTML.
 
 ```typescript
-const myRewriter = new HTMLRewriter();
+return req.hookIfHtml(res, (html) => {
+    const myRewriter = new HTMLRewriter();
 
-// Replace all anchor targets.
-myRewriter.on("a", {
-    element(node) {
-        console.log("href -->", node.getAttribute("href"));
-        node.setAttribute("href", "https://www.google.com");
-    }
-});
-
-myWebSite.onGET("/**", async req => {
-    const res = await req.directProxyToServer();
-
-    // We alter the html directly from our request handler.
-    return req.hookIfHtml(res, (html) => {
-        //highlight-next-line
-        return myRewriter.transform(html);
-    });
-});
-```
-
-## Manually transform HTML
-
-The following example highlights another way to transform HTML, which is less useful and less simple.
-
-```typescript
-myWebSite.onGET("/**", async req => {
-    let res = await req.directProxyToServer();
-    
-    //highlight-next-line
-    if (req.isHtml(res)) {
-        if (req.hasCookie("user-name")) {
-            const userName = req.getCookie("user-name")!;
-            //highlight-next-line
-            let html = await req.reqBodyAsText();
-            html = html.replaceAll("%user-name", userName);
-            //highlight-next-line
-            res = req.htmlResponse(html);
+    // Replace all anchor targets.
+    myRewriter.on("a", {
+        element(node) {
+            console.log("href -->", node.getAttribute("href"));
+            node.setAttribute("href", "https://www.google.com");
         }
-    } else if (req.isJson(res)) {
-        console.log("Response is json !");
-    }
-    
-    return res;
+    });
+
+    // ...
+
+    return req.hookIfHtml(res, (html) => myRewriter.transform(html));
 });
 ```
