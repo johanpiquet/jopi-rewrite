@@ -18,37 +18,47 @@ This replacement is done automatically and transparently; the website user sees 
 If you know **NextJS** then you already know what **React Hydrate** is. It's very powerful and useful.
 Here, Jopi Rewrite allows you to do the same thing, but with a different philosophy.
 
+## The `jopin` tool
+
+To do React.js on server side, you need to use a tool named `jopin` (jopib for bun.js).
+This tool allows you to import CSS and images, exactly like what you did when using Vite.js/WebPack.
+
+`jopin` is used in replacement to `node`. Where you do `node ./myScript.js` you must do `jopin ./myscript.js`.
+
+To use `jopin` you must start by installing the package `jopi-loader` globally:
+* With node.js: `npm install jopi-loader --global`
+* Or with bun.js: `bun install jopi-loader --global`
+
+> Once jopi-loader installed, the tools jopin and jopib are added and reachable from everywhere on your system.
+
 ## React SSR
 
 Here is an example of React SSR. If you open the page http://127.0.0.1 in your browser,
 then look at its source code, you will only see this: `<div>Click me</div>`.
 
+> Here we have an `onClick` handler: which is ignored, since React SSR only product HTML
+and ignore all events. It also ignores calls to `onEffect` and similar functions.
+This is not a limitation of Jopi Rewrite, but how React SSR works, since his goal is
+only producting HTML.
+
 ```typescript
-import {JopiServer, WebSite} from "jopi-rewrite";
-import React from "react";
-import "./MyButton.css"; // <- is ignored with React SSR
+import {jopiApp} from "jopi-rewrite";
 
-const server = new JopiServer();
+// Is automatically included!
+import "./myButton.css";
 
-const myWebSite = new WebSite("http://127.0.0.1");
-server.addWebsite(myWebSite);
-server.startServer();
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_path_GET("/**", async req => {
+            return req.reactResponse(<MyButton />)
+        })
+})
 
 function MyButton() {
-    return <div className="my-button" onClick={()=>alert("clicked!")}>Click me</div>;
+    return <div className="my-button" 
+            onClick={()=>alert("clicked!")}>Click me</div>;
 }
-
-myWebSite.onGET("/", req => {
-    return req.reactResponse(<MyButton />);
-
-    // You can also do this:
-    //return req.htmlResponse(req.reactToString(<MyButton />));
-});
 ```
-
-With React SSR, you have to manage the CSS yourself. Here, the file `MyButton.css` is ignored.
-The good news is that there is a mechanism to automatically include CSS,
-however in React SSR, CSS is deliberately ignored to give you more control.
 
 ## React Hydrate
 
@@ -64,65 +74,59 @@ Hydratable components are only loaded in the browser if they are used. If you de
 Here, the way of working is the same as in React SSR, only the way to create a component changes slightly.
 
 ```typescript
-import {JopiServer, WebSite} from "jopi-rewrite";
-import React from "react";
-//highlight-next-line
-import ComponentA from "./ComponentA";
+import {jopiApp} from "jopi-rewrite";
 
-const server = new JopiServer();
+import ComponentA from "./HydrateComponentA.tsx";
 
-const myWebSite = new WebSite("http://127.0.0.1");
-server.addWebsite(myWebSite);
-server.startServer();
-
-myWebSite.onGET("/", req => {
-    //highlight-next-line
-    return req.reactResponse(<ComponentA name="hello jopi" />);
-});
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1:3000")
+        .add_path_GET("/**", async req => {
+            return req.reactResponse(<ComponentA name="hello jopi" />)
+        })
+})
 ```
 
-The difference is in `ComponentA`, which must:
-* Be marked, so that it is known it needs to be hydrated.
+The difference with simple React SSR reside in `ComponentA`, which must:
+* Be marked so that we know that he must be hydrated.
 * Exist in a dedicated file (only one hydratable component per file).
 
-```typescript title="File ComponantA.tsx"
+```typescript
 import React from "react";
-import {asJopiHydrateDiv, isServerSide} from "jopi-rewrite-ui";
+import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
 
-// CSS are automatically imported when doing React Hydrate.
-// Here our css makes our component red with yellow background.
-// (scss files are css with sass preprocessor)
+// Will automatically be added to the HTML page.
+import "./global-style.css";
+
+// Jopi Rewrite allows CSS modules (css and scss supported).
+// CSS modules are automatically inlined in the header of HTML pages.
+// They are a better choice when you want to finely manage what CSS
+// are inclued.
 //
-//highlight-next-line
-import "./ComponentA.scss"
+import styles from "./myComponentA.module.css";
 
-function MyComponent({name}: {name: string}) {
+const Component = function({name}: {name: string}) {
     function doClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         e.preventDefault();
         alert("click !");
     }
 
-    let text = "Hello " + name;
+    let text = name;
     if (isServerSide()) text += " (server side)";
     else text += " (browser side)";
 
-    return <div className="ComponentA" onClick={doClick}>
-        <div className="welcome">{text}</div>
-    </div>;
+    return <div style={styles} className="ComponentA" onClick={doClick}>{text}</div>;
 };
 
-//highlight-next-line
-export default mustHydrate(import.meta, MyComponent);
+// Note the 'mustHydrate' call here!
+// And note the 'styles' params, allowing CSS moduels embeding.
+export default mustHydrate(import.meta, Component, styles);
 ```
 
-Here, `mustHydrate` is what marks our component, so that Jopi Rewrite knows it needs to hydrate it
-once in the browser.
+Here, `mustHydrate` is what marks our component, so that Jopi Rewrite knows it needs to hydrate it once in the browser.
 
-You can open the page `http://127.0.0.1` and click on the displayed button. You will see that the `alert("click !")` is executed.
-Also, the component displays `(browser side)`, while if you look at the HTML source code of the page you will see `(server side)`.
+You can open the page `http://127.0.0.1` and click on the displayed button. You will see that the `alert("click !")` is executed.  Also, the component displays `(browser side)`, while if you look at the HTML source code of the page you will see `(server side)`.
 
-## No Webpack!
-
-As you can see, you do not need to set up a tool like Webpack or ViteJS.
-The development workflow is simple, efficient, and incredibly fast. Internally, EsBuild is used,
-which is 100 times faster than WebPack. So there is no problem compiling a large codebase!
+> **No Webpack!** 
+> As you can see, you do not need to set up a tool like Webpack or ViteJS.
+> The development workflow is simple, efficient, and incredibly fast. Internally, EsBuild is used,
+which is about 100 times faster than WebPack. So there is no problem compiling a large codebase!
