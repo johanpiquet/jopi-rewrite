@@ -112,25 +112,18 @@ to see if it is working again.
 This example shows how to be notified when a server goes down and how to replace it.
 
 ```typescript
-import {jopiApp, ServerFetch} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
 jopiApp.startApp(jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
-        .add_sourceServer().useOrigin("http://my-source-server-a.local", {
-        beforeRequesting(url) {
-            console.log("Sending a request to " + url);
-        },
-
-        ifServerIsDown() {
+        .add_sourceServer()
+        .useOrigin("http://my-source-server-a.local")
+        .on_beforeRequesting(url => { console.log("Sending a request to " + url) })
+        .on_ifServerIsDown(serverReplace => {
             console.log("Server is ko: http://my-source-server-a.local");
-
-            // Return nothing, or the replacement server.
-            return Promise.resolve({
-                newServer: ServerFetch.useOrigin("http://my-source-server-a.local"),
-                newServerWeight: 1 // Optional
-            });
-        }
-    })
+            serverReplace.useOrigin("http://my-source-server-a.local").set_weight(1)
+        })
+        .END_add_sourceServer()
 });
 ```
 
