@@ -2,6 +2,7 @@
 
 import {JopiRequest, type SendingBody} from "./core.tsx";
 import type {LoadBalancer} from "./loadBalancing.ts";
+import {AutomaticStartStop} from "./automaticStartStop.js";
 
 export interface ServerDownResult<T> {
     newServer?: ServerFetch<T>,
@@ -73,6 +74,17 @@ export interface ServerFetchOptions<T> {
      * The weight of this server, if using inside a load balancer.
      */
     weight?: number;
+
+    /**
+     * If set, then will be called to start the start.
+     * The resulting value is the number of seconds to wait for inactivity.
+     */
+    doStartServer?: (data: any)=>Promise<number>;
+
+    /**
+     * If set, then will be called to stop the server when not need anymore.
+     */
+    doStopServer?: (data: any)=>Promise<void>;
 }
 
 export class ServerFetch<T> {
@@ -203,6 +215,25 @@ export class ServerFetch<T> {
         if (options.userDefaultHeaders !== false) this.useDefaultHeaders();
 
         this.compileCookies();
+
+        if (options.doStartServer) {
+            let autoStartStop = new AutomaticStartStop({
+                onStart: options.doStartServer!,
+                onStop: options.doStopServer!
+            });
+
+            if (options.beforeRequesting) {
+                const beforeRequesting = options.beforeRequesting;
+                const doStart = options.doStartServer!;
+
+                options.beforeRequesting = async (url, fetchOptions, data) => {
+                    await autoStartStop.start();
+                    return beforeRequesting(url, fetchOptions, data);
+                }
+            } else {
+                options.beforeRequesting = () => autoStartStop.start();
+            }
+        }
 
         if (options.publicUrl) {
             const url = new URL(options.publicUrl);

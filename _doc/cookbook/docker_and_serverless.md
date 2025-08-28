@@ -17,63 +17,36 @@ In the following example, we will automatically start a Docker server, which is 
 It will start at the time of the first request, then automatically shut down after two minutes of inactivity.
 
 ```typescript
-import {JopiServer, ServerFetch, AutomaticStartStop, WebSite} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-/**
- * Will allow starting a PHP server exposed inside a docker
- * and automatically stop it when it's not needed anymore.
- */
-const startStop = new AutomaticStartStop({
-    name: "my little server",
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_sourceServer()
+        .useOrigin("http://my-source-server-a.local")
 
-    // Will check if 'docker' exists on the system.
-    // This by doing a "which docker" (or "where" if on Windows).
-    //
-    requireTool: "docker",
+        // Is called to start the remote server.
+        .do_startServer(async () => {
+            console.log("Starting server A");
 
-    // Will automatically stop the docker
-    // if no requests are emitted after about 2 minutes.
-    //
-    autoShutdownAfter_ms: 1000 * 60 * 2,
+            // Start the docker.
+            await Bun.$`cd wordpressDocker; docker compose up -d`;
 
-    // Is called to start our docker.
-    onStart: async () => {
-        console.log("I'm starting!");
-        await Bun.$`cd wordpressDocker; docker compose up -d`;
-        console.log("I'm started!");
-    },
+            // Allows stopping the server after 10 minutes
+            // if not request are emitted for this server.
+            return NodeSpace.timer.ONE_MINUTE * 10;
+        })
 
-    // Is automatically called to stop our docker.
-    onStop: async () => {
-        console.log("I'm stopping!");
-        await Bun.$`cd wordpressDocker; docker compose down`;
-        console.log("I'm stopped!");
-    }
+        // Allow stopping the remote server.
+        .do_stopServer(async () => {
+            console.log("Stopping server A");
+
+            // Stop the docker.
+            await Bun.$`cd wordpressDocker; docker compose down`;
+        })
+
+        .END_add_sourceServer()
+
+        // directProxyToServer allows sending the request to the server.
+        .add_path_GET("/**", req => req.directProxyToServer())
 });
-
-const server = new JopiServer();
-
-// Create a local dev certificate.
-const certificate = await server.createDevCertificate("127.0.0.1");
-
-// Our server is https.
-const myWebSite = new WebSite("https://127.0.0.1", {certificate});
-
-// My docker is responding on http://127.0.0.1:8080.
-// Request will be translated to use this url origin.
-myWebSite.addSourceServer(ServerFetch.useOrigin("http://127.0.0.1:8080", undefined, {
-    // Is called before each request.
-    beforeRequesting: () => {
-        // Calling start will start our docker.
-        // If already started, then it will allow
-        // the system to know that the tool continues to be needed.
-        // Otherwise, the automatic shutdown will be executed after 2 minutes.
-        //
-        return startStop.start();
-    }
-}));
-
-server.addWebsite(myWebSite);
-server.startServer();
-myWebSite.onGET("/**", req => req.directProxyToServer());
 ```

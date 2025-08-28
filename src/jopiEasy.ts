@@ -23,6 +23,7 @@ import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./ca
 import {SimpleFileCache} from "./caches/SimpleFileCache.js";
 import {Middlewares} from "./middlewares/index.js";
 import type {DdosProtectionOptions} from "./middlewares/DdosProtection.js";
+import {AutomaticStartStop} from "./automaticStartStop.js";
 
 serverInitChrono.start("jopiEasy lib");
 
@@ -128,6 +129,16 @@ class CreateServerFetch_NextStep<T> {
             return undefined;
         }
 
+        return this;
+    }
+
+    do_startServer(handler: () => Promise<number>) {
+        this.options.doStartServer = handler;
+        return this;
+    }
+
+    do_stopServer(handler: () => Promise<void>) {
+        this.options.doStopServer = handler;
         return this;
     }
 }
