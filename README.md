@@ -45,6 +45,7 @@ You can contact me on Discord. [link](https://discord.com/channels/1397868681253
 
 * How to start
     * [Installing Bun.js](_doc/how_to_start/installing_bunjs.md)
+    * [Installing JOPIN](_doc/how_to_start/installing_jopin.md)
     * [Creating a project](_doc/how_to_start/creating_a_project.md)
 * Cookbook
     * [Create a website](_doc/cookbook/create_a_website.md)

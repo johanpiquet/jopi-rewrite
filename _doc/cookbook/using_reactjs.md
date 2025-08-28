@@ -4,16 +4,9 @@
 
 With Jopi Rewrite, using React.js is extremely easy! However, you need to understand that there are three different ways to use React.js.
 
-* **React SSR**: Server Side Rendering.  
-React SSR consists of using React.js on the server side, to make it easier to write the HTML code that the server returns.
-The React.js component is transformed into simple HTML, which is called *dead* because it does not respond to any events.
-
-* **React BSR**: Browser Side Rendering.  
-This is the ordinary way of using React.js.
-
-* **React Hydrate**: which is a mix of both.  
-We do React SSR, but once in the browser, the HTML is replaced by the real component.
-This replacement is done automatically and transparently; the website user sees nothing.
+* **React SSR**: Server Side Rendering - React is used to emit simple HTML from the server, without events and dynamics behaviors. 
+* **React BSR**: Browser Side Rendering. - This is the ordinary way of using React.js.
+* **React Hydrate** - This is a mix of both: SSR is replaced by BSR once in the browser.
 
 If you know **NextJS** then you already know what **React Hydrate** is. It's very powerful and useful.
 Here, Jopi Rewrite allows you to do the same thing, but with a different philosophy.
@@ -23,13 +16,7 @@ Here, Jopi Rewrite allows you to do the same thing, but with a different philoso
 To do React.js on server side, you need to use a tool named `jopin` (jopib for bun.js).
 This tool allows you to import CSS and images, exactly like what you did when using Vite.js/WebPack.
 
-`jopin` is used in replacement to `node`. Where you do `node ./myScript.js` you must do `jopin ./myscript.js`.
-
-To use `jopin` you must start by installing the package `jopi-loader` globally:
-* With node.js: `npm install jopi-loader --global`
-* Or with bun.js: `bun install jopi-loader --global`
-
-> Once jopi-loader installed, the tools jopin and jopib are added and reachable from everywhere on your system.
+See: [Installing JOPIN](_doc/how_to_start/installing_jopin.md)
 
 ## React SSR
 
