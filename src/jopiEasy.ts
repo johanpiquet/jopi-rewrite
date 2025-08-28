@@ -14,7 +14,7 @@ import {
 import path from "node:path";
 import fsc from "node:fs";
 
-import {ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
+import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
 import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.ts";
 import {setConfig_disableTailwind} from "./hydrate.ts";
@@ -57,6 +57,93 @@ class JopiEasy {
 }
 
 export const jopiApp = new JopiApp();
+
+//region CreateServerFetch
+
+class CreateServerFetch<T, R extends CreateServerFetch_NextStep<T>> {
+    protected options?: ServerFetchOptions<T>;
+
+    protected createNextStep(options: ServerFetchOptions<T>): R {
+        return new CreateServerFetch_NextStep(options) as R;
+    }
+
+    /**
+     * The server will be call with his IP and not his hostname
+     * which will only be set in the headers. It's required when
+     * the DNS doesn't pinpoint to the god server.
+     */
+    useIp(serverOrigin: string, ip: string, options?: ServerFetchOptions<T>) {
+        let rOptions = ServerFetch.getOptionsFor_useIP<T>(serverOrigin, ip, options);
+        this.options = rOptions;
+        return this.createNextStep(rOptions);
+    }
+
+    useOrigin(serverOrigin: string, options?: ServerFetchOptions<T>) {
+        let rOptions = ServerFetch.getOptionsFor_useOrigin<T>(serverOrigin, options);
+        this.options = rOptions;
+        return this.createNextStep(rOptions);
+    }
+}
+
+class CreateServerFetch_NextStep<T> {
+    constructor(protected options: ServerFetchOptions<T>) {
+    }
+
+    set_weight(weight: number) {
+        this.options.weight = weight;
+        return this;
+    }
+
+    set_isMainServer() {
+        return this.set_weight(1);
+    }
+
+    set_isBackupServer() {
+        return this.set_weight(0);
+    }
+
+    on_beforeRequesting(handler: (url: string, fetchOptions: FetchOptions, data: T)=>void|Promise<void>) {
+        this.options.beforeRequesting = handler;
+        return this;
+    }
+
+    on_ifServerIsDown(handler: (builder: IfServerDownBuilder<T>)=>void|Promise<void>) {
+        this.options.ifServerIsDown = async (_fetcher, data) => {
+            const {builder, getResult} = IfServerDownBuilder.newBuilder<T>(data);
+
+            let r = handler(builder);
+            if (r instanceof Promise) await r;
+
+            let options = getResult();
+
+            if (options) {
+                const res: ServerDownResult<T> = {
+                    newServer: ServerFetch.useAsIs(options),
+                    newServerWeight: options?.weight
+                }
+
+                return res;
+            }
+
+            return undefined;
+        }
+
+        return this;
+    }
+}
+
+class IfServerDownBuilder<T> extends CreateServerFetch<T, CreateServerFetch_NextStep<T>> {
+    constructor(public readonly data: T) {
+        super();
+    }
+
+    static newBuilder<T>(data: T) {
+        const b = new IfServerDownBuilder<T>(data);
+        return {builder: b, getResult: () => b.options};
+    }
+}
+
+//endregion
 
 //region WebSite
 
@@ -137,8 +224,8 @@ class JopiEasyWebSite {
         return new WebSiteCacheBuilder(this, this.internals);
     }
 
-    add_sourceServer<T>(weight: number = 1) {
-        return new WebSite_AddSourceServerBuilder(this, this.internals, weight);
+    add_sourceServer<T>() {
+        return new WebSite_AddSourceServerBuilder(this, this.internals);
     }
 
     add_middleware() {
@@ -229,10 +316,14 @@ class WebSite_MiddlewareBuilder {
     }
 }
 
-class WebSite_AddSourceServerBuilder<T> {
+//region WebSite_AddSourceServerBuilder
+
+class WebSite_AddSourceServerBuilder<T> extends CreateServerFetch<T, WebSite_AddSourceServerBuilder_NextStep<T>> {
     private serverFetch?: ServerFetch<T>;
 
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private weight: number) {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+        super();
+
         this.internals.afterHook.push(webSite => {
             if (this.serverFetch) {
                 webSite.addSourceServer(this.serverFetch);
@@ -240,39 +331,38 @@ class WebSite_AddSourceServerBuilder<T> {
         });
     }
 
-    set_weight(weight: number) {
-        this.weight = weight;
-        return this;
+    protected override createNextStep(options: ServerFetchOptions<T>): WebSite_AddSourceServerBuilder_NextStep<T> {
+        return new WebSite_AddSourceServerBuilder_NextStep(this.webSite, this.internals, options);
     }
 
     END_add_sourceServer() {
         return this.webSite;
     }
 
-    /**
-     * The server will be call with his IP and not his hostname
-     * which will only be set in the headers. It's required when
-     * the DNS doesn't pinpoint to the god server.
-     */
-    useIp(serverOrigin: string, ip: string, options?: ServerFetchOptions<T>) {
-        let urlInfos = new URL(serverOrigin);
-        let hostName = urlInfos.hostname;
-        urlInfos.hostname = ip;
-        serverOrigin = urlInfos.href;
-
-        this.serverFetch = ServerFetch.useOrigin(serverOrigin, hostName, options);
-        return this;
-    }
-
-    useOrigin(serverOrigin: string, options?: ServerFetchOptions<T>) {
-        this.serverFetch = ServerFetch.useOrigin(serverOrigin, undefined, options);
-        return this;
-    }
-
-    add_sourceServer<T>(weight: number = 1) {
-        return new WebSite_AddSourceServerBuilder(this.webSite, this.internals, weight);
+    add_sourceServer<T>() {
+        return new WebSite_AddSourceServerBuilder<T>(this.webSite, this.internals);
     }
 }
+
+class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextStep<T> {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, options: ServerFetchOptions<T>) {
+        super(options);
+
+        this.internals.afterHook.push(webSite => {
+            webSite.addSourceServer(ServerFetch.useAsIs(this.options));
+        });
+    }
+
+    END_add_sourceServer() {
+        return this.webSite;
+    }
+
+    add_sourceServer<T>() {
+        return new WebSite_AddSourceServerBuilder<T>(this.webSite, this.internals);
+    }
+}
+
+//endregion
 
 class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
     getInternals() {
@@ -436,11 +526,6 @@ class ReverseProxyBuilder {
         this.internals = this.webSite.getInternals();
 
         this.internals.afterHook.push(webSite => {
-            this.targets.forEach(target => {
-                let sf = target.compile();
-                (webSite as WebSiteImpl).addSourceServer(sf);
-            });
-
             const handler: JopiRouteHandler = req => {
                 req.headers.set('X-Forwarded-Proto', req.urlInfos.protocol.replace(':', ''));
                 req.headers.set('X-Forwarded-Host', req.urlInfos.host)
@@ -457,13 +542,18 @@ class ReverseProxyBuilder {
         });
     }
 
-    private readonly targets: ReverseProxyTarget_ExposePrivate[] = [];
+    add_target<T>(): ReverseProxyBuilder_AddTarget<T> {
+        const {builder, getOptions} = ReverseProxyBuilder_AddTarget.newBuilder<T>(this);
 
-    add_target(url: string): ReverseProxyTarget {
-        // Using ReverseProxyTarget2 but returning ReverseProxyTarget allow masking the private things.
-        const target = new ReverseProxyTarget_ExposePrivate(this, url);
-        this.targets.push(target);
-        return target as ReverseProxyTarget;
+        this.internals.afterHook.push(webSite => {
+            let options = getOptions();
+
+            if (options) {
+                webSite.addSourceServer(ServerFetch.useAsIs<T>(options));
+            }
+        });
+
+        return builder;
     }
 
     DONE_new_reverseProxy() {
@@ -471,58 +561,28 @@ class ReverseProxyBuilder {
     }
 }
 
-class ReverseProxyTarget {
-    protected weight: number = 1;
-    protected origin: string;
-    protected hostName: string;
-    protected publicUrl: string;
+class ReverseProxyBuilder_AddTarget<T> extends CreateServerFetch<T, ReverseProxyBuilder_AddTarget_NextStep<T>> {
+    static newBuilder<T>(parent: ReverseProxyBuilder) {
+        const b = new ReverseProxyBuilder_AddTarget<T>(parent);
+        return {builder: b, getOptions: () => b.options};
+    }
 
-    constructor(private readonly parent: ReverseProxyBuilder, url: string) {
-        const urlInfos = new URL(url);
-        this.publicUrl = url;
-        this.origin = urlInfos.origin;
-        this.hostName = urlInfos.hostname;
+    constructor(private readonly parent: ReverseProxyBuilder) {
+        super();
     }
 
     DONE_add_target() {
         return this.parent;
     }
-
-    useIp(ip: string) {
-        let urlInfos = new URL(this.origin);
-        urlInfos.host = ip;
-        this.origin = urlInfos.href;
-
-        return this;
-    }
-
-    setWeight(weight: number) {
-        if (weight < 0) this.weight = 0;
-        else if (weight > 1) this.weight = 1;
-        else this.weight = weight;
-
-        return this;
-    }
-
-    set_isMainServer() {
-        this.weight = 1;
-        return this;
-    }
-
-    set_isBackupServer() {
-        this.weight = 0;
-        return this;
-    }
 }
 
-class ReverseProxyTarget_ExposePrivate extends ReverseProxyTarget {
-    public compile(): ServerFetch<any> {
-        let options: ServerFetchOptions<any> = {
-            userDefaultHeaders: true,
-            publicUrl: this.publicUrl
-        };
+class ReverseProxyBuilder_AddTarget_NextStep<T> extends CreateServerFetch_NextStep<T> {
+    constructor(private readonly parent: ReverseProxyBuilder, protected options: ServerFetchOptions<T>) {
+        super(options);
+    }
 
-        return ServerFetch.useOrigin(this.origin, this.hostName, options);
+    DONE_add_target() {
+        return this.parent;
     }
 }
 

@@ -37,7 +37,7 @@ export interface ServerFetchOptions<T> {
      *      true if we can retry the call.
      *      false if we can't.
      */
-    ifServerIsDown?: (fetcher: ServerFetch<T>, data: T)=>void|Promise<ServerDownResult<T>>;
+    ifServerIsDown?: (fetcher: ServerFetch<T>, data: T)=>Promise<ServerDownResult<T>|undefined>;
 
     headers?: Headers;
     userDefaultHeaders?: boolean;
@@ -68,6 +68,11 @@ export interface ServerFetchOptions<T> {
      * Allow rewriting a redirection.
      */
     translateRedirect?: (url: string)=>URL;
+
+    /**
+     * The weight of this server, if using inside a load balancer.
+     */
+    weight?: number;
 }
 
 export class ServerFetch<T> {
@@ -85,9 +90,9 @@ export class ServerFetch<T> {
      *      Ex: http://127.0.0.1 --> https://www.mywebiste.com
      *      Ex: https://my-server.com --> https://134.555.666.66:7890 (with hostname: my-server.com)
      *
-     * @param sPublicUrl
+     * @param publicUrl
      *      The origin of our current website.
-     * @param sTargerUrl
+     * @param targetUrl
      *      The origin of the target website.
      * @param hostName
      *      Must be set if toOrigin use an IP and not a hostname.
@@ -95,21 +100,25 @@ export class ServerFetch<T> {
      * @param options
      *      Options for the ServerFetch instance.
      */
-    static fromTo<T>(sPublicUrl: string, sTargerUrl: string, hostName?: string, options?: ServerFetchOptions<T>): ServerFetch<T> {
-        const publicUrl = new URL(sPublicUrl);
-        const targetUrl = new URL(sTargerUrl);
-        sTargerUrl = targetUrl.toString().slice(0, -1);
+    static fromTo<T>(publicUrl: string, targetUrl: string, hostName?: string, options?: ServerFetchOptions<T>): ServerFetch<T> {
+        return new ServerFetch<T>(ServerFetch.getOptionsFor_fromTo(publicUrl, targetUrl, hostName, options));
+    }
 
-        if (!hostName) hostName = targetUrl.hostname;
+    static getOptionsFor_fromTo<T>(publicUrl: string, targetUrl: string, hostName?: string, options?: ServerFetchOptions<T>): ServerFetchOptions<T> {
+        const uPublicUrl = new URL(publicUrl);
+        const uTargetUrl = new URL(targetUrl);
+        targetUrl = uTargetUrl.toString().slice(0, -1);
 
-        return new ServerFetch<T>({
+        if (!hostName) hostName = uTargetUrl.hostname;
+
+        return {
             ...options,
 
             rewriteUrl(url: string, headers: Headers) {
                 const urlInfos = new URL(url);
-                urlInfos.port = targetUrl.port;
-                urlInfos.protocol = targetUrl.protocol;
-                urlInfos.hostname = targetUrl.hostname;
+                urlInfos.port = uTargetUrl.port;
+                urlInfos.protocol = uTargetUrl.protocol;
+                urlInfos.hostname = uTargetUrl.hostname;
 
                 if (hostName) {
                     headers.set('Host', hostName);
@@ -120,24 +129,50 @@ export class ServerFetch<T> {
 
             translateRedirect(url: string) {
                 if (url[0]==="/") {
-                    url = sTargerUrl + url;
+                    url = targetUrl + url;
                 }
 
                 const urlInfos = new URL(url);
-                urlInfos.port = publicUrl.port;
-                urlInfos.protocol = publicUrl.protocol;
-                urlInfos.hostname = publicUrl.hostname;
+                urlInfos.port = uPublicUrl.port;
+                urlInfos.protocol = uPublicUrl.protocol;
+                urlInfos.hostname = uPublicUrl.hostname;
 
                 return urlInfos;
             }
-        });
+        };
     }
 
-    static useOrigin<T>(serverOrigin: string, hostName?: string, options?: ServerFetchOptions<T>) {
-        const urlOrigin = new URL(serverOrigin);
-        if (!hostName) hostName = urlOrigin.hostname;
+    static useOrigin<T>(serverOrigin: string, options?: ServerFetchOptions<T>) {
+        return new ServerFetch<T>(ServerFetch.getOptionsFor_useOrigin(serverOrigin, options));
+    }
 
-        return new ServerFetch<T>({
+    static useIP<T>(serverOrigin: string, ip: string, options?: ServerFetchOptions<T>) {
+        return new ServerFetch<T>(ServerFetch.getOptionsFor_useIP(serverOrigin, ip, options));
+    }
+
+    static getOptionsFor_useOrigin<T>(serverOrigin: string, options?: ServerFetchOptions<T>): ServerFetchOptions<T> {
+        const urlOrigin = new URL(serverOrigin);
+
+        return {
+            ...options,
+
+            rewriteUrl(url: string) {
+                const urlInfos = new URL(url);
+                urlInfos.port = urlOrigin.port;
+                urlInfos.protocol = urlOrigin.protocol;
+                urlInfos.hostname = urlOrigin.hostname;
+
+                return urlInfos;
+            }
+        }
+    }
+
+    static getOptionsFor_useIP<T>(serverOrigin: string, ip: string, options?: ServerFetchOptions<T>): ServerFetchOptions<T> {
+        let urlOrigin = new URL(serverOrigin);
+        let hostName = urlOrigin.hostname;
+        urlOrigin.hostname = ip;
+
+        return {
             ...options,
 
             rewriteUrl(url: string, headers: Headers) {
@@ -152,7 +187,7 @@ export class ServerFetch<T> {
 
                 return urlInfos;
             }
-        });
+        }
     }
 
     static useAsIs<T>(options?: ServerFetchOptions<T>) {
@@ -352,19 +387,15 @@ export class ServerFetch<T> {
         } catch(e) {
             if (this.options.ifServerIsDown) {
                 // Allow we to know there is something fishy.
-                const r = this.options.ifServerIsDown(this, this.options.data!);
+                const result = await this.options.ifServerIsDown(this, this.options.data!);
 
-                if (r instanceof Promise) {
-                    const result = await r;
-
-                    // We can retry to send the request?
-                    if (result.newServer) {
-                        if (this.loadBalancer) {
-                            this.loadBalancer.replaceServer(this, result.newServer, result.newServerWeight);
-                        }
-
-                        return result.newServer.doFetch(method, bckURL, body, headers);
+                // We can retry to send the request?
+                if (result && result.newServer) {
+                    if (this.loadBalancer) {
+                        this.loadBalancer.replaceServer(this, result.newServer, result.newServerWeight);
                     }
+
+                    return result.newServer.doFetch(method, bckURL, body, headers);
                 }
             }
 
