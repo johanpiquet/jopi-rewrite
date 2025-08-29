@@ -1,3 +1,5 @@
+/// <reference path="cheerio.d.ts" />
+
 // noinspection JSUnusedGlobalSymbols
 
 import * as path from "node:path";
@@ -930,8 +932,15 @@ export class JopiRequest {
 
     //endregion
 
-    filterSearchParams(filter: SearchParamFilterFunction) {
-        filter(this.urlInfos);
+    filterSearchParams(filter?: SearchParamFilterFunction) {
+        if (filter) {
+            filter(this.urlInfos);
+        }
+        else {
+            if (this.route.searchParamFilter) {
+                this.route.searchParamFilter(this.urlInfos);
+            }
+        }
     }
 
     getContentTypeOf(response: Response): string|null {

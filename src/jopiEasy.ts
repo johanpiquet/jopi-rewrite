@@ -23,19 +23,19 @@ import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./ca
 import {SimpleFileCache} from "./caches/SimpleFileCache.js";
 import {Middlewares} from "./middlewares/index.js";
 import type {DdosProtectionOptions} from "./middlewares/DdosProtection.js";
-import {AutomaticStartStop} from "./automaticStartStop.js";
+import type {SearchParamFilterFunction} from "./searchParamFilter.js";
 
 serverInitChrono.start("jopiEasy lib");
 
 class JopiApp {
     private _isStartAppSet: boolean = false;
 
-    globalConfig() {
+    globalConfig(): GlobalConfigBuilder {
         if (this._isStartAppSet) throw "App is already started";
         return new GlobalConfigBuilder();
     }
 
-    startApp(f: (jopiEasy: JopiEasy) => void) {
+    startApp(f: (jopiEasy: JopiEasy) => void): void {
         if (this._isStartAppSet) throw "App is already started";
         this._isStartAppSet = true;
 
@@ -73,13 +73,13 @@ class CreateServerFetch<T, R extends CreateServerFetch_NextStep<T>> {
      * which will only be set in the headers. It's required when
      * the DNS doesn't pinpoint to the god server.
      */
-    useIp(serverOrigin: string, ip: string, options?: ServerFetchOptions<T>) {
+    useIp(serverOrigin: string, ip: string, options?: ServerFetchOptions<T>): R {
         let rOptions = ServerFetch.getOptionsFor_useIP<T>(serverOrigin, ip, options);
         this.options = rOptions;
         return this.createNextStep(rOptions);
     }
 
-    useOrigin(serverOrigin: string, options?: ServerFetchOptions<T>) {
+    useOrigin(serverOrigin: string, options?: ServerFetchOptions<T>): R {
         let rOptions = ServerFetch.getOptionsFor_useOrigin<T>(serverOrigin, options);
         this.options = rOptions;
         return this.createNextStep(rOptions);
@@ -90,25 +90,25 @@ class CreateServerFetch_NextStep<T> {
     constructor(protected options: ServerFetchOptions<T>) {
     }
 
-    set_weight(weight: number) {
+    set_weight(weight: number): this {
         this.options.weight = weight;
         return this;
     }
 
-    set_isMainServer() {
+    set_isMainServer(): this {
         return this.set_weight(1);
     }
 
-    set_isBackupServer() {
+    set_isBackupServer(): this {
         return this.set_weight(0);
     }
 
-    on_beforeRequesting(handler: (url: string, fetchOptions: FetchOptions, data: T)=>void|Promise<void>) {
+    on_beforeRequesting(handler: (url: string, fetchOptions: FetchOptions, data: T)=>void|Promise<void>): this {
         this.options.beforeRequesting = handler;
         return this;
     }
 
-    on_ifServerIsDown(handler: (builder: IfServerDownBuilder<T>)=>void|Promise<void>) {
+    on_ifServerIsDown(handler: (builder: IfServerDownBuilder<T>)=>void|Promise<void>): this {
         this.options.ifServerIsDown = async (_fetcher, data) => {
             const {builder, getResult} = IfServerDownBuilder.newBuilder<T>(data);
 
@@ -132,12 +132,12 @@ class CreateServerFetch_NextStep<T> {
         return this;
     }
 
-    do_startServer(handler: () => Promise<number>) {
+    do_startServer(handler: () => Promise<number>): this {
         this.options.doStartServer = handler;
         return this;
     }
 
-    do_stopServer(handler: () => Promise<void>) {
+    do_stopServer(handler: () => Promise<void>): this {
         this.options.doStopServer = handler;
         return this;
     }
@@ -200,7 +200,7 @@ class JopiEasyWebSite {
         }
     }
 
-    hook_webSite(hook: (webSite: WebSite) => void) {
+    hook_webSite(hook: (webSite: WebSite) => void): this {
         this.internals.onHookWebSite = hook;
         return this;
     }
@@ -209,11 +209,11 @@ class JopiEasyWebSite {
         return jopiApp;
     }
 
-    add_httpCertificate() {
+    add_httpCertificate(): CertificateBuilder {
         return new CertificateBuilder(this, this.internals);
     }
 
-    add_jwtTokenAuth() {
+    add_jwtTokenAuth(): { step_setPrivateKey: (privateKey: string) => ReturnType<JwtTokenAuth_Builder["setPrivateKey_STEP"]> } {
         const builder = new JwtTokenAuth_Builder(this, this.internals);
 
         return {
@@ -221,33 +221,33 @@ class JopiEasyWebSite {
         }
     }
 
-    add_path(path: string|string[]) {
+    add_path(path: string|string[]): WebSiteContentBuilder {
         return new WebSiteContentBuilder(this, this.internals, path);
     }
 
-    add_path_GET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>) {
+    add_path_GET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): this {
         let res = new WebSiteContentBuilder(this, this.internals, path);
         res.onGET(handler);
         return this;
     }
 
-    add_cache() {
+    add_cache(): WebSiteCacheBuilder {
         return new WebSiteCacheBuilder(this, this.internals);
     }
 
-    add_sourceServer<T>() {
-        return new WebSite_AddSourceServerBuilder(this, this.internals);
+    add_sourceServer<T>(): WebSite_AddSourceServerBuilder<T> {
+        return new WebSite_AddSourceServerBuilder<T>(this, this.internals);
     }
 
-    add_middleware() {
+    add_middleware(): WebSite_MiddlewareBuilder {
         return new WebSite_MiddlewareBuilder(this, this.internals);
     }
 
-    add_postMiddleware() {
+    add_postMiddleware(): WebSite_PostMiddlewareBuilder {
         return new WebSite_PostMiddlewareBuilder(this, this.internals);
     }
 
-    add_specialPageHandler() {
+    add_specialPageHandler(): WebSite_AddSpecialPageHandler {
         return new WebSite_AddSpecialPageHandler(this, this.internals);
     }
 }
@@ -256,11 +256,11 @@ class WebSite_AddSpecialPageHandler {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
     }
 
-    END_add_specialPageHandler() {
+    END_add_specialPageHandler(): JopiEasyWebSite {
         return this.webSite;
     }
 
-    on_404_NotFound(handler: (req: JopiRequest) => Promise<Response>) {
+    on_404_NotFound(handler: (req: JopiRequest) => Promise<Response>): this {
         this.internals.afterHook.push(webSite => {
             webSite.on404_NotFound(handler);
         });
@@ -268,7 +268,7 @@ class WebSite_AddSpecialPageHandler {
         return this;
     }
 
-    on_500_Error(handler: (req: JopiRequest) => Promise<Response>) {
+    on_500_Error(handler: (req: JopiRequest) => Promise<Response>): this {
         this.internals.afterHook.push(webSite => {
             webSite.on500_Error(handler);
         });
@@ -276,7 +276,7 @@ class WebSite_AddSpecialPageHandler {
         return this;
     }
 
-    on_401_Unauthorized(handler: (req: JopiRequest) => Promise<Response>) {
+    on_401_Unauthorized(handler: (req: JopiRequest) => Promise<Response>): this {
         this.internals.afterHook.push(webSite => {
             webSite.on401_Unauthorized(handler);
         });
@@ -289,11 +289,11 @@ class WebSite_PostMiddlewareBuilder {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
     }
 
-    END_add_postMiddleware() {
+    END_add_postMiddleware(): JopiEasyWebSite {
         return this.webSite;
     }
 
-    use_custom(myMiddleware: JopiPostMiddleware) {
+    use_custom(myMiddleware: JopiPostMiddleware): this {
         this.internals.afterHook.push(webSite => {
             webSite.addPostMiddleware(myMiddleware);
         });
@@ -306,11 +306,11 @@ class WebSite_MiddlewareBuilder {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
     }
 
-    END_add_middleware() {
+    END_add_middleware(): JopiEasyWebSite {
         return this.webSite;
     }
 
-    use_custom(myMiddleware: JopiMiddleware) {
+    use_custom(myMiddleware: JopiMiddleware): this {
         this.internals.afterHook.push(webSite => {
             webSite.addMiddleware(myMiddleware);
         });
@@ -318,11 +318,11 @@ class WebSite_MiddlewareBuilder {
         return this;
     }
 
-    use_requestTimeout_sec(timeSec: number) {
+    use_requestTimeout_sec(timeSec: number): this {
         return this.use_custom(Middlewares.requestTimeout_sec(timeSec));
     }
 
-    use_ddosProtection(options?: DdosProtectionOptions) {
+    use_ddosProtection(options?: DdosProtectionOptions): this {
         return this.use_custom(Middlewares.ddosProtection(options));
     }
 }
@@ -346,11 +346,11 @@ class WebSite_AddSourceServerBuilder<T> extends CreateServerFetch<T, WebSite_Add
         return new WebSite_AddSourceServerBuilder_NextStep(this.webSite, this.internals, options);
     }
 
-    END_add_sourceServer() {
+    END_add_sourceServer(): JopiEasyWebSite {
         return this.webSite;
     }
 
-    add_sourceServer<T>() {
+    add_sourceServer<T>(): WebSite_AddSourceServerBuilder<T> {
         return new WebSite_AddSourceServerBuilder<T>(this.webSite, this.internals);
     }
 }
@@ -364,11 +364,11 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
         });
     }
 
-    END_add_sourceServer() {
+    END_add_sourceServer(): JopiEasyWebSite {
         return this.webSite;
     }
 
-    add_sourceServer<T>() {
+    add_sourceServer<T>(): WebSite_AddSourceServerBuilder<T> {
         return new WebSite_AddSourceServerBuilder<T>(this.webSite, this.internals);
     }
 }
@@ -376,7 +376,7 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
 //endregion
 
 class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
-    getInternals() {
+    getInternals(): WebSiteInternal {
         return this.internals;
     }
 }
@@ -386,6 +386,7 @@ class WebSiteContentBuilder {
     private verb?: HttpMethod;
     private handler?: (req: JopiRequest) => Promise<Response>;
     private wsHandler?: JopiWsRouteHandler;
+    private searchParamFilter?: SearchParamFilterFunction;
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string|string[]) {
         this.internals.afterHook.push(webSite => {
@@ -402,74 +403,80 @@ class WebSiteContentBuilder {
                     }
                 }
 
-                webSite.onVerb(this.verb!, this.path, handler);
+                let route = webSite.onVerb(this.verb!, this.path, handler);
+                if (this.searchParamFilter) route.searchParamFilter = this.searchParamFilter;
             }
 
             if (this.wsHandler) {
                 if (this.path instanceof Array) {
                     this.path.forEach(p => webSite.onWebSocketConnect(p, this.wsHandler!));
                 } else {
-                    webSite.onWebSocketConnect(this.path, this.wsHandler)
+                    webSite.onWebSocketConnect(this.path as string, this.wsHandler)
                 }
             }
         });
     }
 
-    DONE_add_path() {
+    DONE_add_path(): JopiEasyWebSite {
         return this.webSite;
     }
 
-    add_path(path: string|string[]) {
+    add_path(path: string|string[]): WebSiteContentBuilder {
         return new WebSiteContentBuilder(this.webSite, this.internals, path);
     }
 
-    add_requiredRole(role: string) {
+    add_requiredRole(role: string): WebSiteContentBuilder {
         if (!this.requiredRoles) this.requiredRoles = [role];
         else this.requiredRoles.push(role);
         return this;
     }
 
-    add_requiredRoles(roles: string[]) {
+    add_requiredRoles(roles: string[]): WebSiteContentBuilder {
         if (!this.requiredRoles) this.requiredRoles = [...roles];
         else this.requiredRoles = [...this.requiredRoles, ...roles];
         return this;
     }
 
-    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>) {
+    add_searchParamFiler(filter: SearchParamFilterFunction): WebSiteContentBuilder {
+        this.searchParamFilter = filter;
+        return this;
+    }
+
+    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
         this.verb = verb;
         this.handler = handler;
         return this;
     }
 
-    onGET(handler: (req: JopiRequest) => Promise<Response>) {
+    onGET(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
         return this.onRequest("GET", handler);
     }
 
-    onPOST(handler: (req: JopiRequest) => Promise<Response>) {
+    onPOST(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
         return this.onRequest("POST", handler);
     }
 
-    onPUT(handler: (req: JopiRequest) => Promise<Response>) {
+    onPUT(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
         return this.onRequest("PUT", handler);
     }
 
-    onDELETE(handler: (req: JopiRequest) => Promise<Response>) {
+    onDELETE(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
         return this.onRequest("DELETE", handler);
     }
 
-    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>) {
+    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
         return this.onRequest("OPTIONS", handler);
     }
 
-    onPATCH(handler: (req: JopiRequest) => Promise<Response>) {
+    onPATCH(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
         return this.onRequest("PATCH", handler);
     }
 
-    onHEAD(handler: (req: JopiRequest) => Promise<Response>) {
+    onHEAD(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
         return this.onRequest("HEAD", handler);
     }
 
-    onWebSocketConnect(handler: JopiWsRouteHandler) {
+    onWebSocketConnect(handler: JopiWsRouteHandler): { add_path: (path: string) => WebSiteContentBuilder, DONE_add_path: () => JopiEasyWebSite } {
         this.wsHandler = handler;
 
         return {
@@ -490,19 +497,19 @@ class WebSiteCacheBuilder {
         });
     }
 
-    use_inMemoryCache(options?: InMemoryCacheOptions) {
+    use_inMemoryCache(options?: InMemoryCacheOptions): this {
         if (options) initMemoryCache(options);
         this.cache = getInMemoryCache();
 
         return this;
     }
 
-    use_fileSystemCache(rootDir: string) {
+    use_fileSystemCache(rootDir: string): this {
         this.cache = new SimpleFileCache(rootDir);
         return this;
     }
 
-    END_add_cache() {
+    END_add_cache(): JopiEasyWebSite {
         return this.webSite;
     }
 }
@@ -513,7 +520,7 @@ class WebSiteCacheBuilder {
 
 let gIsAutoStartDone = false;
 
-function autoStartServer() {
+function autoStartServer(): void {
     if (gIsAutoStartDone) return;
     gIsAutoStartDone = true;
 
@@ -567,13 +574,13 @@ class ReverseProxyBuilder {
         return builder;
     }
 
-    DONE_new_reverseProxy() {
+    DONE_new_reverseProxy(): JopiEasyWebSite_ExposePrivate {
         return this.webSite;
     }
 }
 
 class ReverseProxyBuilder_AddTarget<T> extends CreateServerFetch<T, ReverseProxyBuilder_AddTarget_NextStep<T>> {
-    static newBuilder<T>(parent: ReverseProxyBuilder) {
+    static newBuilder<T>(parent: ReverseProxyBuilder): { builder: ReverseProxyBuilder_AddTarget<T>, getOptions: () => ServerFetchOptions<T> | undefined } {
         const b = new ReverseProxyBuilder_AddTarget<T>(parent);
         return {builder: b, getOptions: () => b.options};
     }
@@ -582,7 +589,7 @@ class ReverseProxyBuilder_AddTarget<T> extends CreateServerFetch<T, ReverseProxy
         super();
     }
 
-    DONE_add_target() {
+    DONE_add_target(): ReverseProxyBuilder {
         return this.parent;
     }
 }
@@ -592,7 +599,7 @@ class ReverseProxyBuilder_AddTarget_NextStep<T> extends CreateServerFetch_NextSt
         super(options);
     }
 
-    DONE_add_target() {
+    DONE_add_target(): ReverseProxyBuilder {
         return this.parent;
     }
 }
@@ -632,17 +639,17 @@ class FileServerBuilder {
         });
     }
 
-    set_rootDir(rootDir: string) {
+    set_rootDir(rootDir: string): this {
         this.options.rootDir = rootDir;
         return this;
     }
 
-    set_onNotFound(handler: (req: JopiRequest) => Response|Promise<Response>) {
+    set_onNotFound(handler: (req: JopiRequest) => Response|Promise<Response>): this {
         this.options.onNotFound = handler;
         return this;
     }
 
-    DONE_new_fileServer() {
+    DONE_new_fileServer(): JopiEasyWebSite_ExposePrivate {
         return this.webSite;
     }
 }
@@ -905,7 +912,7 @@ class JwtTokenAuth_Builder {
 //region Config
 
 class GlobalConfigBuilder {
-    disable_tailwind() {
+    disable_tailwind(): void {
         setConfig_disableTailwind();
     }
 }
