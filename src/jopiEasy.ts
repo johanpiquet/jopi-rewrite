@@ -221,12 +221,12 @@ class JopiEasyWebSite {
         }
     }
 
-    add_path(path: string|string[]): WebSiteContentBuilder {
-        return new WebSiteContentBuilder(this, this.internals, path);
+    add_path(path: string|string[]): WebSitePathBuilder {
+        return new WebSitePathBuilder(this, this.internals, path);
     }
 
     add_path_GET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): this {
-        let res = new WebSiteContentBuilder(this, this.internals, path);
+        let res = new WebSitePathBuilder(this, this.internals, path);
         res.onGET(handler);
         return this;
     }
@@ -381,18 +381,17 @@ class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
     }
 }
 
-class WebSiteContentBuilder {
+class WebSitePathBuilder_NextStep {
     private requiredRoles?: string[];
-    private verb?: HttpMethod;
-    private handler?: (req: JopiRequest) => Promise<Response>;
-    private wsHandler?: JopiWsRouteHandler;
     private searchParamFilter?: SearchParamFilterFunction;
 
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string|string[]) {
-        this.internals.afterHook.push(webSite => {
-            if (this.handler) {
-                let handler = this.handler;
+    constructor(private readonly webSite: JopiEasyWebSite,
+                private readonly internals: WebSiteInternal,
+                private readonly path: string|string[],
+                verb: HttpMethod,
+                handler: (req: JopiRequest) => Promise<Response>) {
 
+        internals.afterHook.push(webSite => {
                 if (this.requiredRoles) {
                     const requiredRoles = this.requiredRoles;
                     const oldHandler = handler;
@@ -403,17 +402,8 @@ class WebSiteContentBuilder {
                     }
                 }
 
-                let route = webSite.onVerb(this.verb!, this.path, handler);
+                let route = webSite.onVerb(verb, path, handler);
                 if (this.searchParamFilter) route.searchParamFilter = this.searchParamFilter;
-            }
-
-            if (this.wsHandler) {
-                if (this.path instanceof Array) {
-                    this.path.forEach(p => webSite.onWebSocketConnect(p, this.wsHandler!));
-                } else {
-                    webSite.onWebSocketConnect(this.path as string, this.wsHandler)
-                }
-            }
         });
     }
 
@@ -421,66 +411,79 @@ class WebSiteContentBuilder {
         return this.webSite;
     }
 
-    add_path(path: string|string[]): WebSiteContentBuilder {
-        return new WebSiteContentBuilder(this.webSite, this.internals, path);
+    add_path(path: string|string[]): WebSitePathBuilder {
+        return new WebSitePathBuilder(this.webSite, this.internals, path);
     }
 
-    add_requiredRole(role: string): WebSiteContentBuilder {
+    add_samePath(): WebSitePathBuilder {
+        return new WebSitePathBuilder(this.webSite, this.internals, this.path);
+    }
+
+    add_requiredRole(role: string): WebSitePathBuilder_NextStep {
         if (!this.requiredRoles) this.requiredRoles = [role];
         else this.requiredRoles.push(role);
         return this;
     }
 
-    add_requiredRoles(roles: string[]): WebSiteContentBuilder {
+    add_requiredRoles(roles: string[]): WebSitePathBuilder_NextStep {
         if (!this.requiredRoles) this.requiredRoles = [...roles];
         else this.requiredRoles = [...this.requiredRoles, ...roles];
         return this;
     }
 
-    add_searchParamFiler(filter: SearchParamFilterFunction): WebSiteContentBuilder {
+    add_searchParamFiler(filter: SearchParamFilterFunction): WebSitePathBuilder_NextStep {
         this.searchParamFilter = filter;
         return this;
     }
+}
 
-    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
-        this.verb = verb;
-        this.handler = handler;
-        return this;
+class WebSitePathBuilder {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string|string[]) {
     }
 
-    onGET(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
+    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
+        return new WebSitePathBuilder_NextStep(this.webSite, this.internals, this.path, verb, handler);
+    }
+
+    onGET(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
         return this.onRequest("GET", handler);
     }
 
-    onPOST(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
+    onPOST(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
         return this.onRequest("POST", handler);
     }
 
-    onPUT(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
+    onPUT(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
         return this.onRequest("PUT", handler);
     }
 
-    onDELETE(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
+    onDELETE(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
         return this.onRequest("DELETE", handler);
     }
 
-    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
+    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
         return this.onRequest("OPTIONS", handler);
     }
 
-    onPATCH(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
+    onPATCH(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
         return this.onRequest("PATCH", handler);
     }
 
-    onHEAD(handler: (req: JopiRequest) => Promise<Response>): WebSiteContentBuilder {
+    onHEAD(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
         return this.onRequest("HEAD", handler);
     }
 
-    onWebSocketConnect(handler: JopiWsRouteHandler): { add_path: (path: string) => WebSiteContentBuilder, DONE_add_path: () => JopiEasyWebSite } {
-        this.wsHandler = handler;
+    onWebSocketConnect(handler: JopiWsRouteHandler): { add_path: (path: string) => WebSitePathBuilder, DONE_add_path: () => JopiEasyWebSite } {
+        this.internals.afterHook.push(webSite => {
+            if (this.path instanceof Array) {
+                this.path.forEach(p => webSite.onWebSocketConnect(p, handler));
+            } else {
+                webSite.onWebSocketConnect(this.path as string, handler)
+            }
+        });
 
         return {
-            add_path: (path: string) => new WebSiteContentBuilder(this.webSite, this.internals, path),
+            add_path: (path: string) => new WebSitePathBuilder(this.webSite, this.internals, path),
             DONE_add_path: () => this.webSite
         }
     }

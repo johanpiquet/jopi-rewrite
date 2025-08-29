@@ -42,32 +42,29 @@ We do this for several types of requests.
 import {jopiApp} from "jopi-rewrite";
 
 jopiApp.startApp(jopiEasy => {
-    jopiEasy.new_webSite("http://127.0.0.1")
-        .add_path("/")
-        .onGET(async req => {
-            const myData = await req.getReqData();
-            return req.jsonResponse(myData);
-        })
-        .onPOST(async req => {
-            const myData = await req.getReqData<any>();
-
-            // Handle the file.
-            if (myData["myFile"] && (myData["myFile"] instanceof Blob)) {
-                myData["myFile"] = await (myData["myFile"] as Blob).text();
-            }
-
-            return req.jsonResponse(myData);
-        })
-    .DONE_add_path()
-        .add_path("/category/:category/list")
-        .onGET(async req => {
-            const myData = await req.getReqData();
-            return req.jsonResponse(myData);
-        })
-        .onPOST(async req => {
-            const myData = await req.getReqData();
-            return req.jsonResponse(myData);
-        })
+  jopiEasy.new_webSite("http://127.0.0.1")
+      .add_path("/").onGET(async req => {
+        const myData = await req.getReqData();
+        return req.jsonResponse(myData);
+      })
+      .add_samePath().onPOST(async req => {
+        const myData = await req.getReqData<any>();
+  
+        // Handle the file.
+        if (myData["myFile"] && (myData["myFile"] instanceof Blob)) {
+          myData["myFile"] = await (myData["myFile"] as Blob).text();
+        }
+  
+        return req.jsonResponse(myData);
+      })
+      .add_path("/category/:category/list").onGET(async req => {
+        const myData = await req.getReqData();
+        return req.jsonResponse(myData);
+      })
+      .add_samePath().onPOST(async req => {
+        const myData = await req.getReqData();
+        return req.jsonResponse(myData);
+      })
 });
 ```
 

@@ -4,6 +4,9 @@
 
 When building a cache, it is essential to control the search params (the part after the `?` in the URL). If you allow any value, it becomes easy to write a script that will poison your cache. Jopi Rewrite includes features to help you with this. Here is an example of a filter, using rules to filter search params.
 
+> You can try url: http://127.0.0.1/search?sort=asc&unknow&query=my-search  
+> which will become: http://127.0.0.1/search?query=my-search&sort=asc
+
 ```typescript
 import {buildSearchParamFilter, jopiApp} from "jopi-rewrite";
 

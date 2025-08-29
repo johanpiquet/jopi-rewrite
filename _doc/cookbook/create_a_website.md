@@ -82,6 +82,7 @@ jopiApp.startApp(jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path("/")
             .onGET(async req => req.htmlResponse("A GET request"))
+        .add_samePath()
             .onPOST(async req => req.htmlResponse("Received" + JSON.stringify(req.getReqData())))
         .DONE_add_path();
 });
