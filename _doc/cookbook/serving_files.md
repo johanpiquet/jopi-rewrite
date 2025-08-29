@@ -1,24 +1,17 @@
 # Serving files
 
-Jopi Rewrite allows you to serve files from a directory. You can do it through `req.serveFile`.
-It's a basic file server, with memory efficient streaming, but which isn't adapted for video
-and big files (the reason being that it doesn't support the http header `Range`).
+Jopi Rewrite includes a file server. It's a basic file server, with memory efficient streaming. 
 
 ```typescript
-import {JopiServer, WebSite} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-const server = new JopiServer();
-const myWebSite = server.addWebsite(new WebSite("http://127.0.0.1"));
-server.startServer();
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_fileServer("https://127.0.0.1")
+        .set_rootDir("www")
+        .DONE_new_fileServer()
 
-myWebSite.onGET("/**", req => {
-    return req.serveFile("./my-static-website", {
-        // Will replace "/index.html" in the browser navbar by "/".
-        replaceIndexHtml: true,
-
-        // The default behavior to return "req.error404Response()".
-        // Here for this sample, we choose to redirect to the home page.
-        onNotFound: req => req.redirectResponse(false, "/")
-    });
+        // We can add a custom handler, which will have priority.
+        .add_path_GET("/version", async req =>
+            req.jsonResponse({version: "1.0.0"}));
 });
 ```

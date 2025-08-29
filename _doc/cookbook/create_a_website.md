@@ -1,9 +1,7 @@
 # Create a website
 
 ### More than one WebSite
-Jopi Rewrite allows you to create servers exposing multiple websites, which is useful when used as a cache or as a proxy.
-
-For this reason, the creation of the server and the creation of the *WebSite* are done in two steps.
+Jopi Rewrite allows you to create servers exposing multiple websites, which is useful when used as a cache or as a proxy. For this reason, the creation of the server and the creation of the *WebSite* are done in two steps.
 
 ```typescript title="Simple server sample"
 import {jopiApp} from "jopi-rewrite";

@@ -1,104 +1,90 @@
 ## Create the package.jsonc file
 
-Once Node.js, or Bun.js, is installed, we can create our project.
-Here we will use a *jsonc* which allows me to add comments.
+Once node.js, or bun.js, is installed, we can create our project.
 
-```json title="Our package.jsonc file"
+The first step is to create a `package.json`. Here I created a commented version, and you will have to remove this comment or use the `.jsonc`file extension.
+
+**File: package.json**
+```json
 {
     "dependencies": {
-        // For the server part of our project.
-        "jopi-rewrite": "latest",
-        // For the UI part of our project.
-        "jopi-rewrite-ui": "latest"
+        // Our only one dependency.
+        "jopi-rewrite": "latest"
     },
     "devDependencies": {
-        // It allows importing CSS/image in server side.
-        // Lile with Vites.js / WebPack, but for server code.
-        // (it's a must have for React Server Side project)
-        //
-        "jopi-loader": "latest",
-      
-        // Allow support for bun.js.
-        // It's include "@types/nodes" so we only need this one.
+        // Allow typescript auto completion for bun.js.
+        // It includes "@types/nodes" so we only need this one.
         "@types/bun": "latest"
     },
 
     "scripts": {
-        "start-bun": "bun --preload jopi-loader ./index.ts",
-        "start-node": "node --import jopi-loader ./index.js",
-
-        // It's shortcuts avoiding the preload/import.
-        "start-bun-with-loader": "jopib ./index.ts",
-        "start-node-with-loader": "jopin ./index.js",
+        // We need to use jopib et jopin
+        // which add capacities to the javascritp engine.
+        //
+        "start-bun": "jopib ./index.ts",
+        "start-node": "jopib ./index.js",
       
         // For node.js, transforming ".ts" to ".js".
         "tsc": "npx tsc"
     },
-    
-    // Optional, required if you create a library.
-    // (must be index.js for node.js)
-    "main": "index.ts",
   
     // Because we are using "import" and not "require".
     "type": "module"
 }
 ```
 
-> `jopib` and `jopin` are available when `jopi-loader` is installed globally.  
-> **npm install jopi-loader --global**
-> or **bun install jopi-loader --global**
-
 ## Create the tsconfig.json file
 
-We will now create a `./tsconfig.json` file to enable the TypeScript engine. This step is optional but important
-if you work with WebStorm or Visual Studio Code to get code auto-completion and code analysis to receive warnings
-in case of errors or bad practices.
+We will now create a `./tsconfig.json` file to enable the TypeScript engine. This step is optional but important if you work with WebStorm or Visual Studio Code to get code auto-completion and code analysis.
 
-```json title="Our tsconfig.json file"
+**File: tsconfig.json**
+```json
 {
   "compilerOptions": {
     // We don't want to transform TypeScript to JavaScript
     // but only check the TypeScript.
-    //
     // (must be false for node.js)
     //
     "noEmit": true,
 
     // Allow the fetch function and other browser side stuff.
-    // It's important because Bun.js uses some browser APIs.
+    // It's important because we uses some browser APIs.
     //
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
     // For React component support.
     "jsx": "react",
 
-    "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
 
     // Allow things like "import "./myFile.ts"
     // where the .ts is translated to .js
     //
     "rewriteRelativeImportExtensions": true,
 
-    "esModuleInterop": true,
+    // Avoid errors between windows/linux.
     "forceConsistentCasingInFileNames": true,
+    
+    "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true
   },
   
-  // Makes it much faster!
+  // Avoid analyzing our modules
+  // which make it a lot faster.
   "exclude": [ "node_modules" ]
 }
 ```
 
 ## Create the index.ts file
 
-We will now create the `index.ts` file containing the code for our application.  
-Here is a minimal example to get started with Jopi Rewrite.
+We will now create the `index.ts` file containing the code for our application. Here is a minimal example to get started with Jopi Rewrite.
 
-```typescript title="Our ./src/index.ts"
+**File: index.ts**
+```typescript
 import {jopiApp} from "jopi-rewrite";
 
 // Start the app.

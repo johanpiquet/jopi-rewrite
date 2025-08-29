@@ -1,8 +1,5 @@
 # Using the crawler
 
-> **Warning**  
-> The crawler has now his own project: jopi-crawler [github link](https://github.com/johanpiquet/jopi-crawler).
-
 ## What is a crawler?
 
 A crawler is a tool that scans all the pages of a website, it browses the entire site to extract information. Jopi Rewrite includes a particularly powerful crawler, capable of analyzing both HTML and CSS. This allows it to find all the pages of the website and all the resources linked to that site.
@@ -17,6 +14,11 @@ This crawler can be used for many purposes. However, it has been designed to eff
 
 * **Analyze dependencies between pages.**  
   For example, to know which pages should be removed from the cache when a product is modified on an e-commerce site.
+
+## Moved to jopi-crawler
+
+The crawler has been extracted from jopi-rewrite and moved to the project jopi-crawler.
+
 
 ## Extracting URLs
 

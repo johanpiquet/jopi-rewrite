@@ -1,26 +1,14 @@
 # Filtering Search Params
 
-When building a cache, it is essential to control the search params (the part after the *?* in the URL).
-If you allow any value, it becomes easy to write a script that will poison your cache.
+> A new guided API will be added soon to build filters.
 
-Jopi Rewrite includes features to help you with this.
-Here is an example of a filter, using rules to filter search params.
+When building a cache, it is essential to control the search params (the part after the `?` in the URL). If you allow any value, it becomes easy to write a script that will poison your cache. Jopi Rewrite includes features to help you with this. Here is an example of a filter, using rules to filter search params.
 
 ```typescript
-import {buildSearchParamFilter, JopiServer, WebSite} from "jopi-rewrite";
-
-const server = new JopiServer();
-const myWebSite = server.addWebsite(new WebSite("http://127.0.0.1"));
-server.startServer();
-
-// Will filter our home page params.
-const searchFilter_HomePage = buildSearchParamFilter({}, {
-    // For param "hello", only "world" and "jopi" are accepted as values.
-    hello: {values: ["world", "jopi"]}
-});
+import {buildSearchParamFilter, jopiApp} from "jopi-rewrite";
 
 // Will filter our search page params.
-const searchFilter_SearchPage = buildSearchParamFilter({}, {
+const filter_SearchPage = buildSearchParamFilter({}, {
     // For param "sort", only "asc" is accepted.
     sort: {values: ["asc"]},
 
@@ -29,18 +17,17 @@ const searchFilter_SearchPage = buildSearchParamFilter({}, {
     query: {allowAllValues: true}
 });
 
-// We must use one filter per type of page.
-myWebSite.onGET("/**", req => {
-    const urlBefore = req.urlInfos.toString();
-    req.filterSearchParams(searchFilter_HomePage);
-    return req.htmlResponse(`Url before: ${urlBefore}<br/>Url after: ${req.urlInfos.toString()}<br/>`);
-});
-
-// Add an exception for our search page.
-myWebSite.onGET("/search", req => {
-    const urlBefore = req.urlInfos.toString();
-    req.filterSearchParams(searchFilter_SearchPage);
-    return req.htmlResponse(`Url before: ${urlBefore}<br/>Url after: ${req.urlInfos.toString()}<br/>`);
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_path("/search")
+        .onGET(async req => {
+            // Will filter and order params.
+            req.filterSearchParams();
+            // req.url is immutable.
+            // Only req.urlInfos is updated.
+            return req.htmlResponse(req.urlInfos.href)
+        })
+        .add_searchParamFiler(filter_SearchPage)
 });
 ```
 
