@@ -12,19 +12,18 @@ With the browser's cooperation, CORS security will block all requests to your we
 
 ## How to enable CORS protection?
 
+CORS exists as middleware. To enable it, you have to enable it like this:
+
 ```typescript
-import {JopiServer, WebSite} from "jopi-rewrite";
+import {jopiApp} from "jopi-rewrite";
 
-const server = new JopiServer();
-const myWebSite = server.addWebsite(new WebSite("http://127.0.0.1"));
-server.startServer();
-
-// With only one line, you enable CORS protection.
-//highlight-next-line
-myWebSite.enableCors();
-
-myWebSite.onGET("/", req => {
-    return req.htmlResponse("My response");
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_middleware()
+            .use_cors()
+            .END_add_middleware()
+        .add_path("/search")
+            .onGET(async req => req.htmlResponse(req.urlInfos.href))
 });
 ```
 

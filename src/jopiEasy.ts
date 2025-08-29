@@ -310,7 +310,7 @@ class WebSite_MiddlewareBuilder {
         return this.webSite;
     }
 
-    use_custom(myMiddleware: JopiMiddleware): this {
+    use_custom(myMiddleware: JopiMiddleware): WebSite_MiddlewareBuilder {
         this.internals.afterHook.push(webSite => {
             webSite.addMiddleware(myMiddleware);
         });
@@ -318,11 +318,19 @@ class WebSite_MiddlewareBuilder {
         return this;
     }
 
-    use_requestTimeout_sec(timeSec: number): this {
+    use_requestTimeout_sec(timeSec: number): WebSite_MiddlewareBuilder {
         return this.use_custom(Middlewares.requestTimeout_sec(timeSec));
     }
 
-    use_ddosProtection(options?: DdosProtectionOptions): this {
+    use_cors(): WebSite_MiddlewareBuilder {
+        this.internals.afterHook.push(webSite => {
+            webSite.enableCors();
+        })
+
+        return this;
+    }
+
+    use_ddosProtection(options?: DdosProtectionOptions): WebSite_MiddlewareBuilder {
         return this.use_custom(Middlewares.ddosProtection(options));
     }
 }
