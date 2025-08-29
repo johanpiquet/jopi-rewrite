@@ -2,6 +2,8 @@
   "compilerOptions": {
     "sourceMap": true,
     "declaration": true,
+    "incremental": true,
+    "composite": true,
 
     "outDir": "./dist",
     "rootDir": "./src",
@@ -31,6 +33,12 @@
 
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/.turbo",
+    "**/.cache"
   ]
 }
