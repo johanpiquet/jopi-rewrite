@@ -20,7 +20,7 @@
     "src"
   ],
   "scripts": {
-    "build": "npx tsgo",
+    "build": "npx tsc",
     "tsc": "npx tsc",
     "bun-publish": "npx tsc && bun publish",
     "untrack": "git rm -r --cached -- ./dist/**;"
@@ -50,7 +50,8 @@
     "rou3": "^0.7.3",
     "tailwindcss": "^4.1.12",
     "ws": "^8.18.3",
-    "@jopi-loader/client": "workspace:^1.1.5"
+    "@jopi-loader/client": "workspace:^1.1.5",
+    "jopi-crawler": "workspace:*"
   },
   "nodeSwitch": true,
   "nodeSwitch-default": "node"
