@@ -57,7 +57,7 @@ You can contact me on Discord. [link](https://discord.com/channels/1397868681253
     * [Rewriting HTML](_doc/cookbook/rewriting_html.md)
     * [Using ReactJS](_doc/cookbook/using_reactjs.md)
     * [Serving files](_doc/cookbook/serving_files.md)
-    * [Using the crawler](_doc/cookbook/using_the_crawler.md)
+    * [Building a static website](_doc/cookbook/static_web_site.md)
 * Security
     * [Filtering Search Params](_doc/security/filtering-search-params.md)
     * [Enabling CORS](_doc/security/enabling-cors.md)
