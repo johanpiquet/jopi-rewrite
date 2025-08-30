@@ -24,6 +24,7 @@ import {SimpleFileCache} from "./caches/SimpleFileCache.js";
 import {Middlewares} from "./middlewares/index.js";
 import type {DdosProtectionOptions} from "./middlewares/DdosProtection.js";
 import type {SearchParamFilterFunction} from "./searchParamFilter.js";
+import {ProcessUrlResult, type UrlProcessedInfos, WebSiteCrawler, type WebSiteCrawlerOptions} from "jopi-crawler";
 
 serverInitChrono.start("jopiEasy lib");
 
@@ -44,20 +45,172 @@ class JopiApp {
 }
 
 class JopiEasy {
-    new_webSite(url: string): JopiEasyWebSite {
-        return new JopiEasyWebSite(url);
+    new_webSite(url: string, ref?: RefFor_WebSite): JopiEasyWebSite {
+        const res = new JopiEasyWebSite_ExposePrivate(url);
+        if (ref) ref.webSite = res;
+        return res;
     }
 
-    new_reverseProxy(url: string): ReverseProxyBuilder {
-        return new ReverseProxyBuilder(url);
+    new_reverseProxy(url: string, ref?: RefFor_WebSite): ReverseProxyBuilder {
+        return new ReverseProxyBuilder(url, ref);
     }
 
-    new_fileServer(url: string): FileServerBuilder {
-        return new FileServerBuilder(url);
+    new_fileServer(url: string, ref?: RefFor_WebSite): FileServerBuilder {
+        return new FileServerBuilder(url, ref);
+    }
+
+    new_downloader(urlOrigin: string): CrawlerDownloader {
+        return new CrawlerDownloader(urlOrigin);
+    }
+}
+
+export class RefFor_WebSite {
+    webSite?: JopiEasyWebSite;
+
+    waitWebSiteReady(): Promise<void> {
+        if (!this.webSite) return Promise.reject("website not set");
+
+        return new Promise<void>((resolve) => {
+            this.webSite?.on_webSiteReady(resolve);
+        });
     }
 }
 
 export const jopiApp = new JopiApp();
+
+//region Crawler
+
+class CrawlerDownloader {
+    private readonly options: WebSiteCrawlerOptions = {};
+    private outputDir: string = "www-out";
+    private startUrl?: string;
+    private readonly urlPrefix: string;
+    private ignoreIfAlreadyDownloaded: boolean = false;
+    private forceDownloading?: string[];
+    private onUrlProcessed?: (infos: UrlProcessedInfos)=>void;
+    
+    constructor(private readonly urlOrigin: string) {
+        const urlInfos = new URL(urlOrigin);
+        this.urlPrefix = urlInfos.origin;
+        this.outputDir = path.resolve(process.cwd(), "www_" + urlInfos.hostname);
+    }
+
+    /**
+     * Define the directory where files will be downloaded.
+     * If not set, that it takes the current url and the hostname.
+     */
+    set_outputDir(outputDir: string){
+        this.outputDir = outputDir;
+        return this;
+    }
+    
+    /**
+     * Define the start point url.
+     * If not set, the default is "/".
+     * @param url
+     */
+    set_startUrl(url: string) {
+        this.startUrl = this.normalizeUrl(url);
+        return this;
+    }
+
+    private normalizeUrl(url: string): string {
+        if (url.startsWith(this.urlPrefix)) {
+            return url.substring(this.urlPrefix.length);
+        }
+
+        return url;
+    }
+
+    /**
+     * Add url with must be crawled.
+     * Is required if these urls aren't reachable from the start point.
+     */
+    set_extraUrls(urlList: string[]) {
+        urlList = urlList.map(u => this.normalizeUrl(u));
+        this.options.scanThisUrls = [...new Set([...this.options.scanThisUrls||[], ...urlList])];
+        return this;
+    }
+
+    /**
+     * Define a list of urls which must be downloaded even if already in the cache / processed.
+     * It's for exemple the listing page which content points to new items.
+     */
+    set_forceDownloadForUrls(urlList: string[]) {
+        urlList = urlList.map(u => this.normalizeUrl(u));
+        this.options.scanThisUrls = [...new Set([...this.options.scanThisUrls||[], ...urlList])];
+        this.forceDownloading = [...new Set([...this.forceDownloading||[], ...urlList])];
+
+        return this;
+    }
+
+    /**
+     * Allow avoiding downloading again a resource if already in cache.
+     * @param value
+     */
+    setOption_ignoreIfAlreadyDownloaded(value = true) {
+        this.ignoreIfAlreadyDownloaded = value;
+        return this;
+    }
+
+    /**
+     *
+     * @param listener
+     */
+    on_urlProcessed(listener: (infos: UrlProcessedInfos) => void) {
+        this.onUrlProcessed = listener;
+        return this;
+    }
+
+    async START_DOWNLOAD(): Promise<void> {
+        const downloader = this;
+
+        const crawler = new WebSiteCrawler(this.urlOrigin, {
+            outputDir: this.outputDir,
+
+            onUrlProcessed(infos) {
+                switch (infos.state) {
+                    case ProcessUrlResult.IGNORED:
+                        console.log("👎 Website downloader, url IGNORED:", infos.sourceUrl);
+                        break;
+
+                    case ProcessUrlResult.ERROR:
+                        console.log("❌ Website downloader, url ERROR:", infos.sourceUrl);
+                        break;
+
+                    case ProcessUrlResult.OK:
+                        console.log("✅ Website downloader, url DOWNLOADED:", infos.sourceUrl);
+                        break;
+
+                    case ProcessUrlResult.REDIRECTED:
+                        console.log("🚫 Website downloader, url REDIRECTED:", infos.sourceUrl);
+                        break;
+                }
+
+                if (downloader.onUrlProcessed) {
+                    downloader.onUrlProcessed(infos);
+                }
+            },
+
+            canIgnoreIfAlreadyCrawled(url) {
+                if (downloader.forceDownloading) {
+                    // false: must not ignore.
+                    if (downloader.forceDownloading.includes(url)) return false;
+                }
+
+                return downloader.ignoreIfAlreadyDownloaded;
+            },
+
+            ... this.options
+        });
+
+        console.log("Downloading website", this.urlOrigin)
+        await crawler.start(this.startUrl);
+        console.log("Download finished for", this.urlOrigin)
+    }
+}
+
+//endregion
 
 //region CreateServerFetch
 
@@ -169,6 +322,8 @@ class JopiEasyWebSite {
 
     protected readonly internals: WebSiteInternal;
 
+    protected _isWebSiteReady: boolean = false;
+
     constructor(url: string) {
         setTimeout(() => { this.initWebSiteInstance().then() }, 1);
 
@@ -183,6 +338,10 @@ class JopiEasyWebSite {
             afterHook: this.afterHook,
             beforeHook: this.beforeHook
         };
+
+        this.options.onWebSiteReady = [() => {
+            this._isWebSiteReady = true;
+        }];
     }
 
     private async initWebSiteInstance(): Promise<void> {
@@ -249,6 +408,26 @@ class JopiEasyWebSite {
 
     add_specialPageHandler(): WebSite_AddSpecialPageHandler {
         return new WebSite_AddSpecialPageHandler(this, this.internals);
+    }
+
+    on_webSiteReady(listener: () => void) {
+        if (this._isWebSiteReady) {
+            listener();
+            return;
+        }
+
+        this.options.onWebSiteReady!.push(listener);
+        return this;
+    }
+}
+
+class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
+    isWebSiteReady() {
+        return this._isWebSiteReady;
+    }
+
+    getInternals(): WebSiteInternal {
+        return this.internals;
     }
 }
 
@@ -382,12 +561,6 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
 }
 
 //endregion
-
-class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
-    getInternals(): WebSiteInternal {
-        return this.internals;
-    }
-}
 
 class WebSitePathBuilder_NextStep {
     private requiredRoles?: string[];
@@ -536,7 +709,7 @@ function autoStartServer(): void {
     gIsAutoStartDone = true;
 
     setTimeout(()=>{
-        myServer.startServer()
+        myServer.startServer();
     }, 5);
 }
 
@@ -550,8 +723,10 @@ class ReverseProxyBuilder {
     private readonly webSite: JopiEasyWebSite_ExposePrivate;
     private readonly internals: WebSiteInternal;
 
-    constructor(url: string) {
+    constructor(url: string, ref?: RefFor_WebSite) {
         this.webSite = new JopiEasyWebSite_ExposePrivate(url);
+        if (ref) ref.webSite = this.webSite;
+
         this.internals = this.webSite.getInternals();
 
         this.internals.afterHook.push(webSite => {
@@ -630,8 +805,10 @@ class FileServerBuilder {
     private readonly internals: WebSiteInternal;
     private readonly options: FileServerOptions;
 
-    constructor(url: string) {
+    constructor(url: string, ref?: RefFor_WebSite) {
         this.webSite = new JopiEasyWebSite_ExposePrivate(url);
+        if (ref) ref.webSite = this.webSite;
+
         this.internals = this.webSite.getInternals();
 
         this.options = {

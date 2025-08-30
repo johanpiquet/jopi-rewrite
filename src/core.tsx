@@ -1025,7 +1025,9 @@ export interface WebSite {
     data: any;
 
     getWelcomeUrl(): string;
+
     getCache(): PageCache;
+
     setCache(pageCache: PageCache): void;
 
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
@@ -1117,33 +1119,20 @@ export interface WebSite {
     enableCors(allows?: string[]): void;
 }
 
-export function newWebSite(url: string, options?: WebSiteOptions): WebSite {
-    return new WebSiteImpl(url, options);
-}
-
 export class WebSiteImpl implements WebSite {
     readonly port: number;
     readonly host: string;
     readonly welcomeUrl: string;
     readonly isHttps?: boolean = false;
 
+    private http80WebSite?: WebSite;
+
     certificate?: SslCertificatePath;
-    mainCache: PageCache;
-
-    private readonly router: RouterContext<WebSiteRoute>;
-    private readonly wsRouter: RouterContext<JopiWsRouteHandler>;
-    private _on404_NotFound?: JopiRouteHandler;
-    private _on500_Error?: JopiErrorHandler;
-    private _on401_Unauthorized?: JopiErrorHandler;
-
-    private headersToCache: string[] = ["content-type", "etag", "last-modified"];
     private middlewares?: JopiMiddleware[];
     private postMiddlewares?: JopiPostMiddleware[];
 
-    private JWT_SECRET?: string;
-    private jwtSignInOptions?: jwt.SignOptions;
-    private authHandler?: AuthHandler<any>;
-    private jwtTokenStore?: JwtTokenStore;
+    _onRebuildCertificate?: () => void;
+    private readonly _onWebSiteReady?: (() => void)[];
 
     public readonly data: any = {};
 
@@ -1177,6 +1166,8 @@ export class WebSiteImpl implements WebSite {
         this.router = createRouter<WebSiteRoute>();
         this.wsRouter = createRouter<JopiWsRouteHandler>();
 
+        this._onWebSiteReady = options.onWebSiteReady;
+
         if (hasHydrateComponents() || hasExternalCssBundled()) {
             this.addRoute("GET", "/_bundle/*", handleBundleRequest);
         }
@@ -1184,92 +1175,6 @@ export class WebSiteImpl implements WebSite {
 
     getWelcomeUrl(): string {
         return this.welcomeUrl;
-    }
-
-    getCache(): PageCache {
-        return this.mainCache;
-    }
-
-    setCache(pageCache: PageCache) {
-        this.mainCache = pageCache || gVoidCache;
-    }
-
-    addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
-        const webSiteRoute: WebSiteRoute = {handler};
-        addRoute(this.router, method, path, webSiteRoute);
-        return webSiteRoute;
-    }
-
-    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
-        addRoute(this.wsRouter, "ws", path, handler);
-    }
-
-    addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler) {
-        const webSiteRoute: WebSiteRoute = {handler};
-        allPath.forEach(path => addRoute(this.router, method, path, webSiteRoute));
-        return webSiteRoute;
-    }
-
-    getWebSiteRoute(method:string, url: string): WebSiteRoute|undefined {
-        const matched = findRoute(this.router!, method, url);
-        if (!matched) return undefined;
-        return matched.data;
-    }
-
-    onVerb(verb: HttpMethod, path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        handler = this.applyMiddlewares(handler);
-
-        if (Array.isArray(path)) {
-            return this.addSharedRoute(verb, path, handler);
-        }
-
-        return this.addRoute(verb, path, handler);
-    }
-
-    onGET(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        return this.onVerb("GET", path, handler);
-    }
-
-    onPOST(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        return this.onVerb("POST", path, handler);
-    }
-
-    onPUT(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        return this.onVerb("PUT", path, handler);
-    }
-
-    onDELETE(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        return this.onVerb("DELETE", path, handler);
-    }
-
-    onPATCH(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        return this.onVerb("PATCH", path, handler);
-    }
-
-    onHEAD(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        return this.onVerb("HEAD", path, handler);
-    }
-
-    onOPTIONS(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        return this.onVerb("OPTIONS", path, handler);
-    }
-
-    on404_NotFound(handler: JopiRouteHandler) {
-        this._on404_NotFound = handler;
-    }
-
-    on500_Error(handler: JopiRouteHandler) {
-        this._on500_Error = handler;
-    }
-
-    on401_Unauthorized(handler: JopiRouteHandler) {
-        this._on401_Unauthorized = handler;
-    }
-
-    getRouteFor(url: string, method: string = "GET"): WebSiteRoute|undefined {
-        const matched = findRoute(this.router!, method, url);
-        if (!matched) return undefined;
-        return matched.data;
     }
 
     async processRequest(urlInfos: URL, bunRequest: Request, serverImpl: ServerInstance): Promise<Response> {
@@ -1302,50 +1207,21 @@ export class WebSiteImpl implements WebSite {
         return this.ifRouteNotFound(req);
     }
 
-    return404(req: JopiRequest): Response|Promise<Response> {
-        if (this._on404_NotFound) {
-            return this._on404_NotFound(req);
-        }
-
-        return new Response("", {status: 404});
-    }
-
-    return500(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
-        if (this._on500_Error) {
-            return this._on500_Error(req, error);
-        }
-
-        return new Response("", {status: 404});
-    }
-
-    return401(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
-        if (this._on401_Unauthorized) {
-            return this._on401_Unauthorized(req, error);
-        }
-
-        return new Response("", {status: 401});
-    }
-
     async onServerStarted() {
-        await createBundle(this);
+        createBundle(this).then(() => {
+            // In case we use jopin with browser refresh,
+            // then we manually declare that the server is ok.
+            //
+            declareServerReady();
 
-        // In case we use jopin with browser refresh,
-        // then we manually declare that the server is ok.
-        //
-        declareServerReady();
+            if (this._onWebSiteReady) {
+                this._onWebSiteReady.forEach(e => e());
+            }
+        });
 
         if (this.welcomeUrl) {
             console.log("Website started:", this.welcomeUrl);
         }
-    }
-
-    getHeadersToCache(): string[] {
-        return this.headersToCache;
-    }
-
-    addHeaderToCache(header: string) {
-        header = header.trim().toLowerCase();
-        if (!this.headersToCache.includes(header)) this.headersToCache.push(header);
     }
 
     addMiddleware(middleware: JopiMiddleware) {
@@ -1365,58 +1241,6 @@ export class WebSiteImpl implements WebSite {
     enableCors(allows?: string[]) {
         if (!allows) allows = [this.welcomeUrl];
         this.addPostMiddleware(PostMiddlewares.cors({accessControlAllowOrigin: allows}));
-    }
-
-    createJwtToken(data: UserInfos): string|undefined {
-        try {
-            return jwt.sign(data as object, this.JWT_SECRET!, this.jwtSignInOptions);
-        } catch (e) {
-            return undefined;
-        }
-    }
-
-    decodeJwtToken(token: string): UserInfos|undefined {
-        if (!this.JWT_SECRET) return undefined;
-
-        try { return jwt.verify(token, this.JWT_SECRET) as UserInfos; }
-        catch { return undefined; }
-    }
-
-    setJwtSecret(secret: string) {
-        this.JWT_SECRET = secret;
-    }
-
-    async tryAuthUser(loginInfo: any): Promise<AuthResult> {
-        if (this.authHandler) {
-            const res = this.authHandler(loginInfo);
-            if (res instanceof Promise) return await res;
-            return res;
-        }
-
-        console.warn("Your JWT secret phrase isn't configured. Please use webSite.setJwtSecret to configure it.");
-        return {isOk: false};
-    }
-
-    setAuthHandler<T>(authHandler: AuthHandler<T>) {
-        this.authHandler = authHandler;
-    }
-
-    private ifRouteNotFound(req: JopiRequest) {
-        return this.return404(req);
-    }
-
-    public storeJwtToken(req: JopiRequest, res: Response) {
-        const token = req.getJwtToken();
-
-        if (this.jwtTokenStore) {
-            this.jwtTokenStore(req.getJwtToken()!, "jwt " + token, req, res);
-        } else {
-            req.addCookie(res, "authorization", "jwt " + token, {maxAge: ONE_DAY * 7});
-        }
-    }
-
-    public setJwtTokenStore(store: JwtTokenStore) {
-        this.jwtTokenStore = store;
     }
 
     private applyMiddlewares(handler: JopiRouteHandler): JopiRouteHandler {
@@ -1456,8 +1280,6 @@ export class WebSiteImpl implements WebSite {
         }
     }
 
-    private http80WebSite?: WebSite;
-
     getOrCreateHttpRedirectWebsite(): WebSite {
         if (this.http80WebSite) return this.http80WebSite;
         if (this.port===80) return this;
@@ -1479,8 +1301,6 @@ export class WebSiteImpl implements WebSite {
         return webSite;
     }
 
-    _onRebuildCertificate?: () => void;
-
     updateSslCertificate(certificate: SslCertificatePath) {
         this.certificate = certificate;
         if (this._onRebuildCertificate) this._onRebuildCertificate();
@@ -1501,6 +1321,212 @@ export class WebSiteImpl implements WebSite {
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler) {
         return this.addWsRoute(path, handler);
     }
+
+    //region Cache
+
+    mainCache: PageCache;
+    private headersToCache: string[] = ["content-type", "etag", "last-modified"];
+
+    getCache(): PageCache {
+        return this.mainCache;
+    }
+
+    setCache(pageCache: PageCache) {
+        this.mainCache = pageCache || gVoidCache;
+    }
+
+    getHeadersToCache(): string[] {
+        return this.headersToCache;
+    }
+
+    addHeaderToCache(header: string) {
+        header = header.trim().toLowerCase();
+        if (!this.headersToCache.includes(header)) this.headersToCache.push(header);
+    }
+
+    //endregion
+
+    //region JWT Token
+
+    private JWT_SECRET?: string;
+    private jwtSignInOptions?: jwt.SignOptions;
+    private authHandler?: AuthHandler<any>;
+    private jwtTokenStore?: JwtTokenStore;
+
+    public storeJwtToken(req: JopiRequest, res: Response) {
+        const token = req.getJwtToken();
+
+        if (this.jwtTokenStore) {
+            this.jwtTokenStore(req.getJwtToken()!, "jwt " + token, req, res);
+        } else {
+            req.addCookie(res, "authorization", "jwt " + token, {maxAge: ONE_DAY * 7});
+        }
+    }
+
+    public setJwtTokenStore(store: JwtTokenStore) {
+        this.jwtTokenStore = store;
+    }
+
+    createJwtToken(data: UserInfos): string|undefined {
+        try {
+            return jwt.sign(data as object, this.JWT_SECRET!, this.jwtSignInOptions);
+        } catch (e) {
+            return undefined;
+        }
+    }
+
+    decodeJwtToken(token: string): UserInfos|undefined {
+        if (!this.JWT_SECRET) return undefined;
+
+        try { return jwt.verify(token, this.JWT_SECRET) as UserInfos; }
+        catch { return undefined; }
+    }
+
+    setJwtSecret(secret: string) {
+        this.JWT_SECRET = secret;
+    }
+
+    async tryAuthUser(loginInfo: any): Promise<AuthResult> {
+        if (this.authHandler) {
+            const res = this.authHandler(loginInfo);
+            if (res instanceof Promise) return await res;
+            return res;
+        }
+
+        console.warn("Your JWT secret phrase isn't configured. Please use webSite.setJwtSecret to configure it.");
+        return {isOk: false};
+    }
+
+    setAuthHandler<T>(authHandler: AuthHandler<T>) {
+        this.authHandler = authHandler;
+    }
+
+    //endregion
+
+    //region Routes processing
+
+    private readonly router: RouterContext<WebSiteRoute>;
+    private readonly wsRouter: RouterContext<JopiWsRouteHandler>;
+
+    private _on404_NotFound?: JopiRouteHandler;
+    private _on500_Error?: JopiErrorHandler;
+    private _on401_Unauthorized?: JopiErrorHandler;
+
+    addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
+        const webSiteRoute: WebSiteRoute = {handler};
+        addRoute(this.router, method, path, webSiteRoute);
+        return webSiteRoute;
+    }
+
+    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
+        addRoute(this.wsRouter, "ws", path, handler);
+    }
+
+    addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler) {
+        const webSiteRoute: WebSiteRoute = {handler};
+        allPath.forEach(path => addRoute(this.router, method, path, webSiteRoute));
+        return webSiteRoute;
+    }
+
+    getWebSiteRoute(method:string, url: string): WebSiteRoute|undefined {
+        const matched = findRoute(this.router!, method, url);
+        if (!matched) return undefined;
+        return matched.data;
+    }
+
+    getRouteFor(url: string, method: string = "GET"): WebSiteRoute|undefined {
+        const matched = findRoute(this.router!, method, url);
+        if (!matched) return undefined;
+        return matched.data;
+    }
+
+    private ifRouteNotFound(req: JopiRequest) {
+        return this.return404(req);
+    }
+
+    //region Path handler
+
+    onVerb(verb: HttpMethod, path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        handler = this.applyMiddlewares(handler);
+
+        if (Array.isArray(path)) {
+            return this.addSharedRoute(verb, path, handler);
+        }
+
+        return this.addRoute(verb, path, handler);
+    }
+
+    onGET(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        return this.onVerb("GET", path, handler);
+    }
+
+    onPOST(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        return this.onVerb("POST", path, handler);
+    }
+
+    onPUT(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        return this.onVerb("PUT", path, handler);
+    }
+
+    onDELETE(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        return this.onVerb("DELETE", path, handler);
+    }
+
+    onPATCH(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        return this.onVerb("PATCH", path, handler);
+    }
+
+    onHEAD(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        return this.onVerb("HEAD", path, handler);
+    }
+
+    onOPTIONS(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        return this.onVerb("OPTIONS", path, handler);
+    }
+
+    //endregion
+
+    //region Error handler
+
+    on404_NotFound(handler: JopiRouteHandler) {
+        this._on404_NotFound = handler;
+    }
+
+    on500_Error(handler: JopiRouteHandler) {
+        this._on500_Error = handler;
+    }
+
+    on401_Unauthorized(handler: JopiRouteHandler) {
+        this._on401_Unauthorized = handler;
+    }
+
+    return404(req: JopiRequest): Response|Promise<Response> {
+        if (this._on404_NotFound) {
+            return this._on404_NotFound(req);
+        }
+
+        return new Response("", {status: 404});
+    }
+
+    return500(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
+        if (this._on500_Error) {
+            return this._on500_Error(req, error);
+        }
+
+        return new Response("", {status: 404});
+    }
+
+    return401(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
+        if (this._on401_Unauthorized) {
+            return this._on401_Unauthorized(req, error);
+        }
+
+        return new Response("", {status: 401});
+    }
+
+    //endregion
+
+    //endregion
 }
 
 export interface ServeFileOptions {
@@ -1527,6 +1553,11 @@ export class WebSiteOptions {
      * Allow defining our own cache for this website and don't use the common one.
      */
     cache?: PageCache;
+
+    /**
+     * A list of listeners which must be called when the website is fully operational.
+     */
+    onWebSiteReady?: (()=>void)[];
 }
 
 export interface WebSiteRoute {
@@ -1549,6 +1580,10 @@ export class JopiWebSocket {
     sendMessage(msg: string|Buffer|Uint8Array|ArrayBuffer) {
         nSocket.sendMessage(this.webSocket, msg);
     }
+}
+
+export function newWebSite(url: string, options?: WebSiteOptions): WebSite {
+    return new WebSiteImpl(url, options);
 }
 
 export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
@@ -1606,7 +1641,6 @@ export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
 
 export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response> | null;
 export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response | Promise<Response>;
-export type JopiMiddlewareBuilder<T> = (options?: T) => JopiMiddleware;
 
 export interface SslCertificatePath {
     key: string;
