@@ -167,7 +167,7 @@ class CrawlerDownloader {
      *
      *                 Returns true if the url can be processed.
      */
-    setFilter_canProcessUrl(filter: (url: string, isResource: boolean)=>boolean) {
+    setFilter_canProcessThisUrl(filter: (url: string, isResource: boolean)=>boolean) {
         this._options.canDownload = filter;
         return this;
     }
