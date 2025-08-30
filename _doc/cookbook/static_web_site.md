@@ -1,9 +1,9 @@
 # Static website
 
-Something, you want to be able to transform your website into a static one. To doing it, the strategy of Jopi Rewrite is to use a customizable crawler to download your website. This crawler will automatically discover all the pages of your websites and all his resources (.css, .png, ...) and download it into a anonymous website which can be copy/paste.
+Sometimes, you want to be able to transform your website into a static one. To do it, the strategy of Jopi Rewrite is to use a customizable crawler to download your website. This crawler will automatically discover all the pages of your websites and all his resources (.css, .png, ...) and download it as an anonymous website which can be copy/paste.
 
-> An anonymous website is a website without URL.  
-> It can be open and be readable from the filesystem (url of type file:/// in the browser).
+> An anonymous website is a website without adherence to a URL.  
+> It can be open and be read from the filesystem (url of type file:/// in the browser).
 
 Here is a minimal sample, which in most cases will be the only thing needed:
 
@@ -24,9 +24,11 @@ Here is a full-featured sample:
 import {jopiApp, RefFor_WebSite} from "jopi-rewrite";
 
 jopiApp.startApp(async jopiEasy => {
+    
+    // >>> >>> Create the website to download.
+    
     const webSite = new RefFor_WebSite();
-
-    // The website to download.
+    
     jopiEasy.new_webSite("http://127.0.0.1", webSite)
         .add_path_GET("/", async req => {
             console.log("Calling url:", req.url);
@@ -36,6 +38,8 @@ jopiApp.startApp(async jopiEasy => {
             `)
         });
 
+    // >>> >>> Do the download.
+    
     // The website must be fully initialized.
     await webSite.waitWebSiteReady();
 
@@ -44,10 +48,12 @@ jopiApp.startApp(async jopiEasy => {
         // www-out is already the default, can be omitted.
         .set_outputDir("www-out")
 
-        // Add url than the crawler can omit.
-        // (occurs with complex CSS or requested by a script)
+        // Add url than the crawler could have missed.
+        // (occurs with complex CSS or when requested by a script)
         .set_extraUrls(["my-font.ttf"])
 
+        // Is called when an url have been processed.
+        // (downloaded or ignore du to our custom strategy)
         .on_urlProcessed(infos => {
             if (infos.state==="ok") {
                 console.log("Must upload this file to the server:", infos.cacheKey);
@@ -55,16 +61,20 @@ jopiApp.startApp(async jopiEasy => {
             }
         })
 
-        .setFilter_canProcessUrl((url, isResource) => {
+        // Allow ignoring some urls.
+        .setFilter_canProcessThisUrl((url, isResource) => {
             return isResource || !url.startsWith("forbidden/");
         })
 
-        // Will not download if the resource is already in cache.
-        .setOption_ignoreIfAlreadyDownloaded(true)
-
+        // Allow defining url which must be downloaded and analyzed
+        // event if already in cache.
         .setFilter_canIgnoreIfAlreadyDownloaded((url, infos) => {
             return (url==="blog") || (url.startsWith("blog/"));
         })
+        
+        // Will not download if the resource is already in cache.
+        // Is automatically set to true if 'setFilter_canIgnoreIfAlreadyDownloaded' is set.
+        .setOption_ignoreIfAlreadyDownloaded(true)
 
         .START_DOWNLOAD();
 });
