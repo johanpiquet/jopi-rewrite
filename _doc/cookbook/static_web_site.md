@@ -24,8 +24,6 @@ Here is a full-featured sample:
 import {jopiApp, RefFor_WebSite} from "jopi-rewrite";
 
 jopiApp.startApp(async jopiEasy => {
-    // >>> Create the website to download.
-    
     const webSite = new RefFor_WebSite();
 
     // The website to download.
@@ -38,8 +36,6 @@ jopiApp.startApp(async jopiEasy => {
             `)
         });
 
-    // >>> Do the download.
-    
     // The website must be fully initialized.
     await webSite.waitWebSiteReady();
 
@@ -52,19 +48,22 @@ jopiApp.startApp(async jopiEasy => {
         // (occurs with complex CSS or requested by a script)
         .set_extraUrls(["my-font.ttf"])
 
-        // Will not download if the resource is already in cache.
-        .setOption_ignoreIfAlreadyDownloaded(true)
-
-        // This page must always be refreshed, since they
-        // are pointing to fresh content.
-        //
-        .set_forceDownloadForUrls(["/blog", "/product-listing"])
-
         .on_urlProcessed(infos => {
             if (infos.state==="ok") {
                 console.log("Must upload this file to the server:", infos.cacheKey);
                 console.log("Is url:", infos.sourceUrl);
             }
+        })
+
+        .setFilter_canProcessUrl((url, isResource) => {
+            return isResource || !url.startsWith("forbidden/");
+        })
+
+        // Will not download if the resource is already in cache.
+        .setOption_ignoreIfAlreadyDownloaded(true)
+
+        .setFilter_canIgnoreIfAlreadyDownloaded((url, infos) => {
+            return (url==="blog") || (url.startsWith("blog/"));
         })
 
         .START_DOWNLOAD();

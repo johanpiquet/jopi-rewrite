@@ -24,7 +24,13 @@ import {SimpleFileCache} from "./caches/SimpleFileCache.js";
 import {Middlewares} from "./middlewares/index.js";
 import type {DdosProtectionOptions} from "./middlewares/DdosProtection.js";
 import type {SearchParamFilterFunction} from "./searchParamFilter.js";
-import {ProcessUrlResult, type UrlProcessedInfos, WebSiteCrawler, type WebSiteCrawlerOptions} from "jopi-crawler";
+import {
+    type CrawlerCanIgnoreIfAlreadyCrawled,
+    ProcessUrlResult,
+    type UrlProcessedInfos,
+    WebSiteCrawler,
+    type WebSiteCrawlerOptions
+} from "jopi-crawler";
 
 serverInitChrono.start("jopiEasy lib");
 
@@ -81,18 +87,19 @@ export const jopiApp = new JopiApp();
 //region Crawler
 
 class CrawlerDownloader {
-    private readonly options: WebSiteCrawlerOptions = {};
-    private outputDir: string = "www-out";
-    private startUrl?: string;
-    private readonly urlPrefix: string;
-    private ignoreIfAlreadyDownloaded: boolean = false;
-    private forceDownloading?: string[];
-    private onUrlProcessed?: (infos: UrlProcessedInfos)=>void;
-    
+    private readonly _options: WebSiteCrawlerOptions = {};
+    private _outputDir: string = "www-out";
+    private _startUrl?: string;
+    private readonly _urlPrefix: string;
+    private _ignoreIfAlreadyDownloaded?: boolean;
+    private _onUrlProcessed?: (infos: UrlProcessedInfos)=>void;
+    private _filter_canIgnoreIfAlreadyCrawled?: (url: string, infos: CrawlerCanIgnoreIfAlreadyCrawled) => boolean;
+
+
     constructor(private readonly urlOrigin: string) {
         const urlInfos = new URL(urlOrigin);
-        this.urlPrefix = urlInfos.origin;
-        this.outputDir = path.resolve(process.cwd(), "www_" + urlInfos.hostname);
+        this._urlPrefix = urlInfos.origin;
+        this._outputDir = path.resolve(process.cwd(), "www_" + urlInfos.hostname);
     }
 
     /**
@@ -100,7 +107,7 @@ class CrawlerDownloader {
      * If not set, that it takes the current url and the hostname.
      */
     set_outputDir(outputDir: string){
-        this.outputDir = outputDir;
+        this._outputDir = outputDir;
         return this;
     }
     
@@ -110,13 +117,13 @@ class CrawlerDownloader {
      * @param url
      */
     set_startUrl(url: string) {
-        this.startUrl = this.normalizeUrl(url);
+        this._startUrl = this.normalizeUrl(url);
         return this;
     }
 
     private normalizeUrl(url: string): string {
-        if (url.startsWith(this.urlPrefix)) {
-            return url.substring(this.urlPrefix.length);
+        if (url.startsWith(this._urlPrefix)) {
+            return url.substring(this._urlPrefix.length);
         }
 
         return url;
@@ -128,19 +135,7 @@ class CrawlerDownloader {
      */
     set_extraUrls(urlList: string[]) {
         urlList = urlList.map(u => this.normalizeUrl(u));
-        this.options.scanThisUrls = [...new Set([...this.options.scanThisUrls||[], ...urlList])];
-        return this;
-    }
-
-    /**
-     * Define a list of urls which must be downloaded even if already in the cache / processed.
-     * It's for exemple the listing page which content points to new items.
-     */
-    set_forceDownloadForUrls(urlList: string[]) {
-        urlList = urlList.map(u => this.normalizeUrl(u));
-        this.options.scanThisUrls = [...new Set([...this.options.scanThisUrls||[], ...urlList])];
-        this.forceDownloading = [...new Set([...this.forceDownloading||[], ...urlList])];
-
+        this._options.scanThisUrls = [...new Set([...this._options.scanThisUrls||[], ...urlList])];
         return this;
     }
 
@@ -149,16 +144,40 @@ class CrawlerDownloader {
      * @param value
      */
     setOption_ignoreIfAlreadyDownloaded(value = true) {
-        this.ignoreIfAlreadyDownloaded = value;
+        this._ignoreIfAlreadyDownloaded = value;
         return this;
     }
 
     /**
+     * Set a function which is called when a URL has been processed.
      *
-     * @param listener
+     * @param listener - A function that received information about the URL and his processing state.
      */
     on_urlProcessed(listener: (infos: UrlProcessedInfos) => void) {
-        this.onUrlProcessed = listener;
+        this._onUrlProcessed = listener;
+        return this;
+    }
+
+    /**
+     * Sets a filter function to determine whether a URL can be downloaded.
+     *
+     * @param filter - A function that takes the URL as a string and a boolean flag
+     *                 indicating if it is a resource, and returns a boolean indicating
+     *                 whether the URL can be downloaded.
+     *
+     *                 Returns true if the url can be processed.
+     */
+    setFilter_canProcessUrl(filter: (url: string, isResource: boolean)=>boolean) {
+        this._options.canDownload = filter;
+        return this;
+    }
+
+    setFilter_canIgnoreIfAlreadyDownloaded(filter: (url: string, infos: CrawlerCanIgnoreIfAlreadyCrawled)=>boolean) {
+        if (this._ignoreIfAlreadyDownloaded===undefined) {
+            this._ignoreIfAlreadyDownloaded = true;
+        }
+
+        this._filter_canIgnoreIfAlreadyCrawled = filter;
         return this;
     }
 
@@ -166,7 +185,7 @@ class CrawlerDownloader {
         const downloader = this;
 
         const crawler = new WebSiteCrawler(this.urlOrigin, {
-            outputDir: this.outputDir,
+            outputDir: this._outputDir,
 
             onUrlProcessed(infos) {
                 switch (infos.state) {
@@ -187,25 +206,26 @@ class CrawlerDownloader {
                         break;
                 }
 
-                if (downloader.onUrlProcessed) {
-                    downloader.onUrlProcessed(infos);
+                if (downloader._onUrlProcessed) {
+                    downloader._onUrlProcessed(infos);
                 }
             },
 
-            canIgnoreIfAlreadyCrawled(url) {
-                if (downloader.forceDownloading) {
-                    // false: must not ignore.
-                    if (downloader.forceDownloading.includes(url)) return false;
+            canIgnoreIfAlreadyCrawled(url, infos) {
+                if (!downloader._ignoreIfAlreadyDownloaded) return false;
+
+                if (downloader._filter_canIgnoreIfAlreadyCrawled) {
+                    return downloader._filter_canIgnoreIfAlreadyCrawled(url, infos)
                 }
 
-                return downloader.ignoreIfAlreadyDownloaded;
+                return true;
             },
 
-            ... this.options
+            ... this._options
         });
 
         console.log("Downloading website", this.urlOrigin)
-        await crawler.start(this.startUrl);
+        await crawler.start(this._startUrl);
         console.log("Download finished for", this.urlOrigin)
     }
 }
