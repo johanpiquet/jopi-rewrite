@@ -41,7 +41,7 @@ import {
     declareServerReady,
     getBrowserRefreshHtmlSnippet,
     isBrowserRefreshEnabled,
-    mustWaitServerReady
+    mustWaitServerReady, declareApplicationStopping as jlOnAppStopping
 } from "@jopi-loader/client";
 import {findExecutable} from "@jopi-loader/tools/dist/tools.js";
 
@@ -1670,12 +1670,24 @@ export class JopiServer {
 
     async stopServer(): Promise<void> {
         if (!this._isStarted) return;
+
+        // The socket for jopi loader.
+        jlOnAppStopping();
+
         await Promise.all(this.servers.map(server => server.stop(false)));
     }
 
     startServer() {
         if (this._isStarted) return;
         this._isStarted = true;
+
+        // In case we are using Jopi Loader (jopin).
+        //
+        // The load must not refresh the browser once this process created but wait until we are ready.
+        // The main reason is that we create as JavaScript bundle that takes time to create, and the
+        // browser must not refresh too soon (event if it's only one second)
+        //
+        mustWaitServerReady();
 
         /**
          * Allow avoiding a bug where returning an array with only one certificate throws an error.
@@ -2101,11 +2113,3 @@ const gEmptyObject = {};
 const gServerStartGlobalOptions: StartServerCoreOptions = {};
 
 //endregion
-
-// In case we are using Jopi Loader (jopin).
-//
-// The load must not refresh the browser once this process created but wait until we are ready.
-// The main reason is that we create as JavaScript bundle that takes time to create, and the
-// browser must not refresh too soon (event if it's only one second)
-//
-mustWaitServerReady();

@@ -42,11 +42,19 @@ class JopiApp {
         return new GlobalConfigBuilder();
     }
 
-    startApp(f: (jopiEasy: JopiEasy) => void): void {
+    startApp(f: (jopiEasy: JopiEasy) => void|Promise<void>): void {
+        async function doStart() {
+            await NodeSpace.app.waitServerSideReady();
+            NodeSpace.app.declareAppStarted();
+
+            let res = f(new JopiEasy());
+            if (res instanceof Promise) await res;
+        }
+
         if (this._isStartAppSet) throw "App is already started";
         this._isStartAppSet = true;
 
-        f(new JopiEasy());
+        doStart().then();
     }
 }
 
