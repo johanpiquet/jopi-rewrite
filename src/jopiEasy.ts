@@ -1022,8 +1022,8 @@ class JwtTokenAuth_Builder {
 
     _setUserStore_NEXT() {
         return {
-            stepOptional_setTokenStore: () => this.setTokenStore_STEP(),
-            DONE_add_jwtTokenAuth: () => this.FINISH,
+            stepConfigure: () => this.setTokenStore_STEP(),
+            DONE_setUserStore: () => this.FINISH(),
         }
     }
 
@@ -1087,29 +1087,20 @@ class JwtTokenAuth_Builder {
 
     setTokenStore_STEP() {
         return {
-            use_cookie: (expirationDuration_days: number = 3600) => this.setTokenStore_useCookie(expirationDuration_days),
-            use_authentificationHeader: () => this.setTokenStore_useAuthentificationHeader()
+            set_cookieDuration: (expirationDuration_hours: number) => this.setTokenStore_useCookie(expirationDuration_hours),
         }
     }
 
-    setTokenStore_useCookie(expirationDuration_days: number = 3600) {
+    setTokenStore_useCookie(expirationDuration_hours: number = 3600) {
         this.internals.afterHook.push(webSite => {
-            webSite.setJwtTokenStore((_token, cookieValue, req, res) => {
-                req.addCookie(res, "authorization", cookieValue, {maxAge: NodeSpace.timer.ONE_DAY * expirationDuration_days})
+            webSite.setJwtTokenStore((token, cookieValue, req, res) => {
+                req.addCookie(res, "authorization", cookieValue, {maxAge: NodeSpace.timer.ONE_HOUR * expirationDuration_hours})
             });
         });
 
-        return this.FINISH();
-    }
-
-    setTokenStore_useAuthentificationHeader() {
-        this.internals.afterHook.push(webSite => {
-            webSite.setJwtTokenStore((token, _cookieValue, _req, res) => {
-                res.headers.set("Authorization", `Bearer ${token}`);
-            });
-        });
-
-        return this.FINISH();
+        return {
+            DONE_stepConfigure: () => this.FINISH()
+        };
     }
 
     //endregion

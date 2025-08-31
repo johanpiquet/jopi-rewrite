@@ -889,6 +889,12 @@ export class JopiRequest {
         return undefined;
     }
 
+    public requireUserInfos(): UserInfos {
+        let userInfos = this.getUserInfos();
+        if (!userInfos) throw new NotAuthorizedException();
+        return userInfos;
+    }
+
     private hasNoUserInfos: boolean = false;
     private userInfos?: UserInfos;
     private userJwtToken?: string;
@@ -1393,7 +1399,6 @@ export class WebSiteImpl implements WebSite {
             return res;
         }
 
-        console.warn("Your JWT secret phrase isn't configured. Please use webSite.setJwtSecret to configure it.");
         return {isOk: false};
     }
 
