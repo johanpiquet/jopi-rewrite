@@ -1,11 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import {
-    type AuthHandler,
+    type AuthHandler, getServer,
     HTTP_VERBS, type HttpMethod, type JopiMiddleware, type JopiPostMiddleware,
     JopiRequest,
-    type JopiRouteHandler,
-    JopiServer, type JopiWsRouteHandler, type PageCache,
+    type JopiRouteHandler, type JopiWsRouteHandler, type PageCache,
     type UserInfos,
     type WebSite, WebSiteImpl,
     WebSiteOptions
@@ -741,7 +740,7 @@ function autoStartServer(): void {
     }, 5);
 }
 
-const myServer = new JopiServer();
+const myServer = getServer();
 
 //endregion
 

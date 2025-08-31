@@ -1656,7 +1656,7 @@ export interface SslCertificatePath {
 
 //region Jopi Server
 
-export class JopiServer {
+class JopiServer {
     private readonly webSites: WebSiteMap = {};
     private readonly servers: ServerInstance[] = [];
     private _isStarted = false;
@@ -1805,6 +1805,13 @@ export class JopiServer {
 
 export function getServerStartOptions(): StartServerCoreOptions {
     return gServerStartGlobalOptions;
+}
+
+let gServerInstance: JopiServer|undefined;
+
+export function getServer(): JopiServer {
+    if (!gServerInstance) gServerInstance = new JopiServer();
+    return gServerInstance;
 }
 
 //endregion
