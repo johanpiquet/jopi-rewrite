@@ -53,7 +53,7 @@ You can contact me on Discord. [link](https://discord.com/channels/1397868681253
     * [Using page cache](_doc/cookbook/using_page_cache.md)
     * [Create a reverse proxy](_doc/cookbook/create_a_reverse_proxy.md)
     * [Docker and serverless](_doc/cookbook/docker_and_serverless.md)
-    * [Restart without losing connection](_doc/cookbook/restart_without_losing_cconnection.md)
+    * [Restart without losing connection](_doc/cookbook/restart_without_losing_connection.md)
     * [Rewriting HTML](_doc/cookbook/rewriting_html.md)
     * [Using ReactJS](_doc/cookbook/using_reactjs.md)
     * [Serving files](_doc/cookbook/serving_files.md)

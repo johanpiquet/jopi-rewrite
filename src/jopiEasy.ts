@@ -392,7 +392,7 @@ class JopiEasyWebSite {
         return new CertificateBuilder(this, this.internals);
     }
 
-    add_jwtTokenAuth(): { step_setPrivateKey: (privateKey: string) => ReturnType<JwtTokenAuth_Builder["setPrivateKey_STEP"]> } {
+    add_jwtTokenAuth(): JWT_BEGIN {
         const builder = new JwtTokenAuth_Builder(this, this.internals);
 
         return {
@@ -974,6 +974,50 @@ class LetsEncryptCertificateBuilder {
 
 //region JWT Tokens
 
+//region Interfaces
+
+interface JWT_BEGIN {
+    step_setPrivateKey(privateKey: string): JWT_StepBegin_SetUserStore;
+}
+
+interface JWT_FINISH {
+    DONE_add_jwtTokenAuth(): JopiEasyWebSite;
+}
+
+interface JWT_StepBegin_SetUserStore {
+    step_setUserStore(): JWT_Step_SetUserStore;
+}
+
+interface JWT_Step_SetUserStore {
+    use_simpleLoginPassword(): JWT_UseSimpleLoginPassword;
+
+    use_customStore<T>(store: AuthHandler<T>): JWT_UseCustomStore;
+}
+
+interface JWT_UseCustomStore {
+    DONE_use_customStore(): JWT_StepBegin_Configure;
+}
+
+interface JWT_UseSimpleLoginPassword {
+    getStoreRef(h: GetValue<UserStore_WithLoginPassword>): JWT_UseSimpleLoginPassword;
+    addOne(login: string, password: string, userInfos: UserInfos): JWT_UseSimpleLoginPassword;
+    addMany(users: UserInfos_WithLoginPassword[]): JWT_UseSimpleLoginPassword;
+    DONE_use_simpleLoginPassword(): JWT_StepBegin_Configure;
+}
+
+interface JWT_StepBegin_Configure {
+    stepConfigure(): JWT_Step_Configure;
+    DONE_setUserStore(): JWT_FINISH;
+}
+
+interface JWT_Step_Configure {
+    set_cookieDuration(expirationDuration_hours: number): JWT_Step_Configure;
+    DONE_stepConfigure(): JWT_FINISH;
+}
+
+
+//endregion
+
 class JwtTokenAuth_Builder {
     constructor(private readonly parent: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
     }
@@ -986,7 +1030,7 @@ class JwtTokenAuth_Builder {
 
     //region setPrivateKey_STEP (BEGIN / root)
 
-    setPrivateKey_STEP(privateKey: string) {
+    setPrivateKey_STEP(privateKey: string): JWT_StepBegin_SetUserStore {
         this.internals.afterHook.push(async webSite => {
             webSite.setJwtSecret(privateKey);
         });
@@ -1002,7 +1046,7 @@ class JwtTokenAuth_Builder {
 
     private loginPasswordStore?: UserStore_WithLoginPassword;
 
-    setUserStore_STEP() {
+    setUserStore_STEP(): JWT_Step_SetUserStore {
         const self = this;
 
         return {
@@ -1020,9 +1064,9 @@ class JwtTokenAuth_Builder {
         }
     }
 
-    _setUserStore_NEXT() {
+    _setUserStore_NEXT(): JWT_StepBegin_Configure {
         return {
-            stepConfigure: () => this.setTokenStore_STEP(),
+            stepConfigure: () => this.stepConfigure(),
             DONE_setUserStore: () => this.FINISH(),
         }
     }
@@ -1047,15 +1091,15 @@ class JwtTokenAuth_Builder {
 
     //region useSimpleLoginPassword
 
-    useSimpleLoginPassword_BEGIN() {
+    useSimpleLoginPassword_BEGIN(): JWT_UseSimpleLoginPassword {
         return this._useSimpleLoginPassword_REPEAT();
     }
 
-    useSimpleLoginPassword_DONE() {
+    useSimpleLoginPassword_DONE(): JWT_StepBegin_Configure {
         return this._setUserStore_NEXT();
     }
 
-    _useSimpleLoginPassword_REPEAT() {
+    _useSimpleLoginPassword_REPEAT(): JWT_UseSimpleLoginPassword {
         return {
             getStoreRef: (h: GetValue<UserStore_WithLoginPassword>) => {
                 h(this.loginPasswordStore!);
@@ -1068,13 +1112,13 @@ class JwtTokenAuth_Builder {
         }
     }
 
-    useSimpleLoginPassword_addOne(login: string, password: string, userInfos: UserInfos) {
+    useSimpleLoginPassword_addOne(login: string, password: string, userInfos: UserInfos): JWT_UseSimpleLoginPassword {
         this.loginPasswordStore!.add({login, password, userInfos});
 
         return this._useSimpleLoginPassword_REPEAT();
     }
 
-    useSimpleLoginPassword_addMany(users: UserInfos_WithLoginPassword[]) {
+    useSimpleLoginPassword_addMany(users: UserInfos_WithLoginPassword[]): JWT_UseSimpleLoginPassword {
         users.forEach(e => this.loginPasswordStore!.add(e));
         return this._useSimpleLoginPassword_REPEAT();
     }
@@ -1085,9 +1129,10 @@ class JwtTokenAuth_Builder {
 
     //region setTokenStore
 
-    setTokenStore_STEP() {
+    stepConfigure(): JWT_Step_Configure {
         return {
             set_cookieDuration: (expirationDuration_hours: number) => this.setTokenStore_useCookie(expirationDuration_hours),
+            DONE_stepConfigure: () => this.FINISH()
         }
     }
 
@@ -1098,9 +1143,7 @@ class JwtTokenAuth_Builder {
             });
         });
 
-        return {
-            DONE_stepConfigure: () => this.FINISH()
-        };
+        return this.stepConfigure();
     }
 
     //endregion

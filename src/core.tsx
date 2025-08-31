@@ -1759,6 +1759,11 @@ export class JopiServer {
             Object.values(hostNameMap).forEach(webSite => (webSite as WebSiteImpl).onServerStarted());
             this.servers.push(myServerInstance);
         }
+
+        // Stop the server if the exit signal is received.
+        NodeSpace.app.onAppExiting(() => {
+            this.stopServer().catch();
+        });
     }
 
     /**
