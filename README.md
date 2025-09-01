@@ -29,9 +29,10 @@ to process them, and in the same time the new version will process the new incom
   * With automatic certificat renew.
   * And this, without a server restart required!
 
-✓ Tailwind CSS support
+✓ Tailwind and PostCSS support
 * Is automatic, no configuration required!
 * Is fast, thanks to a blazing fast compiler!
+* Browser auto-refresh: save and the browser refresh instantly!
 
 # Tutorials
 
@@ -56,6 +57,7 @@ You can contact me on Discord. [link](https://discord.com/channels/1397868681253
     * [Restart without losing connection](_doc/cookbook/restart_without_losing_connection.md)
     * [Rewriting HTML](_doc/cookbook/rewriting_html.md)
     * [Using ReactJS](_doc/cookbook/using_reactjs.md)
+    * [Using Tailwind CSS](_doc/cookbook/using_tailwind.md)
     * [Serving files](_doc/cookbook/serving_files.md)
     * [Building a static website](_doc/cookbook/static_web_site.md)
 * Security
