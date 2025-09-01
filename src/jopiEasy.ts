@@ -13,10 +13,16 @@ import {
 import path from "node:path";
 import fsc from "node:fs";
 
+import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
 import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.ts";
-import {setConfig_disableTailwind} from "./hydrate.ts";
+import {
+    type PostCssInitializer,
+    setConfig_disableTailwind, setConfig_postCssPluginsInitializer,
+    setConfig_setTailwindConfig,
+    setConfig_setTailwindTemplate
+} from "./hydrate.ts";
 import {serverInitChrono} from "./internalHelpers.js";
 import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./caches/InMemoryCache.js";
 import {SimpleFileCache} from "./caches/SimpleFileCache.js";
@@ -1161,8 +1167,32 @@ class JwtTokenAuth_Builder {
 //region Config
 
 class GlobalConfigBuilder {
-    disable_tailwind(): void {
-        setConfig_disableTailwind();
+    configure_tailwindProcessor() {
+        return {
+            disableTailwind: () => {
+                setConfig_disableTailwind();
+                return this.configure_tailwindProcessor();
+            },
+
+            setCssTemplate: (template: string) => {
+                setConfig_setTailwindTemplate(template);
+                return this.configure_tailwindProcessor();
+            },
+
+            setConfig: (config: TailwindConfig) => {
+                setConfig_setTailwindConfig(config);
+                return this.configure_tailwindProcessor();
+            }
+        }
+    }
+
+    configure_postCss() {
+        return {
+            setPlugin: (handler: PostCssInitializer) => {
+                setConfig_postCssPluginsInitializer(handler);
+                return this.configure_postCss()
+            }
+        }
     }
 }
 

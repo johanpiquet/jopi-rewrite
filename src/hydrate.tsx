@@ -7,11 +7,11 @@ import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
 import fs from "node:fs/promises";
 import {scssToCss, searchSourceOf} from "@jopi-loader/tools";
-import {pathToFileURL, fileURLToPath} from "node:url";
+import {fileURLToPath, pathToFileURL} from "node:url";
 
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
-import type { Config as TailwindConfig } from 'tailwindcss';
+import type {Config as TailwindConfig} from 'tailwindcss';
 import {serverInitChrono} from "./internalHelpers.js";
 
 const nFS = NodeSpace.fs;
@@ -150,10 +150,8 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
     // Assure the file exists.
     await fs.appendFile(outFilePath, "", "utf-8");
 
-    if (!gConfig_disableTailwind) {
-        let tailwindCss = await compileForTailwind(sourceFiles);
-        if (tailwindCss) await fs.appendFile(outFilePath, tailwindCss, "utf-8");
-    }
+    let postCss = await applyPostCss(sourceFiles);
+    if (postCss) await fs.appendFile(outFilePath, postCss, "utf-8");
 
     for (const cssFilePath of gAllCssFiles) {
         let css: string;
@@ -213,23 +211,33 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
  * @returns
  *       The CSS or undefined.
  */
-async function compileForTailwind(sourceFiles: string[]): Promise<string|undefined> {
+async function applyPostCss(sourceFiles: string[]): Promise<string|undefined> {
     if (!sourceFiles.length) return "";
 
-    const tailwindConfig: TailwindConfig = {
-        content: sourceFiles,
-        theme: {extend: {}},
-        plugins: []
-    };
+    let plugins: postcss.AcceptedPlugin[] = [];
 
-    const inputCss = `@import "tailwindcss";`;
+    let tailwindPlugins = gConfig_disableTailwind ?
+        undefined : tailwindPostcss({
+            content: sourceFiles,
+            theme: {extend: {}},
+            plugins: [],
+            ...gConfig_tailwindConfig
+        } as any)
+
+    if (gConfig_postCssPluginsInitializer) {
+        plugins = gConfig_postCssPluginsInitializer(sourceFiles, tailwindPlugins);
+    } else if (tailwindPlugins) {
+        plugins = [tailwindPlugins];
+    } else {
+        return undefined;
+    }
+
+    if (!plugins.length) return undefined;
 
     try {
-        const processor = postcss([
-            tailwindPostcss(tailwindConfig as any),
-        ]);
+        const processor = postcss(plugins);
 
-        const result = await processor.process(inputCss, {
+        const result = await processor.process(gConfig_tailwindTemplate, {
             // Setting from allows resolving correctly the node_modules resolving.
             // Without that, the compiler emits an error saying he doesn't found his
             // dependencies (he searches package.json in the bad folder, is ok in monorep
@@ -371,10 +379,27 @@ setNewMustBundleExternalCssListener(onNewMustIncludeCss);
 
 //region Config
 
+export type PostCssInitializer = (sources: string[], tailwindPluging:  postcss.AcceptedPlugin|undefined) => postcss.AcceptedPlugin[];
+
+let gConfig_tailwindTemplate: string = `@import "tailwindcss";`;
 let gConfig_disableTailwind = false;
+let gConfig_tailwindConfig: TailwindConfig|undefined;
+let gConfig_postCssPluginsInitializer: undefined|PostCssInitializer;
+
+export function setConfig_setTailwindConfig(config: TailwindConfig) {
+    gConfig_tailwindConfig = config;
+}
 
 export function setConfig_disableTailwind() {
     gConfig_disableTailwind = true;
+}
+
+export function setConfig_setTailwindTemplate(template: string) {
+    gConfig_tailwindTemplate = template;
+}
+
+export function setConfig_postCssPluginsInitializer(handler: PostCssInitializer) {
+    gConfig_postCssPluginsInitializer = handler;
 }
 
 //endregion
