@@ -2,6 +2,7 @@ import esbuild, {type BuildOptions, type Plugin} from "esbuild";
 import sassPlugin from 'esbuild-plugin-sass';
 import fs from "node:fs/promises";
 import {cssModuleHandler} from "@jopi-loader/tools";
+import {getAssetsHash} from "@jopi-loader/client";
 
 export interface EsBuildParams {
     entryPoint: string;
@@ -28,7 +29,7 @@ export async function esBuildBundle(params: EsBuildParams) {
         plugins: [
             sassPlugin(),
             jopiCssPlugin,
-            ...params.plugins
+            ...params.plugins,
         ],
 
         loader: {
@@ -61,7 +62,10 @@ export async function esBuildBundle(params: EsBuildParams) {
         minify: true,
         sourcemap: true,
 
-        ...params.overrideConfig
+        ...params.overrideConfig,
+
+        //entryNames: '[dir]/[name]',
+        assetNames: '[name]-' + getAssetsHash(),
     });
 }
 

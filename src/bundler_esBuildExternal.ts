@@ -1,6 +1,7 @@
 import {execFile} from "node:child_process";
 import {esBuildBundle, type EsBuildParams, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import type {BuildOptions} from "esbuild";
+import {getAssetsHash} from "@jopi-loader/client";
 
 export interface EsBuildExternalParams {
     entryPoint: string;
@@ -38,13 +39,18 @@ export async function esBuildBundleExternal(params: EsBuildExternalParams, doDir
     const args = [thisFile, "--import", "jopi-loader", "--", "--jopi-bundler", jsonParams];
     let useShell = nodeJsPath.endsWith('.cmd') || nodeJsPath.endsWith('.bat') || nodeJsPath.endsWith('.sh');
 
+    const env = process.env;
+
+    // Will allow using the same hash the for resources.
+    env["JOPI_RESOURCE_HASH"] = getAssetsHash();
+
     // Will allow this function to be really async.
     //
     return new Promise<void>((resolve, reject) => {
         // Here execFile is better than "exec" since it automatically encodes the arguments.
         //
         execFile(
-            nodeJsPath, args, {cwd: process.cwd(), shell: useShell}, (error, _stdout, stderr) => {
+            nodeJsPath, args, {cwd: process.cwd(), shell: useShell, env}, (error, _stdout, stderr) => {
                 if (error) {
                     console.error(`Error when executing EsBuild:\n${stderr}`);
                     reject(error);

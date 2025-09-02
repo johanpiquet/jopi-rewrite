@@ -181,7 +181,7 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
 }
 
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
-    const pathName = req.urlInfos.pathname;
+    /*const pathName = req.urlInfos.pathname;
     let idx = pathName.lastIndexOf("/");
     const fileName = pathName.substring(idx);
     const filePath = path.resolve(path.join(gTempDirPath, (req.webSite as WebSiteImpl).host, fileName));
@@ -201,7 +201,11 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     }
     catch {
         return new Response("", {status: 404});
-    }
+    }*/
+
+    req.urlInfos.pathname = req.urlInfos.pathname.substring("/_bundle".length);
+
+    return req.serveFile(path.join(gTempDirPath, (req.webSite as WebSiteImpl).host));
 }
 
 /**
