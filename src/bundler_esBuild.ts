@@ -3,6 +3,7 @@ import sassPlugin from 'esbuild-plugin-sass';
 import fs from "node:fs/promises";
 import {cssModuleHandler} from "@jopi-loader/tools";
 import {getAssetsHash} from "@jopi-loader/client";
+import {inlineAndRawModuleHandler} from "@jopi-loader/tools/dist/esBuildPlugin.js";
 
 export interface EsBuildParams {
     entryPoint: string;
@@ -27,8 +28,8 @@ export async function esBuildBundle(params: EsBuildParams) {
         splitting: true,
 
         plugins: [
+            jopiPlugin,
             sassPlugin(),
-            jopiCssPlugin,
             ...params.plugins,
         ],
 
@@ -86,10 +87,41 @@ export const jopiReplaceServerPlugin: Plugin = {
     }
 };
 
-export const jopiCssPlugin: Plugin = {
+export const jopiPlugin: Plugin = {
     name: "jopi-loader",
     setup(build) {
         // @ts-ignore
+        //build.onResolve({ filter: /\?(?:inline|raw)$/ }, inlineAndRawModuleHandler);
+
+        build.onResolve({ filter: /\?(?:inline|raw)$/ }, async (args) => {
+            let [filePath, option] = args.path.split('?');
+
+            // Get the original file full path.
+            const resolved = await build.resolve(filePath, {
+                resolveDir: args.resolveDir,
+                kind: args.kind,
+                importer: args.importer,
+            });
+
+            // The file doesn't exist?
+            if (resolved.errors.length > 0) {
+                return { errors: resolved.errors };
+            }
+
+            return {
+                path: resolved.path + "?" + option,
+                namespace: 'jopi-transform'
+            };
+        });
+
+
+
+        // @ts-ignore
+        build.onLoad({ filter: /.*/, namespace: 'jopi-transform' }, inlineAndRawModuleHandler);
+
+        // @ts-ignore
         build.onLoad({filter: /\.(css|scss)$/}, cssModuleHandler);
+
+
     },
 };
