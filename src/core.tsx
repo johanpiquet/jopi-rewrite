@@ -1,4 +1,5 @@
 /// <reference path="cheerio.d.ts" />
+// noinspection JSUnusedGlobalSymbols
 
 // noinspection JSUnusedGlobalSymbols
 
@@ -1857,25 +1858,22 @@ export interface PageCache {
 
 export class WebSiteMirrorCache implements PageCache {
     public readonly rootDir: string;
+    public readonly rootDirAtFileUrl: string;
 
     constructor(rootDir: string) {
         if (!rootDir) rootDir = ".";
         if (!path.isAbsolute(rootDir)) rootDir = path.resolve(process.cwd(), rootDir);
         this.rootDir = rootDir;
+        this.rootDirAtFileUrl = nFS.pathToFileURL(this.rootDir).href;
     }
 
     private calKey(url: URL): string {
-        url = new URL(url);
-        url.hostname = "localhost";
-        url.port = "";
-        url.protocol = "file:";
-
-        const sURL = url.toString();
+        let sURL = this.rootDirAtFileUrl + url.pathname;
         return nFS.fileURLToPath(sURL);
     }
 
     private calcFilePath(url: URL): string {
-        let fp = path.join(this.rootDir, this.calKey(url));
+        let fp = this.calKey(url);
 
         if (fp.endsWith("/")) {
             fp += "index.html";

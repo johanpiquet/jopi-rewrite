@@ -22,27 +22,33 @@ const isWin32 = process.platform == "win32";
 //region Bundle
 
 async function generateScript(outputDir: string, components: {[key: string]: string}): Promise<string> {
-    let declarations = "";
+    try {
+        let declarations = "";
 
-    for (const componentKey in components) {
-        let componentPath = await searchSourceOf(components[componentKey]);
+        for (const componentKey in components) {
+            let componentPath = await searchSourceOf(components[componentKey]);
 
-        // Patch for windows. Require a linux-like path.
-        if (isWin32) componentPath = pathToFileURL(componentPath).href.substring("file:///".length);
+            // Patch for windows. Require a linux-like path.
+            if (isWin32) componentPath = pathToFileURL(componentPath).href.substring("file:///".length);
 
-        declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
+            declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
+        }
+
+        let resolvedPath = import.meta.resolve("./../src/template.jsx");
+        resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
+
+        let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
+        let script = template.replace("//[DECLARE]", declarations);
+
+        const filePath = path.join(outputDir, "loader.jsx");
+        await NodeSpace.fs.writeTextToFile(filePath, script, true);
+
+        return filePath;
     }
-
-    let resolvedPath = import.meta.resolve("./../src/template.jsx");
-    resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
-
-    let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
-    let script = template.replace("//[DECLARE]", declarations);
-
-    const filePath = path.join(outputDir, "loader.jsx");
-    await NodeSpace.fs.writeTextToFile(filePath, script, true);
-
-    return filePath;
+    catch (e) {
+        console.error("Error generating loader.jsx", e);
+        throw e;
+    }
 }
 
 export function getBundleUrl(webSite: WebSite) {
@@ -75,7 +81,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
 async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
     const components = getHydrateComponents();
-    const outputDir = path.join(gTempDirPath, (webSite as WebSiteImpl).host);
+    const outputDir = calculateWebSiteTempDir(webSite);
 
     if (hasHydrateComponents()) {
         const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
@@ -104,9 +110,14 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
     await postProcessCreateBundle(webSite, outputDir, Object.values(components));
 }
 
+function calculateWebSiteTempDir(webSite: WebSite) {
+    return path.join(gTempDirPath, (webSite as WebSiteImpl).host)
+            .replaceAll(".", "_").replaceAll(":", "_");
+}
+
 async function createBundle_esbuild(webSite: WebSite): Promise<void> {
     const components = getHydrateComponents();
-    const outputDir = path.join(gTempDirPath, (webSite as WebSiteImpl).host);
+    const outputDir = calculateWebSiteTempDir(webSite);
 
     if (hasHydrateComponents()) {
         const entryPoint = await generateScript(outputDir, components);
@@ -205,7 +216,7 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
 
     req.urlInfos.pathname = req.urlInfos.pathname.substring("/_bundle".length);
 
-    return req.serveFile(path.join(gTempDirPath, (req.webSite as WebSiteImpl).host));
+    return req.serveFile(calculateWebSiteTempDir(req.webSite));
 }
 
 /**
