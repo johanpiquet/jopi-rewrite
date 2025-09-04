@@ -111,8 +111,8 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
 }
 
 function calculateWebSiteTempDir(webSite: WebSite) {
-    return path.join(gTempDirPath, (webSite as WebSiteImpl).host)
-            .replaceAll(".", "_").replaceAll(":", "_");
+    let webSiteHost = (webSite as WebSiteImpl).host.replaceAll(".", "_").replaceAll(":", "_");
+    return path.join(gTempDirPath, webSiteHost);
 }
 
 async function createBundle_esbuild(webSite: WebSite): Promise<void> {
