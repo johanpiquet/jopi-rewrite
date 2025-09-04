@@ -13,7 +13,13 @@ import * as cheerio from "cheerio";
 import React, {type ReactNode} from "react";
 import * as ReactServer from 'react-dom/server';
 
-import {Page, PageController} from "jopi-rewrite-ui";
+import {
+    isServerSide,
+    Page,
+    type PageHook,
+    PageContext, PageController,
+    setPageRenderer,
+} from "jopi-rewrite-ui";
 
 import {ServerFetch} from "./serverFetch.ts";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
@@ -1652,6 +1658,31 @@ export interface SslCertificatePath {
     key: string;
     cert: string;
 }
+
+setPageRenderer((children: React.ReactNode|React.ReactNode[], hook: PageHook) => {
+    const controller = new PageController<unknown>();
+    hook(controller);
+
+    // Allow forcing children rendering and by doing that, setting controller values.
+    // It's required, since in React SSR they is not back-propagation and components
+    // are never refreshed two times.
+    //
+    ReactServer.renderToStaticMarkup(<PageContext.Provider value={controller}>
+        {children}
+    </PageContext.Provider>);
+
+    return <PageContext.Provider value={controller}>
+        <html {...controller.htmlProps}>
+        <head {...controller.headProps}>
+            {controller.head}
+            <title>{controller.pageTitle}</title>
+        </head>
+        <body {...controller.bodyProps}>
+        {children}
+        </body>
+        </html>
+    </PageContext.Provider>;
+});
 
 //endregion
 
