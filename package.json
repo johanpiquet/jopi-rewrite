@@ -1,6 +1,6 @@
 {
   "name": "jopi-rewrite",
-  "version": "2.0.2",
+  "version": "2.0.21",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
@@ -30,20 +30,20 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/acme-client": "^3.3.4",
-    "@jopi-loader/types": "workspace:^1.0.9"
+    "@types/acme-client": "^3.3.4"
   },
   "dependencies": {
-    "@jopi-loader/tools": "workspace:^1.0.19",
+    "jopi-loader": "workspace:^1.0.22",
+    "@jopi-loader/types": "workspace:^1.0.9",
+    "@jopi-loader/tools": "workspace:^1.0.20",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/ws": "^8.18.1",
     "acme-client": "^5.4.0",
     "cheerio": "^1.1.2",
     "css-url-parser": "^1.1.4",
-    "esbuild": "^0.25.9",
-    "esbuild-plugin-sass": "latest",
-    "jopi-node-space": "workspace:^0.0.16",
-    "jopi-rewrite-ui": "workspace:^2.0.1",
+    "esbuild": "=0.25.9",
+    "jopi-node-space": "workspace:^0.0.17",
+    "jopi-rewrite-ui": "workspace:^2.0.2",
     "jsonwebtoken": "^9.0.2",
     "postcss": "^8.5.6",
     "react": "^19.1.1",
@@ -51,8 +51,8 @@
     "rou3": "^0.7.3",
     "tailwindcss": "^4.1.12",
     "ws": "^8.18.3",
-    "@jopi-loader/client": "workspace:^1.1.40",
-    "jopi-crawler": "workspace:^1.0.12"
+    "@jopi-loader/client": "workspace:^1.1.41",
+    "jopi-crawler": "workspace:^1.0.13"
   },
   "nodeSwitch": true,
   "nodeSwitch-default": "node"
