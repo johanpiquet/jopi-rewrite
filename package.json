@@ -1,6 +1,6 @@
 {
   "name": "jopi-rewrite",
-  "version": "2.0.21",
+  "version": "2.0.23",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
