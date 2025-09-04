@@ -747,6 +747,8 @@ export class JopiRequest {
                 const hash = this.webSite.data["jopiLoaderHash"];
                 controller.head.push(<link rel="stylesheet" key={hash.css} href={bundleUrl + "/loader.css?" + hash.css} />);
             }
+
+            controller.serverRequest = this;
         }
 
         return this.htmlResponse(ReactServer.renderToStaticMarkup(<Page hook={hook}>{element}</Page>));
