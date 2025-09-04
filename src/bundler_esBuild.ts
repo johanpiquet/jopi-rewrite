@@ -1,9 +1,27 @@
 import esbuild, {type BuildOptions, type Plugin} from "esbuild";
 import sassPlugin from 'esbuild-plugin-sass';
 import fs from "node:fs/promises";
+import path from "node:path";
 import {cssModuleHandler} from "@jopi-loader/tools";
 import {getAssetsHash} from "@jopi-loader/client";
 import {inlineAndRawModuleHandler} from "@jopi-loader/tools/dist/esBuildPlugin.js";
+
+async function resolveAndCheckPath(filePath: string, resolveDir: string): Promise<{path?: string, error?: string}> {
+    let absolutePath: string;
+
+    if (path.isAbsolute(filePath)) {
+        absolutePath = filePath;
+    } else {
+        absolutePath = path.resolve(resolveDir, filePath);
+    }
+
+    try {
+        await fs.access(absolutePath);
+        return { path: absolutePath };
+    } catch (error) {
+        return { error: `Resource not found: ${absolutePath}` };
+    }
+}
 
 export interface EsBuildParams {
     entryPoint: string;
@@ -90,38 +108,48 @@ export const jopiReplaceServerPlugin: Plugin = {
 export const jopiPlugin: Plugin = {
     name: "jopi-loader",
     setup(build) {
-        // @ts-ignore
-        //build.onResolve({ filter: /\?(?:inline|raw)$/ }, inlineAndRawModuleHandler);
-
         build.onResolve({ filter: /\?(?:inline|raw)$/ }, async (args) => {
             let [filePath, option] = args.path.split('?');
 
-            // Get the original file full path.
-            const resolved = await build.resolve(filePath, {
-                resolveDir: args.resolveDir,
-                kind: args.kind,
-                importer: args.importer,
-            });
+            const result = await resolveAndCheckPath(filePath, args.resolveDir);
 
-            // The file doesn't exist?
-            if (resolved.errors.length > 0) {
-                return { errors: resolved.errors };
+            if (result.error) {
+                return {
+                    errors: [{
+                        text: result.error,
+                        location: null,
+                    }]
+                };
             }
 
             return {
-                path: resolved.path + "?" + option,
+                path: result.path + "?" + option,
                 namespace: 'jopi-transform'
             };
         });
 
+        build.onResolve({ filter: /\.(css|scss)$/ }, async (args) => {
+            const result = await resolveAndCheckPath(args.path, args.resolveDir);
 
+            if (result.error) {
+                return {
+                    errors: [{
+                        text: result.error,
+                        location: null,
+                    }]
+                };
+            }
+
+            return {
+                path: result.path,
+                namespace: 'jopi-css-modules'
+            };
+        });
 
         // @ts-ignore
         build.onLoad({ filter: /.*/, namespace: 'jopi-transform' }, inlineAndRawModuleHandler);
 
         // @ts-ignore
-        build.onLoad({filter: /\.(css|scss)$/}, cssModuleHandler);
-
-
+        build.onLoad({ filter: /.*/, namespace: 'jopi-css-modules' }, cssModuleHandler);
     },
 };

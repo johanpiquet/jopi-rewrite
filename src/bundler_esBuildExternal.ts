@@ -1,4 +1,4 @@
-import {execFile} from "node:child_process";
+import {spawn} from "node:child_process";
 import {esBuildBundle, type EsBuildParams, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import type {BuildOptions} from "esbuild";
 import {getAssetsHash} from "@jopi-loader/client";
@@ -41,23 +41,33 @@ export async function esBuildBundleExternal(params: EsBuildExternalParams, doDir
 
     const env = process.env;
 
-    // Will allow using the same hash the for resources.
+    // Will allow using the same hash for the resources.
     env["JOPI_RESOURCE_HASH"] = getAssetsHash();
 
     // Will allow this function to be really async.
     //
     return new Promise<void>((resolve, reject) => {
-        // Here execFile is better than "exec" since it automatically encodes the arguments.
-        //
-        execFile(
-            nodeJsPath, args, {cwd: process.cwd(), shell: useShell, env}, (error, _stdout, stderr) => {
-                if (error) {
-                    console.error(`Error when executing EsBuild:\n${stderr}`);
-                    reject(error);
-                } else {
-                    resolve();
-                }
-            });
+        const childProcess = spawn(
+            nodeJsPath, args, {
+                cwd: process.cwd(), 
+                shell: useShell, 
+                env, 
+                stdio: 'inherit'
+            }
+        );
+
+        childProcess.on('close', (code) => {
+            if (code === 0) {
+                resolve();
+            } else {
+                reject(new Error(`Process exited with code ${code}`));
+            }
+        });
+
+        childProcess.on('error', (error) => {
+            console.error(`Error when executing EsBuild:`, error);
+            reject(error);
+        });
     });
 }
 
