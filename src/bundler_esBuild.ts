@@ -1,5 +1,5 @@
 import esbuild, {type BuildOptions, type Plugin} from "esbuild";
-import sassPlugin from 'esbuild-plugin-sass';
+//import sassPlugin from 'esbuild-plugin-sass';
 import fs from "node:fs/promises";
 import path from "node:path";
 import {cssModuleHandler} from "@jopi-loader/tools";
@@ -47,7 +47,7 @@ export async function esBuildBundle(params: EsBuildParams) {
 
         plugins: [
             jopiPlugin,
-            sassPlugin(),
+            //sassPlugin(),
             ...params.plugins,
         ],
 
