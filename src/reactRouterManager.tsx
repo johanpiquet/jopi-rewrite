@@ -1,10 +1,12 @@
-import type {WebSite} from "./core.js";
+import {setDefaultPage404Template, setDefaultPage500Template, setDefaultPage401Template,
+    type WebSite} from "./core.js";
 import path from "node:path";
 import fss from "node:fs";
 import fs from "node:fs/promises";
 import {pathToFileURL} from "node:url";
 import {mustHydrate} from "jopi-rewrite-ui";
 import {addGenerateScriptPlugin, getBrowserComponentKey} from "./hydrate.js";
+import {StaticRouter} from "react-router";
 
 interface RouteInfo {
     componentKey: string;
@@ -27,15 +29,23 @@ export class ReactRouterManager {
         resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
         let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
 
-        // https://reactrouter.com/start/modes#data
-        // https://reactrouter.com/api/data-routers/createBrowserRouter#createbrowserrouter
-
         let reactRoutes: any[] = [];
 
         for (let route in this.routes) {
+            if (route==="*") {
+                continue;
+            }
+
             reactRoutes.push({
                 path: route,
                 Component: this.routes[route].componentKey
+            });
+        }
+
+        if (this.routes["*"]) {
+            reactRoutes.push({
+                path: "*",
+                Component: this.routes["*"].componentKey
             });
         }
 
@@ -47,7 +57,6 @@ export class ReactRouterManager {
 
     private async scanPages() {
         const scanForPageFiles = async (dirToScan: string, rootDirUrl: string) => {
-            console.log("Scanning", dirToScan);
             const entries = await fs.readdir(dirToScan, {withFileTypes: true});
 
             for (const entry of entries) {
@@ -56,7 +65,7 @@ export class ReactRouterManager {
                 if (entry.isDirectory()) {
                     await scanForPageFiles(fullPath, rootDirUrl);
                 } else if (entry.isFile()) {
-                    if (entry.name.endsWith('.page.js')) {
+                    if (entry.name.endsWith(".page.js")) {
                         fullPath = path.resolve(fullPath);
                         const fileUrl = pathToFileURL(fullPath).href;
                         const fileRelPath = fileUrl.substring(rootDirUrl.length);
@@ -85,7 +94,27 @@ export class ReactRouterManager {
     }
 
     private async registerPage(fileFullPath: string, fileUrl: string, linuxRelPath: string) {
-        let route = linuxRelPath.substring(0, linuxRelPath.lastIndexOf("/")) || "/";
+        let isSpecialRoute = false;
+        let route;
+
+        if (linuxRelPath==="/%5B404%5D.page.js") {
+            isSpecialRoute = true;
+            route = "*";
+        }
+        else if (linuxRelPath==="/%5B500%5D.page.js") {
+            isSpecialRoute = true;
+            route = "500";
+        }
+        else if (linuxRelPath==="/%5B401%5D.page.js") {
+            isSpecialRoute = true;
+            route = "401";
+        }
+        else {
+            route = linuxRelPath.substring(0, linuxRelPath.lastIndexOf("/")) || "/";
+        }
+
+        // Note 1: React Router doesn't support cath-all.
+        //         The only mechanism is for 404 support.
 
         let mod = await import(fileUrl);
         const defaultValue = mod.default;
@@ -93,8 +122,24 @@ export class ReactRouterManager {
 
         let Cpn = mustHydrate({filename: fileFullPath}, defaultValue);
 
+        if (isSpecialRoute) {
+            if (route === "*") {
+                // Set the 404 template for the website.
+                setDefaultPage404Template(Cpn);
+            } else if (route==="500") {
+                setDefaultPage500Template(Cpn);
+                return;
+            } else if (route==="401") {
+                setDefaultPage401Template(Cpn);
+                return;
+            }
+        }
+
+        console.log("Mapping route", route, "to", fileFullPath);
+
         this.webSite.onGET(route, async req => {
-            return req.reactResponse(<Cpn />)
+            // The StaticRouter allows using Link in our components.
+            return req.reactResponse(<StaticRouter location={req.url}><Cpn /></StaticRouter>)
         });
 
         this.routes[route] = {

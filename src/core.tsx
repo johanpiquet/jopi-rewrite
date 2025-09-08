@@ -1523,6 +1523,10 @@ export class WebSiteImpl implements WebSite {
             return this._on404_NotFound(req);
         }
 
+        if (G_Default404Template) {
+            return req.reactResponse(<G_Default404Template />);
+        }
+
         return new Response("", {status: 404});
     }
 
@@ -1531,13 +1535,22 @@ export class WebSiteImpl implements WebSite {
             return this._on500_Error(req, error);
         }
 
-        return new Response("", {status: 404});
+        if (G_Default500Template) {
+            return req.reactResponse(<G_Default500Template />);
+        }
+
+        return new Response("", {status: 500});
     }
 
     return401(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
         if (this._on401_Unauthorized) {
             return this._on401_Unauthorized(req, error);
         }
+
+        if (G_Default401Template) {
+            return req.reactResponse(<G_Default401Template />);
+        }
+
 
         return new Response("", {status: 401});
     }
@@ -1600,9 +1613,24 @@ export class JopiWebSocket {
     }
 }
 
-
 export function newWebSite(url: string, options?: WebSiteOptions): WebSite {
     return new WebSiteImpl(url, options);
+}
+
+let G_Default404Template: undefined|React.ComponentType<any>;
+let G_Default500Template: undefined|React.ComponentType<any>;
+let G_Default401Template: undefined|React.ComponentType<any>;
+
+export function setDefaultPage404Template(reactCpn: React.ComponentType<any>) {
+    G_Default404Template = reactCpn;
+}
+
+export function setDefaultPage500Template(reactCpn: React.ComponentType<any>) {
+    G_Default500Template = reactCpn;
+}
+
+export function setDefaultPage401Template(reactCpn: React.ComponentType<any>) {
+    G_Default401Template = reactCpn;
 }
 
 export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
