@@ -350,7 +350,7 @@ class JopiEasyWebSite {
     private webSite?: WebSiteImpl;
     protected readonly options: WebSiteOptions = {};
 
-    protected readonly afterHook: ((webSite: WebSite)=>void)[] = [];
+    protected readonly afterHook: ((webSite: WebSite)=>(void|Promise<void>))[] = [];
     protected readonly beforeHook: (()=>Promise<void>)[] = [];
 
     protected readonly internals: WebSiteInternal;
@@ -381,7 +381,14 @@ class JopiEasyWebSite {
         if (!this.webSite) {
             for (let hook of this.beforeHook) await hook();
             this.webSite = new WebSiteImpl(this.origin, this.options);
-            this.afterHook.forEach(c => c(this.webSite!));
+
+            for (const hook of  this.afterHook) {
+                let res = hook(this.webSite!);
+
+                if (res instanceof Promise) {
+                    await res;
+                }
+            }
 
             myServer.addWebsite(this.webSite);
             autoStartServer();
@@ -399,6 +406,16 @@ class JopiEasyWebSite {
 
     DONE_createWebSite(): JopiApp {
         return jopiApp;
+    }
+
+    enable_reactRouter(importMeta: any) {
+        const dir = importMeta.dirname as string;
+
+        this.internals.afterHook.push(async webSite => {
+            await webSite.enableReactRouter(dir);
+        });
+
+        return this;
     }
 
     add_httpCertificate(): CertificateBuilder {
@@ -606,18 +623,18 @@ class WebSitePathBuilder_NextStep {
                 handler: (req: JopiRequest) => Promise<Response>) {
 
         internals.afterHook.push(webSite => {
-                if (this.requiredRoles) {
-                    const requiredRoles = this.requiredRoles;
-                    const oldHandler = handler;
+            if (this.requiredRoles) {
+                const requiredRoles = this.requiredRoles;
+                const oldHandler = handler!;
 
-                    handler = req => {
-                        req.assertUserHasRoles(requiredRoles);
-                        return oldHandler(req);
-                    }
+                handler = req => {
+                    req.assertUserHasRoles(requiredRoles);
+                    return oldHandler(req);
                 }
+            }
 
-                let route = webSite.onVerb(verb, path, handler);
-                if (this.searchParamFilter) route.searchParamFilter = this.searchParamFilter;
+            let route = webSite.onVerb(verb, path, handler!);
+            if (this.searchParamFilter) route.searchParamFilter = this.searchParamFilter;
         });
     }
 
@@ -1207,7 +1224,7 @@ interface WebSiteInternal {
     hostName: string;
     options: WebSiteOptions;
 
-    afterHook: ((webSite: WebSite) => void)[];
+    afterHook: ((webSite: WebSite) => void|Promise<void>)[];
     beforeHook: (() => Promise<void>)[];
 
     onHookWebSite?: (webSite: WebSite) => void;

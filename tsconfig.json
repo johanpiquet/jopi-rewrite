@@ -3,7 +3,6 @@
     "sourceMap": true,
     "declaration": true,
     "incremental": true,
-    "composite": true,
 
     "outDir": "./dist",
     "rootDir": "./src",

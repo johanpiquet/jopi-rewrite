@@ -2,6 +2,7 @@
 import { lazy } from 'react';
 import React from "react";
 import ReactDOM from 'react-dom/client';
+import {createBrowserRouter, RouterProvider} from "react-router";
 
 const jopiHydrate = { components: {} };
 //[DECLARE]
@@ -18,7 +19,29 @@ function getJopiHydrateItems() {
     return result;
 }
 
-function process() {
+function patchRoutes(routes) {
+    function doPatch(routes) {
+        for (let route of routes) {
+            if (route.Component) {
+                route.Component = jopiHydrate.components[route.Component];
+            }
+
+            if (route.children) {
+                doPatch(route.children);
+            }
+        }
+    }
+
+    doPatch(routes);
+    return routes;
+}
+
+function hydrateAll() {
+    if (gHydrateAllHook) {
+        gHydrateAllHook();
+        return;
+    }
+
     const components = getJopiHydrateItems();
 
     for (const c of components) {
@@ -29,5 +52,14 @@ function process() {
     }
 }
 
-// Allow all init are ok.
+function process() {
+    onInit.forEach(e => e());
+}
+
+let gHydrateAllHook;
+let onInit = [() => hydrateAll()];
+
+//[PLUGINS]
+
+// Allow waiting that all is ok.
 setTimeout(process, 10);

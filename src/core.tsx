@@ -14,10 +14,8 @@ import React, {type ReactNode} from "react";
 import * as ReactServer from 'react-dom/server';
 
 import {
-    isServerSide,
     Page,
-    type PageHook,
-    PageContext, PageController,
+    PageContext, PageController, type PageOptions,
     setPageRenderer,
 } from "jopi-rewrite-ui";
 
@@ -51,6 +49,7 @@ import {
     mustWaitServerReady, declareApplicationStopping as jlOnAppStopping
 } from "@jopi-loader/client";
 import {findExecutable} from "@jopi-loader/tools/dist/tools.js";
+import {ReactRouterManager} from "./reactRouterManager.js";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -734,7 +733,7 @@ export class JopiRequest {
     private isUsingReactPage = false;
     private isUsingReact = false;
 
-    reactResponse(element: ReactNode) {
+    reactResponse(element: ReactNode, options?: PageOptions) {
         this.isUsingReact = true;
         this.isUsingReactPage = true;
 
@@ -751,7 +750,7 @@ export class JopiRequest {
             controller.serverRequest = this;
         }
 
-        return this.htmlResponse(ReactServer.renderToStaticMarkup(<Page hook={hook}>{element}</Page>));
+        return this.htmlResponse(ReactServer.renderToStaticMarkup(<Page hook={hook} options={options}>{element}</Page>));
     }
 
     reactToString(element: ReactNode): string {
@@ -1132,6 +1131,8 @@ export interface WebSite {
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number): void;
 
     enableCors(allows?: string[]): void;
+
+    enableReactRouter(dirHint: string): Promise<void>;
 }
 
 export class WebSiteImpl implements WebSite {
@@ -1145,6 +1146,7 @@ export class WebSiteImpl implements WebSite {
     certificate?: SslCertificatePath;
     private middlewares?: JopiMiddleware[];
     private postMiddlewares?: JopiPostMiddleware[];
+    private reactRouterManager?: ReactRouterManager;
 
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
@@ -1182,10 +1184,7 @@ export class WebSiteImpl implements WebSite {
         this.wsRouter = createRouter<JopiWsRouteHandler>();
 
         this._onWebSiteReady = options.onWebSiteReady;
-
-        if (hasHydrateComponents() || hasExternalCssBundled()) {
-            this.addRoute("GET", "/_bundle/*", handleBundleRequest);
-        }
+        this.addRoute("GET", "/_bundle/*", handleBundleRequest);
     }
 
     getWelcomeUrl(): string {
@@ -1335,6 +1334,11 @@ export class WebSiteImpl implements WebSite {
 
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler) {
         return this.addWsRoute(path, handler);
+    }
+
+    async enableReactRouter(dirHint: string): Promise<void> {
+        this.reactRouterManager = new ReactRouterManager(this, dirHint);
+        await this.reactRouterManager.initialize();
     }
 
     //region Cache
@@ -1596,6 +1600,7 @@ export class JopiWebSocket {
     }
 }
 
+
 export function newWebSite(url: string, options?: WebSiteOptions): WebSite {
     return new WebSiteImpl(url, options);
 }
@@ -1661,8 +1666,8 @@ export interface SslCertificatePath {
     cert: string;
 }
 
-setPageRenderer((children: React.ReactNode|React.ReactNode[], hook: PageHook) => {
-    const controller = new PageController<unknown>();
+setPageRenderer((children, hook, options) => {
+    const controller = new PageController<unknown>(false, options);
     hook(controller);
 
     // Allow forcing children rendering and by doing that, setting controller values.

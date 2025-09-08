@@ -21,6 +21,13 @@ const isWin32 = process.platform == "win32";
 
 //region Bundle
 
+export function addGenerateScriptPlugin(plugin: GeneratedScriptPlugin) {
+    gGenerateScriptPlugins.push(plugin);
+}
+
+const gGenerateScriptPlugins: GeneratedScriptPlugin[] = [];
+type GeneratedScriptPlugin = (script: string, outDir: string) => Promise<string>;
+
 async function generateScript(outputDir: string, components: {[key: string]: string}): Promise<string> {
     try {
         let declarations = "";
@@ -34,11 +41,18 @@ async function generateScript(outputDir: string, components: {[key: string]: str
             declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
         }
 
-        let resolvedPath = import.meta.resolve("./../src/template.jsx");
+        let resolvedPath = import.meta.resolve("./../src/template_main.jsx");
         resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
-
         let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
+
         let script = template.replace("//[DECLARE]", declarations);
+        let scriptPlugins = "";
+
+        for (let plugin of gGenerateScriptPlugins) {
+            scriptPlugins = await plugin(scriptPlugins, outputDir);
+        }
+
+        script = script.replace("//[PLUGINS]", scriptPlugins);
 
         const filePath = path.join(outputDir, "loader.jsx");
         await NodeSpace.fs.writeTextToFile(filePath, script, true);
@@ -83,29 +97,27 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
     const components = getHydrateComponents();
     const outputDir = calculateWebSiteTempDir(webSite);
 
-    if (hasHydrateComponents()) {
-        const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
+    const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
 
-        // Empty the dir, this makes tests easier.
-        await nFS.rmDir(gTempDirPath);
-        await nFS.mkDir(gTempDirPath);
+    // Empty the dir, this makes tests easier.
+    await nFS.rmDir(gTempDirPath);
+    await nFS.mkDir(gTempDirPath);
 
-        const entryPoint = await generateScript(outputDir, components);
+    const entryPoint = await generateScript(outputDir, components);
 
-        await esBuildBundleExternal({
-            entryPoint, outputDir,
-            publicPath: publicUrl,
-            usePlugins: ["jopiReplaceServerPlugin"],
+    await esBuildBundleExternal({
+        entryPoint, outputDir,
+        publicPath: publicUrl,
+        usePlugins: ["jopiReplaceServerPlugin"],
 
-            overrideConfig: {
-                platform: 'browser',
-                bundle: true,
-                format: 'esm',
-                target: "es2020",
-                splitting: true
-            }
-        });
-    }
+        overrideConfig: {
+            platform: 'browser',
+            bundle: true,
+            format: 'esm',
+            target: "es2020",
+            splitting: true
+        }
+    });
 
     await postProcessCreateBundle(webSite, outputDir, Object.values(components));
 }
@@ -119,24 +131,22 @@ async function createBundle_esbuild(webSite: WebSite): Promise<void> {
     const components = getHydrateComponents();
     const outputDir = calculateWebSiteTempDir(webSite);
 
-    if (hasHydrateComponents()) {
-        const entryPoint = await generateScript(outputDir, components);
-        const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
+    const entryPoint = await generateScript(outputDir, components);
+    const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
 
-        await esBuildBundle({
-            entryPoint, outputDir,
-            publicPath: publicUrl,
-            plugins: [jopiReplaceServerPlugin],
+    await esBuildBundle({
+        entryPoint, outputDir,
+        publicPath: publicUrl,
+        plugins: [jopiReplaceServerPlugin],
 
-            overrideConfig: {
-                platform: 'browser',
-                bundle: true,
-                format: 'esm',
-                target: "es2020",
-                splitting: true
-            }
-        });
-    }
+        overrideConfig: {
+            platform: 'browser',
+            bundle: true,
+            format: 'esm',
+            target: "es2020",
+            splitting: true
+        }
+    });
 
     await postProcessCreateBundle(webSite, outputDir, Object.values(components));
 }
@@ -192,28 +202,6 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
 }
 
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
-    /*const pathName = req.urlInfos.pathname;
-    let idx = pathName.lastIndexOf("/");
-    const fileName = pathName.substring(idx);
-    const filePath = path.resolve(path.join(gTempDirPath, (req.webSite as WebSiteImpl).host, fileName));
-
-    let contentType = nFS.getMimeTypeFromName(filePath);
-    let isJS = false;
-
-    if (contentType.startsWith("text/javascript")) {
-        isJS = true;
-        contentType = "application/javascript;charset=utf-8";
-    }
-
-    try {
-        let content = await nFS.readTextFromFile(filePath);
-        if (isJS) content = content.replaceAll("import.meta", "''");
-        return new Response(content, {status: 200, headers: {"content-type": contentType}});
-    }
-    catch {
-        return new Response("", {status: 404});
-    }*/
-
     req.urlInfos.pathname = req.urlInfos.pathname.substring("/_bundle".length);
 
     return req.serveFile(calculateWebSiteTempDir(req.webSite));
@@ -335,17 +323,39 @@ function JopiHydrate({id, args, asSpan, Child}: JopiHydrateProps) {
     return <div {...props}><Child {...args}>{}</Child></div>;
 }
 
+export function getBrowserComponentKey(fullFilePath: string): string {
+    const key = nCrypto.fastHash(fullFilePath).toString();
+
+    for (let key in gHydrateComponents) {
+        if (gHydrateComponents[key]===fullFilePath) {
+            return key;
+        }
+    }
+
+    throw new Error("Can't found component key for " + fullFilePath);
+}
+
 function onNewHydrate(importMeta: {filename: string}, f: React.FunctionComponent, isSpan: boolean, cssModules?: Record<string, string>): React.FunctionComponent {
+    // Prevent double call to mustHydrate.
+    // Can occur with the page mechanism if 'mustHydrate' is called inside the page.
+    //
+    let existing = gPathToHydrateComponent[importMeta.filename];
+    if (existing) return existing;
+
     // Register the component.
     const id = useHydrateComponent(importMeta);
 
     // Wrap our component.
-    return (p: any) => {
+    let cpn = (p: any) => {
         return <>
             {useCssModule(cssModules)}
             <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent}/>
         </>;
     }
+
+    gPathToHydrateComponent[importMeta.filename] = cpn;
+
+    return cpn;
 }
 
 async function onNewMustIncludeCss(importMeta: {filename: string}, cssFilePath: string) {
@@ -384,6 +394,8 @@ function addCssToBundle(cssFilePath: string) {
 }
 
 const gHydrateComponents: {[key: string]: string} = {};
+const gPathToHydrateComponent: {[path: string]: React.FunctionComponent} = {};
+
 let gHasComponents = false;
 let gHasManuallyIncludedCss = false;
 
