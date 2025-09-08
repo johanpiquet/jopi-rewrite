@@ -65,15 +65,22 @@ export class ReactRouterManager {
                 if (entry.isDirectory()) {
                     await scanForPageFiles(fullPath, rootDirUrl);
                 } else if (entry.isFile()) {
-                    if (entry.name.endsWith(".page.js")) {
-                        fullPath = path.resolve(fullPath);
-                        const fileUrl = pathToFileURL(fullPath).href;
-                        const fileRelPath = fileUrl.substring(rootDirUrl.length);
-                        await this.registerPage(fullPath, fileUrl, fileRelPath);
+                    if (entry.name.endsWith(".page" + extension)) {
+                        let name = entry.name.slice(0,-extension.length);
+
+                        if (allowedNames.includes(name)) {
+                            fullPath = path.resolve(fullPath);
+                            const fileUrl = pathToFileURL(fullPath).href;
+                            const fileRelPath = fileUrl.substring(rootDirUrl.length);
+                            await this.registerPage(fullPath, fileUrl, fileRelPath.slice(0,-extension.length));
+                        }
                     }
                 }
             }
         }
+
+        const extension = ".js";
+        const allowedNames = ["index.page", "404.page", "500.page", "401.page"];
 
         let pkgJsonFilePath = findPackageJson(this.dirHint);
         if (!pkgJsonFilePath) throw "React Router - Can't find package.json file";
@@ -93,24 +100,28 @@ export class ReactRouterManager {
         }
     }
 
-    private async registerPage(fileFullPath: string, fileUrl: string, linuxRelPath: string) {
+    private async registerPage(fileFullPath: string, fileUrl: string, route: string) {
         let isSpecialRoute = false;
-        let route;
 
-        if (linuxRelPath==="/%5B404%5D.page.js") {
-            isSpecialRoute = true;
-            route = "*";
+        // Windows doesn't allow ":" in file name. So we use $ instead.
+        route = route.replaceAll("/$", "/:");
+
+
+        if (route.endsWith(".page")) {
+            route = route.slice(0, -5);
         }
-        else if (linuxRelPath==="/%5B500%5D.page.js") {
+
+        if (route==="/404") {
             isSpecialRoute = true;
-            route = "500";
         }
-        else if (linuxRelPath==="/%5B401%5D.page.js") {
+        else if (route==="/500") {
             isSpecialRoute = true;
-            route = "401";
+        }
+        else if (route==="/401") {
+            isSpecialRoute = true;
         }
         else {
-            route = linuxRelPath.substring(0, linuxRelPath.lastIndexOf("/")) || "/";
+            route = route.substring(0, route.lastIndexOf("/")) || "/";
         }
 
         // Note 1: React Router doesn't support cath-all.
@@ -123,14 +134,19 @@ export class ReactRouterManager {
         let Cpn = mustHydrate({filename: fileFullPath}, defaultValue);
 
         if (isSpecialRoute) {
-            if (route === "*") {
+            if (route === "/404") {
                 // Set the 404 template for the website.
                 setDefaultPage404Template(Cpn);
-            } else if (route==="500") {
+
+                // For server-side.
+                route = "*";
+            } else if (route==="/500") {
                 setDefaultPage500Template(Cpn);
+                // No React Router support (it's server only).
                 return;
-            } else if (route==="401") {
+            } else if (route==="/401") {
                 setDefaultPage401Template(Cpn);
+                // No React Router support (it's server only).
                 return;
             }
         }
