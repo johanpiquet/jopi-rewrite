@@ -118,8 +118,8 @@ export class JopiRequest {
     /**
      * The part of the url.
      * if : https://mywebsite/product-name/list
-     * and route http://mywebsite/{productName}/list
-     * then urlParts contains {productName: "product-name"}
+     * and route http://mywebsite/:product/list
+     * then urlParts contains {product: "product-name"}
      */
     urlParts?: any;
 

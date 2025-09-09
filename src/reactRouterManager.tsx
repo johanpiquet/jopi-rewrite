@@ -106,7 +106,6 @@ export class ReactRouterManager {
         // Windows doesn't allow ":" in file name. So we use $ instead.
         route = route.replaceAll("/$", "/:");
 
-
         if (route.endsWith(".page")) {
             route = route.slice(0, -5);
         }
@@ -124,8 +123,8 @@ export class ReactRouterManager {
             route = route.substring(0, route.lastIndexOf("/")) || "/";
         }
 
-        // Note 1: React Router doesn't support cath-all.
-        //         The only mechanism is for 404 support.
+        // Note: React Router doesn't support cath-all.
+        //       The only catch mechanism is for 404 support.
 
         let mod = await import(fileUrl);
         const defaultValue = mod.default;
