@@ -1,12 +1,15 @@
-import {setDefaultPage404Template, setDefaultPage500Template, setDefaultPage401Template,
-    type WebSite} from "./core.js";
+import {
+    setDefaultPage404Template, setDefaultPage500Template, setDefaultPage401Template,
+    type WebSite, JopiRequest
+} from "./core.ts";
 import path from "node:path";
 import fss from "node:fs";
 import fs from "node:fs/promises";
-import {pathToFileURL} from "node:url";
+import {pathToFileURL, fileURLToPath} from "node:url";
 import {mustHydrate} from "jopi-rewrite-ui";
-import {addGenerateScriptPlugin, getBrowserComponentKey} from "./hydrate.js";
+import {addGenerateScriptPlugin, getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
+import {RouteContext_ExposePrivate} from "./routeContext.ts";
 
 const nFS = NodeSpace.fs;
 
@@ -70,6 +73,7 @@ export class ReactRouterManager {
                 } else if (entry.isFile()) {
                     if (entry.name.endsWith(".page" + extension)) {
                         let name = entry.name.slice(0,-extension.length);
+
                         if (allowedNames.includes(name)) {
                             if (cFullPath) {
                                 cFullPath = cFullPath.slice(0, -3) + ".tsx";
@@ -120,6 +124,13 @@ export class ReactRouterManager {
     }
 
     private async registerPage(fileFullPath: string, fileUrl: string, route: string) {
+        let serverUrlParts = fileUrl.split("/");
+        serverUrlParts.push(serverUrlParts.pop()!.replace("page", "server"))
+        let serverUrl = serverUrlParts.join("/");
+        let serverFilePath = fileURLToPath(serverUrl);
+        //
+        let isServerFileFound = await nFS.isFile(serverFilePath);
+
         let isSpecialRoute = false;
 
         // Windows doesn't allow ":" in file name. So we use $ instead.
@@ -156,7 +167,7 @@ export class ReactRouterManager {
                 // Set the 404 template for the website.
                 setDefaultPage404Template(Cpn);
 
-                // For server-side.
+                // For React Router.
                 route = "*";
             } else if (route==="/500") {
                 setDefaultPage500Template(Cpn);
@@ -169,12 +180,26 @@ export class ReactRouterManager {
             }
         }
 
-        console.log("Mapping route", route, "to", fileFullPath);
+        //console.log("Mapping route", route, "to", fileFullPath);
 
-        this.webSite.onGET(route, async req => {
+        // Avoid 404.
+        let needGetHandler = route !== "*";
+
+        const defaultHandler = async (req: JopiRequest) => {
             // The StaticRouter allows using Link in our components.
-            return req.reactResponse(<StaticRouter location={req.url}><Cpn /></StaticRouter>)
-        });
+            return req.reactResponse(<StaticRouter location={req.url}><Cpn/></StaticRouter>)
+        };
+
+        if (isServerFileFound && !isSpecialRoute) {
+            const sc = new RouteContext_ExposePrivate(this.webSite, serverFilePath, route, defaultHandler);
+            await sc.initialize();
+            needGetHandler = !sc.hasGetHandler();
+        }
+
+        if (needGetHandler) {
+            console.log("Server: binding route", route);
+            this.webSite.onGET(route, defaultHandler);
+        }
 
         this.routes[route] = {
             componentKey: getBrowserComponentKey(fileFullPath),

@@ -1474,31 +1474,31 @@ export class WebSiteImpl implements WebSite {
         return this.addRoute(verb, path, handler);
     }
 
-    onGET(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onGET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("GET", path, handler);
     }
 
-    onPOST(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPOST(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("POST", path, handler);
     }
 
-    onPUT(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPUT(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("PUT", path, handler);
     }
 
-    onDELETE(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onDELETE(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("DELETE", path, handler);
     }
 
-    onPATCH(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPATCH(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("PATCH", path, handler);
     }
 
-    onHEAD(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onHEAD(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("HEAD", path, handler);
     }
 
-    onOPTIONS(path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onOPTIONS(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("OPTIONS", path, handler);
     }
 
