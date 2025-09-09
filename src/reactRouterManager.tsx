@@ -8,6 +8,8 @@ import {mustHydrate} from "jopi-rewrite-ui";
 import {addGenerateScriptPlugin, getBrowserComponentKey} from "./hydrate.js";
 import {StaticRouter} from "react-router";
 
+const nFS = NodeSpace.fs;
+
 interface RouteInfo {
     componentKey: string;
     componentPath: string;
@@ -56,19 +58,29 @@ export class ReactRouterManager {
     }
 
     private async scanPages() {
-        const scanForPageFiles = async (dirToScan: string, rootDirUrl: string) => {
+        const scanForPageFiles = async (dirToScan: string, rootDirUrl: string, checkPath: string|undefined) => {
             const entries = await fs.readdir(dirToScan, {withFileTypes: true});
 
             for (const entry of entries) {
                 let fullPath = path.join(dirToScan, entry.name);
+                let cFullPath = checkPath ? path.join(checkPath, entry.name) : undefined;
 
                 if (entry.isDirectory()) {
-                    await scanForPageFiles(fullPath, rootDirUrl);
+                    await scanForPageFiles(fullPath, rootDirUrl, cFullPath);
                 } else if (entry.isFile()) {
                     if (entry.name.endsWith(".page" + extension)) {
                         let name = entry.name.slice(0,-extension.length);
-
                         if (allowedNames.includes(name)) {
+                            if (cFullPath) {
+                                cFullPath = cFullPath.slice(0, -3) + ".tsx";
+
+                                // For node.js, assert that the source file exists.
+                                // It's required because the dist directory can have garbage files.
+                                if (!await nFS.isFile(cFullPath)) {
+                                    continue;
+                                }
+                            }
+
                             fullPath = path.resolve(fullPath);
                             const fileUrl = pathToFileURL(fullPath).href;
                             const fileRelPath = fileUrl.substring(rootDirUrl.length);
@@ -79,7 +91,9 @@ export class ReactRouterManager {
             }
         }
 
-        const extension = ".js";
+        let isBunJS = NodeSpace.what.isBunJs;
+
+        const extension = isBunJS ? ".tsx" : ".js";
         const allowedNames = ["index.page", "404.page", "500.page", "401.page"];
 
         let pkgJsonFilePath = findPackageJson(this.dirHint);
@@ -87,17 +101,22 @@ export class ReactRouterManager {
 
         const pkgJsonDir = path.dirname(pkgJsonFilePath);
 
-        if (NodeSpace.what.isNodeJS) {
-            let outDir = path.join(pkgJsonDir, "dist", "reactPages")
+        let distDir = path.join(pkgJsonDir, "dist", "reactPages");
+        let srcDir = path.join(pkgJsonDir, "src", "reactPages");
 
-            if (!await NodeSpace.fs.isDirectory(outDir)) {
-                throw "React router - Directory not found: " + outDir;
-            }
-
-            await scanForPageFiles(outDir, pathToFileURL(outDir).href);
-        } else {
-            throw new Error("TODO: bun.js support");
+        if (!await NodeSpace.fs.isDirectory(srcDir)) {
+            throw "React router - Directory not found: " + srcDir;
         }
+
+        if (!isBunJS) {
+            if (!await NodeSpace.fs.isDirectory(distDir)) {
+                throw "React router - Directory not found: " + distDir;
+            }
+        }
+
+        let mainDir = isBunJS ? srcDir : distDir;
+
+        await scanForPageFiles(mainDir, pathToFileURL(mainDir).href, isBunJS ? undefined : srcDir);
     }
 
     private async registerPage(fileFullPath: string, fileUrl: string, route: string) {
