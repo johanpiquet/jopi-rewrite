@@ -15,7 +15,7 @@ import * as ReactServer from 'react-dom/server';
 
 import {
     Page,
-    PageContext, PageController, type PageOptions,
+    PageContext, PageController, PageController_ExposePrivate, type PageOptions,
     setPageRenderer,
 } from "jopi-rewrite-ui";
 
@@ -744,7 +744,7 @@ export class JopiRequest {
             if (hasExternalCssBundled() || hasHydrateComponents()) {
                 const bundleUrl = getBundleUrl(this.webSite);
                 const hash = this.webSite.data["jopiLoaderHash"];
-                controller.head.push(<link rel="stylesheet" key={hash.css} href={bundleUrl + "/loader.css?" + hash.css} />);
+                controller.addToHeader("jopi-bundle-style", <link rel="stylesheet" key={hash.css} href={bundleUrl + "/loader.css?" + hash.css} />);
             }
 
             controller.serverRequest = this;
@@ -1695,7 +1695,7 @@ export interface SslCertificatePath {
 }
 
 setPageRenderer((children, hook, options) => {
-    const controller = new PageController<unknown>(false, options);
+    const controller = new PageController_ExposePrivate<unknown>(false, options);
     hook(controller);
 
     // Allow forcing children rendering and by doing that, setting controller values.
@@ -1706,13 +1706,15 @@ setPageRenderer((children, hook, options) => {
         {children}
     </PageContext.Provider>);
 
+    const state = controller.exportState();
+
     return <PageContext.Provider value={controller}>
-        <html {...controller.htmlProps}>
-        <head {...controller.headProps}>
-            {controller.head}
-            <title>{controller.pageTitle}</title>
+        <html {...state.htmlProps}>
+        <head {...state.headProps}>
+            {state.head}
+            <title>{state.pageTitle}</title>
         </head>
-        <body {...controller.bodyProps}>
+        <body {...state.bodyProps}>
         {children}
         </body>
         </html>
