@@ -187,7 +187,7 @@ export class ReactRouterManager {
 
         const defaultHandler = async (req: JopiRequest) => {
             // The StaticRouter allows using Link in our components.
-            return req.reactResponse(<StaticRouter location={req.url}><Cpn/></StaticRouter>)
+            return req.reactResponse(<StaticRouter location={req.webSite.getWelcomeUrl()}><Cpn/></StaticRouter>)
         };
 
         if (isServerFileFound && !isSpecialRoute) {
