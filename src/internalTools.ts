@@ -1,4 +1,4 @@
-import type {CacheEntry} from "./cache.ts";
+import type {CacheEntry} from "./caches/cache.ts";
 
 export const serverInitChronos = NodeSpace.timer.chrono(false);
 

@@ -14,8 +14,8 @@ import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
 import {PageContext, PageController_ExposePrivate, setPageRenderer, type UiUserInfos} from "jopi-rewrite-ui";
 import * as ReactServer from "react-dom/server";
-import type {PageCache} from "./cache.ts";
-import {VoidPageCache} from "./cache.ts";
+import type {PageCache} from "./caches/cache.ts";
+import {VoidPageCache} from "./caches/cache.ts";
 import {ONE_DAY} from "./publicTools.ts";
 import "jopi-node-space";
 

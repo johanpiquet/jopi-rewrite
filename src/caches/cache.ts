@@ -1,7 +1,7 @@
 import path from "node:path";
 import "jopi-node-space";
 import fs from "node:fs/promises";
-import type {MetaUpdater} from "./metaUpdater.js";
+import type {MetaUpdater} from "../metaUpdater.js";
 
 const nFS = NodeSpace.fs;
 

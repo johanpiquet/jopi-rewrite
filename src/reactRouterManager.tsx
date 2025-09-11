@@ -31,7 +31,7 @@ export class ReactRouterManager {
     }
 
     private async scriptPlugin(script: string, _outDir: string) {
-        let resolvedPath = import.meta.resolve("./../src/template_router.jsx");
+        let resolvedPath = import.meta.resolve("./../src/codeGen/template_router.jsx");
         resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
         let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
 

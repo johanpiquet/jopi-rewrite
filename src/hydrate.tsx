@@ -2,8 +2,8 @@ import path from "node:path";
 
 import React from "react";
 import {setNewHydrateListener, setNewMustBundleExternalCssListener, useCssModule} from "jopi-rewrite-ui";
-import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
-import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
+import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler/bundler_esBuild.ts";
+import {esBuildBundleExternal} from "./bundler/bundler_esBuildExternal.ts";
 import fs from "node:fs/promises";
 import {scssToCss, searchSourceOf} from "@jopi-loader/tools";
 import {fileURLToPath, pathToFileURL} from "node:url";
@@ -41,7 +41,7 @@ async function generateScript(outputDir: string, components: {[key: string]: str
             declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
         }
 
-        let resolvedPath = import.meta.resolve("./../src/template_main.jsx");
+        let resolvedPath = import.meta.resolve("./../src/codeGen/template_main.jsx");
         resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
         let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
 

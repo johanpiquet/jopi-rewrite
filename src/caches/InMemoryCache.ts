@@ -2,7 +2,7 @@ import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
 
 import * as path from "node:path";
 import {type MetaUpdater, MetaUpdaterResult} from "../metaUpdater.ts";
-import type {CacheEntry, PageCache} from "../cache.ts";
+import type {CacheEntry, PageCache} from "./cache.ts";
 import {octetToMo, ONE_KILO_OCTET, ONE_MEGA_OCTET} from "../publicTools.ts";
 import {cacheEntryToResponse, readContentLength, responseToCacheEntry} from "../internalTools.ts";
 

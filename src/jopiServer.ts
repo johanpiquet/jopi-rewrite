@@ -14,8 +14,8 @@ import {
 } from "./jopiWebSite.tsx";
 
 import "jopi-node-space";
-import bunJsServer from "./server_bunjs.js";
-import nodeJsServer from "./server_nodejs.js";
+import bunJsServer from "./serverImpl/server_bunjs.js";
+import nodeJsServer from "./serverImpl/server_nodejs.js";
 import {findExecutable} from "@jopi-loader/tools/dist/tools.js";
 
 const nFS = NodeSpace.fs;

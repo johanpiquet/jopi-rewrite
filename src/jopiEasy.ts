@@ -36,7 +36,7 @@ import {
     WebSiteImpl,
     WebSiteOptions
 } from "./jopiWebSite.js";
-import type {PageCache} from "./cache.js";
+import type {PageCache} from "./caches/cache.js";
 import {getServer} from "./jopiServer.js";
 import {HTTP_VERBS} from "./publicTools.js";
 

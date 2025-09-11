@@ -11,7 +11,7 @@ import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "@jopi-loade
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 
 import {initCheerio} from "./jQuery.ts";
-import {type PageCache, WebSiteMirrorCache} from "./cache.ts";
+import {type PageCache, WebSiteMirrorCache} from "./caches/cache.ts";
 import {
     type AuthResult,
     type CookieOptions,
