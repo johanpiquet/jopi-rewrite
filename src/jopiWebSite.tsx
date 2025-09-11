@@ -9,7 +9,7 @@ import {createBundle, handleBundleRequest} from "./hydrate.ts";
 import type {ServerInstance, WebSocketConnectionInfos} from "./jopiServer.ts";
 import {declareServerReady} from "@jopi-loader/client";
 import {PostMiddlewares} from "./middlewares/index.ts";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
 import {PageContext, PageController_ExposePrivate, setPageRenderer, type UiUserInfos} from "jopi-rewrite-ui";
@@ -64,7 +64,7 @@ export interface WebSite {
      *      Information about the user login/password.
      *      The real type is depending on what you use with the Website.setAuthHandler function.
      */
-    tryAuthUser(loginInfo: any): Promise<AuthResult>;
+    tryAuthUser<T = LoginPassword>(loginInfo: T): Promise<AuthResult>;
 
     /**
      * Set the function which will verify user authentification
@@ -364,6 +364,7 @@ export class WebSiteImpl implements WebSite {
         if (this.jwtTokenStore) {
             this.jwtTokenStore(req.getJwtToken()!, "jwt " + token, req, res);
         } else {
+            // Note: here we don't set the "Authorization" header, since it's an input-only header.
             req.addCookie(res, "authorization", "jwt " + token, {maxAge: ONE_DAY * 7});
         }
     }
@@ -376,6 +377,7 @@ export class WebSiteImpl implements WebSite {
         try {
             return jwt.sign(data as object, this.JWT_SECRET!, this.jwtSignInOptions);
         } catch (e) {
+            console.error("createJwtToken", e);
             return undefined;
         }
     }
@@ -391,7 +393,7 @@ export class WebSiteImpl implements WebSite {
         this.JWT_SECRET = secret;
     }
 
-    async tryAuthUser(loginInfo: any): Promise<AuthResult> {
+    async tryAuthUser<T = LoginPassword>(loginInfo: T): Promise<AuthResult> {
         if (this.authHandler) {
             const res = this.authHandler(loginInfo);
             if (res instanceof Promise) return await res;
@@ -664,6 +666,11 @@ export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response |
 export interface SslCertificatePath {
     key: string;
     cert: string;
+}
+
+export interface LoginPassword {
+    login: string;
+    password: string;
 }
 
 setPageRenderer((children, hook, options) => {

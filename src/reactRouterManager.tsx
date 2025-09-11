@@ -132,7 +132,7 @@ export class ReactRouterManager {
             process.exit(1);
         }
 
-        console.log("🔥  Registering page", name);
+        // console.log("🔥  Registering page", name);
 
         let serverUrlParts = fileUrl.split("/");
         serverUrlParts.push(serverUrlParts.pop()!.replace("page", "server"));
@@ -210,7 +210,7 @@ export class ReactRouterManager {
         }
 
         if (needGetHandler) {
-            console.log("Server: binding route", route);
+            // console.log("Server: binding route", route);
             this.webSite.onGET(route, defaultHandler);
         }
 

@@ -15,7 +15,7 @@ import {type PageCache, WebSiteMirrorCache} from "./caches/cache.ts";
 import {
     type AuthResult,
     type CookieOptions,
-    type HttpMethod, type JopiRouteHandler, NotAuthorizedException,
+    type HttpMethod, type JopiRouteHandler, type LoginPassword, NotAuthorizedException,
     type RequestBody,
     type ResponseModifier, type ServeFileOptions, type TestCookieValue, type TextModifier, type UserInfos,
     type WebSite,
@@ -256,7 +256,7 @@ export class JopiRequest {
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/json
      */
-    reqBodyAsJson<T>(): Promise<T> {
+    reqBodyAsJson<T = any>(): Promise<T> {
         return this.coreRequest.json() as Promise<T>;
     }
 
@@ -684,6 +684,9 @@ export class JopiRequest {
             }
         }
 
+        let current = res.headers.get("set-cookie");
+        if (current) cookie = current + cookie;
+
         res.headers.append("set-cookie", cookie);
     }
 
@@ -817,21 +820,27 @@ export class JopiRequest {
      *      Information with things like login/password-hash/...
      *      Must match with you have used with webSite.setUserLoginManager.
      */
-    async tryAuthWithJWT(loginInfo: any): Promise<AuthResult> {
+    async tryAuthWithJWT<T = LoginPassword>(loginInfo: T): Promise<AuthResult> {
         const authResult = await this.webSite.tryAuthUser(loginInfo);
 
         if (authResult.isOk) {
-            if (!authResult.authToken) authResult.authToken = this.createJwtToken(authResult.userInfos!);
+            if (!authResult.authToken) {
+                authResult.authToken = this.createJwtToken(authResult.userInfos!);
+            }
 
             // The token will be added to cookie "authorization" in the post-process step.
             this.userJwtToken = authResult.authToken;
             this.userInfos = authResult.userInfos!;
 
+            // --> The cookie will be stored inside the response
+            //     through the WebSite.applyMiddlewares / call to storeJwtToken.
+
             return authResult;
         }
 
         this.userInfos = undefined;
-        this.userJwtToken = undefined
+        this.userJwtToken = undefined;
+
         return authResult;
     }
 
