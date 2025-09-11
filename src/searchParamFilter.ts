@@ -67,6 +67,7 @@ export interface SearchParamFilter {
 }
 
 export enum SortValues {
+    // noinspection JSUnusedGlobalSymbols
     ASC = "asc", DESC = "desc", IGNORE = "ignore"
 }
 

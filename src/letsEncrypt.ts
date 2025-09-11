@@ -1,5 +1,5 @@
 import * as acme from 'acme-client';
-import {type SslCertificatePath, type WebSite, WebSiteImpl} from "./core.tsx";
+import {type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 import path from "node:path";
 
 const nFS = NodeSpace.fs;

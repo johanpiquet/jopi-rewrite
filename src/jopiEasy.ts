@@ -1,15 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {
-    type AuthHandler, getServer,
-    HTTP_VERBS, type HttpMethod, type JopiMiddleware, type JopiPostMiddleware,
-    JopiRequest,
-    type JopiRouteHandler, type JopiWsRouteHandler, type PageCache,
-    type UserInfos,
-    type WebSite, WebSiteImpl,
-    WebSiteOptions
-} from "./core.ts";
-
 import path from "node:path";
 import fsc from "node:fs";
 
@@ -23,12 +13,12 @@ import {
     setConfig_setTailwindConfig,
     setConfig_setTailwindTemplate
 } from "./hydrate.ts";
-import {serverInitChrono} from "./internalHelpers.js";
-import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./caches/InMemoryCache.js";
-import {SimpleFileCache} from "./caches/SimpleFileCache.js";
-import {Middlewares} from "./middlewares/index.js";
-import type {DdosProtectionOptions} from "./middlewares/DdosProtection.js";
-import type {SearchParamFilterFunction} from "./searchParamFilter.js";
+import {serverInitChronos} from "./internalTools.ts";
+import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./caches/InMemoryCache.ts";
+import {SimpleFileCache} from "./caches/SimpleFileCache.ts";
+import {Middlewares} from "./middlewares/index.ts";
+import type {DdosProtectionOptions} from "./middlewares/DdosProtection.ts";
+import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import {
     type CrawlerCanIgnoreIfAlreadyCrawled,
     ProcessUrlResult,
@@ -36,8 +26,21 @@ import {
     WebSiteCrawler,
     type WebSiteCrawlerOptions
 } from "jopi-crawler";
+import {JopiRequest} from "./jopiRequest.ts";
+import {
+    type AuthHandler,
+    type HttpMethod,
+    type JopiMiddleware,
+    type JopiPostMiddleware, type JopiRouteHandler, type JopiWsRouteHandler, type UserInfos,
+    type WebSite,
+    WebSiteImpl,
+    WebSiteOptions
+} from "./jopiWebSite.js";
+import type {PageCache} from "./cache.js";
+import {getServer} from "./jopiServer.js";
+import {HTTP_VERBS} from "./publicTools.js";
 
-serverInitChrono.start("jopiEasy lib");
+serverInitChronos.start("jopiEasy lib");
 
 class JopiApp {
     private _isStartAppSet: boolean = false;

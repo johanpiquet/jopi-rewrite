@@ -1,4 +1,4 @@
-import type {ServerInstance, StartServerOptions, ServerImpl, WebSocketConnectionInfos} from "./server.ts";
+import type {ServerInstance, StartServerOptions, ServerImpl, WebSocketConnectionInfos} from "./jopiServer.ts";
 
 const impl: ServerImpl = {
     startServer(options: StartServerOptions): ServerInstance {

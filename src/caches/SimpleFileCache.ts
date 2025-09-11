@@ -1,16 +1,9 @@
-import {
-    type CacheEntry,
-    cacheEntryToResponse,
-    type MetaUpdater,
-    MetaUpdaterResult,
-    type PageCache,
-    responseToCacheEntry
-} from "../core.tsx";
-
 import {gzipFile} from "../gzip.ts";
-
 import path from "node:path";
 import fs from "node:fs/promises";
+import {type MetaUpdater, MetaUpdaterResult} from "../metaUpdater.ts";
+import type {CacheEntry, PageCache} from "../cache.ts";
+import {cacheEntryToResponse, responseToCacheEntry} from "../internalTools.ts";
 
 const nCrypto = NodeSpace.crypto;
 const nFS = NodeSpace.fs;

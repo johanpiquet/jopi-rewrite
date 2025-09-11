@@ -1,8 +1,9 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {JopiRequest, type SendingBody} from "./core.tsx";
+import {type SendingBody} from "./jopiWebSite.tsx";
 import type {LoadBalancer} from "./loadBalancing.ts";
 import {AutomaticStartStop} from "./automaticStartStop.js";
+import {JopiRequest} from "./jopiRequest.js";
 
 export interface ServerDownResult<T> {
     newServer?: ServerFetch<T>,

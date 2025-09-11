@@ -1,7 +1,7 @@
 import {
     setDefaultPage404Template, setDefaultPage500Template, setDefaultPage401Template,
-    type WebSite, JopiRequest
-} from "./core.ts";
+    type WebSite
+} from "./jopiWebSite.tsx";
 import path from "node:path";
 import fss from "node:fs";
 import fs from "node:fs/promises";
@@ -10,6 +10,7 @@ import {mustHydrate} from "jopi-rewrite-ui";
 import {addGenerateScriptPlugin, getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {RouteContext_ExposePrivate} from "./routeContext.ts";
+import {JopiRequest} from "./jopiRequest.js";
 
 const nFS = NodeSpace.fs;
 

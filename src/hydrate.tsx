@@ -1,18 +1,18 @@
 import path from "node:path";
 
 import React from "react";
-import {type JopiRequest, type WebSite, WebSiteImpl} from "./core.tsx";
 import {setNewHydrateListener, setNewMustBundleExternalCssListener, useCssModule} from "jopi-rewrite-ui";
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler_esBuildExternal.ts";
 import fs from "node:fs/promises";
 import {scssToCss, searchSourceOf} from "@jopi-loader/tools";
 import {fileURLToPath, pathToFileURL} from "node:url";
-
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
 import type {Config as TailwindConfig} from 'tailwindcss';
-import {serverInitChrono} from "./internalHelpers.js";
+import {serverInitChronos} from "./internalTools.ts";
+import {JopiRequest} from "./jopiRequest.ts";
+import {type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
@@ -70,7 +70,7 @@ export function getBundleUrl(webSite: WebSite) {
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
-    serverInitChrono.start("createBrowserBundle", "Time for building browser bundler")
+    serverInitChronos.start("createBrowserBundle", "Time for building browser bundler")
 
     try {
         if (NodeSpace.what.isBunJs) {
@@ -90,7 +90,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         console.error("Error executing EsBuild", e);
     }
 
-    serverInitChrono.end();
+    serverInitChronos.end();
 }
 
 async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
@@ -324,8 +324,6 @@ function JopiHydrate({id, args, asSpan, Child}: JopiHydrateProps) {
 }
 
 export function getBrowserComponentKey(fullFilePath: string): string {
-    const key = nCrypto.fastHash(fullFilePath).toString();
-
     for (let key in gHydrateComponents) {
         if (gHydrateComponents[key]===fullFilePath) {
             return key;

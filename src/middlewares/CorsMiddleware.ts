@@ -1,4 +1,4 @@
-import type {JopiPostMiddleware} from "../core.tsx";
+import type {JopiPostMiddleware} from "../jopiWebSite.tsx";
 
 export interface CorsMiddlewareOptions {
     accessControlAllowOrigin?: string[];

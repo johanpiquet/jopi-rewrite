@@ -79,7 +79,7 @@ declare namespace cheerio {
         attr(name: string, value: AttrFunction): Cheerio;
         // `value` *can* be `any` here but:
         // 1. That makes type-checking the function-type useless
-        // 2. It's converted to a string anyways
+        // 2. It's converted to a string anyway
         attr(name: string, value: string): Cheerio;
         // The map's values *can* be `any` but they'll all be cast to strings
         // regardless.

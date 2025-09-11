@@ -1,6 +1,6 @@
 import DdosProtection from "./DdosProtection.ts";
-import type {JopiRequest} from "../core.tsx";
 import CorsMiddleware from "./CorsMiddleware.ts";
+import {JopiRequest} from "../jopiRequest.js";
 
 export const Middlewares = {
     ddosProtection: DdosProtection,

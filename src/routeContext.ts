@@ -1,6 +1,8 @@
-import React from "react";
-import type {JopiRequest, WebSite, WebSiteRoute} from "./core.ts";
+// noinspection JSUnusedGlobalSymbols
+
+import type {WebSite, WebSiteRoute} from "./jopiWebSite.tsx";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
+import {JopiRequest} from "./jopiRequest.js";
 
 export function getRouteContext(): RouteContext {
     return gCurrentRouteContext!;
