@@ -72,24 +72,22 @@ export class ReactRouterManager {
                     await scanForPageFiles(fullPath, rootDirUrl, cFullPath);
                 } else if (entry.isFile()) {
                     if (entry.name.endsWith(".page" + extension)) {
-                        let name = entry.name.slice(0,-extension.length);
+                        let name = entry.name.slice(0, -(5 + extension.length));
 
-                        if (allowedNames.includes(name)) {
-                            if (cFullPath) {
-                                cFullPath = cFullPath.slice(0, -3) + ".tsx";
+                        if (cFullPath) {
+                            cFullPath = cFullPath.slice(0, -3) + ".tsx";
 
-                                // For node.js, assert that the source file exists.
-                                // It's required because the dist directory can have garbage files.
-                                if (!await nFS.isFile(cFullPath)) {
-                                    continue;
-                                }
+                            // For node.js, assert that the source file exists.
+                            // It's required because the dist directory can have garbage files.
+                            if (!await nFS.isFile(cFullPath)) {
+                                continue;
                             }
-
-                            fullPath = path.resolve(fullPath);
-                            const fileUrl = pathToFileURL(fullPath).href;
-                            const fileRelPath = fileUrl.substring(rootDirUrl.length);
-                            await this.registerPage(fullPath, fileUrl, fileRelPath.slice(0,-extension.length));
                         }
+
+                        fullPath = path.resolve(fullPath);
+                        const fileUrl = pathToFileURL(fullPath).href;
+                        const fileRelPath = fileUrl.substring(rootDirUrl.length);
+                        await this.registerPage(name, fullPath, fileUrl, fileRelPath.slice(0, -extension.length));
                     }
                 }
             }
@@ -98,7 +96,6 @@ export class ReactRouterManager {
         let isBunJS = NodeSpace.what.isBunJs;
 
         const extension = isBunJS ? ".tsx" : ".js";
-        const allowedNames = ["index.page", "404.page", "500.page", "401.page"];
 
         let pkgJsonFilePath = findPackageJson(this.dirHint);
         if (!pkgJsonFilePath) throw "React Router - Can't find package.json file";
@@ -121,11 +118,23 @@ export class ReactRouterManager {
         let mainDir = isBunJS ? srcDir : distDir;
 
         await scanForPageFiles(mainDir, pathToFileURL(mainDir).href, isBunJS ? undefined : srcDir);
+
+        // Release memory.
+        this.pageToPath = {};
     }
 
-    private async registerPage(fileFullPath: string, fileUrl: string, route: string) {
+    private pageToPath: Record<string, string> = {};
+
+    private async registerPage(name:  string, fileFullPath: string, fileUrl: string, route: string) {
+        if (this.pageToPath[name]) {
+            console.error(`🚫 Page ${name} already declared at ${fileFullPath}`);
+            process.exit(1);
+        }
+
+        console.log("🔥  Registering page", name);
+
         let serverUrlParts = fileUrl.split("/");
-        serverUrlParts.push(serverUrlParts.pop()!.replace("page", "server"))
+        serverUrlParts.push(serverUrlParts.pop()!.replace("page", "server"));
         let serverUrl = serverUrlParts.join("/");
         let serverFilePath = fileURLToPath(serverUrl);
         //
@@ -150,7 +159,10 @@ export class ReactRouterManager {
             isSpecialRoute = true;
         }
         else {
-            route = route.substring(0, route.lastIndexOf("/")) || "/";
+            if (name==="index") {
+                // Remove the /index at end.
+                route = route.substring(0, route.lastIndexOf("/")) || "/";
+            }
         }
 
         // Note: React Router doesn't support cath-all.

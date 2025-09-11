@@ -16,7 +16,7 @@ import * as ReactServer from 'react-dom/server';
 import {
     Page,
     PageContext, PageController, PageController_ExposePrivate, type PageOptions,
-    setPageRenderer,
+    setPageRenderer, type UiUserInfos
 } from "jopi-rewrite-ui";
 
 import {ServerFetch} from "./serverFetch.ts";
@@ -1659,21 +1659,7 @@ export interface CookieOptions {
     maxAge?: number;
 }
 
-export interface UserInfos {
-    id: string;
-
-    roles?: string[];
-    email?: string;
-
-    fullName?: string;
-    nickName?: string;
-
-    firstName?: string;
-    lastName?: string;
-
-    avatarUrl?: string;
-
-    [key: string]: any;
+export interface UserInfos extends UiUserInfos {
 }
 
 export interface AuthResult {

@@ -29,10 +29,10 @@
     "@types/bun": "^1.2.20",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/acme-client": "^3.3.4"
   },
   "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@jopi-loader/client": "^1.1.44",
     "@jopi-loader/tools": "^1.0.26",
     "@jopi-loader/types": "^1.0.12",
