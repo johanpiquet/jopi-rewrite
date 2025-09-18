@@ -21,7 +21,7 @@ See: [Installing JOPIN](_doc/how_to_start/installing_jopin.md)
 
 Here is an example of React SSR. This allows using React.js as a simple HTML generator.
 
-```typescript
+```typescript jsx
 import {jopiApp} from "jopi-rewrite";
 
 // Is automatically included!
@@ -54,7 +54,7 @@ This is what Google will see: simple, lifeless HTML, but with the correct appear
 
 Then, once in the browser, this lifeless React component will be replaced by its living equivalent: a fully functional React component.
 
-Jopi Rewrite automatically handles the complexity of this mechanism, by injecting about twenty lines of JavaScript (it's very light).
+Jopi Rewrite automatically handles the complexity of this mechanism by injecting about twenty lines of JavaScript (it's very light).
 
 > Hydratable components are only loaded in the browser if they are used.  
 > If you define 1000 components and only use 5, then only the code for those five components will be loaded.
@@ -67,7 +67,7 @@ The difference with simple React SSR resides in the React component:
 * He must be marked so that we know that he must be hydrated.
 * He must be put inside a file without server side code.
 
-```typescript
+```typescript jsx
 import {jopiApp} from "jopi-rewrite";
 
 import ComponentA from "./HydrateComponentA.tsx";
@@ -80,7 +80,7 @@ jopiApp.startApp(jopiEasy => {
 })
 ```
 
-```typescript
+```typescript jsx
 import React from "react";
 import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
 
