@@ -71,11 +71,12 @@ You can contact me on Discord. [link](https://discord.com/channels/1397868681253
     * [useUserInfos / logOut](_doc/hooks/use_user_infos.md)
     * [useCookie / deleteCookie](_doc/hooks/use_cookie.md)
     * [useFormSubmit](_doc/hooks/use_form_submit.md)
+    * [useRefresh](_doc/hooks/use_refresh.md)
+
 * Security
     * [Filtering Search Params](_doc/security/filtering-search-params.md)
     * [Enabling CORS](_doc/security/enabling-cors.md)
     * [Using JWT Token](_doc/security/using-jwt-token.md)
     * [Checking user roles](_doc/security/checking-user-roles.md)
 * Utilities
-    * [Application shutdown helper](_doc/utilities/application-shutdown-helper.md) 
-    * [Terminal Colors](_doc/utilities/terminal-colors.md)
+    * [Application shutdown helper](_doc/utilities/application-shutdown-helper.md)
