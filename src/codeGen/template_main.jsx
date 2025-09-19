@@ -3,6 +3,7 @@ import { lazy } from 'react';
 import React from "react";
 import ReactDOM from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from "react-router";
+import {Page, PageController_ExposePrivate} from "jopi-rewrite-ui";
 
 const jopiHydrate = { components: {} };
 //[DECLARE]
@@ -23,7 +24,10 @@ function patchRoutes(routes) {
     function doPatch(routes) {
         for (let route of routes) {
             if (route.Component) {
-                route.Component = jopiHydrate.components[route.Component];
+                const routePath = route.Component;
+                const C = jopiHydrate.components[routePath];
+
+                route.Component = () =><Page><C/></Page>;
             }
 
             if (route.children) {

@@ -12,7 +12,7 @@ import {PostMiddlewares} from "./middlewares/index.ts";
 import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
-import {PageContext, PageController_ExposePrivate, setPageRenderer, type UiUserInfos} from "jopi-rewrite-ui";
+import {Page, PageContext, PageController_ExposePrivate, setPageRenderer, type UiUserInfos} from "jopi-rewrite-ui";
 import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
@@ -673,31 +673,20 @@ export interface LoginPassword {
     password: string;
 }
 
+// Hook the rendering of a page to a post-process it
+//  to avoid some server side pitfall.
+//
 setPageRenderer((children, hook, options) => {
     const controller = new PageController_ExposePrivate<unknown>(false, options);
-    hook(controller);
+    hook?.(controller);
 
     // Allow forcing children rendering and by doing that, setting controller values.
-    // It's required, since in React SSR they is not back-propagation and components
+    // It's required, since in React SSR there is no back-propagation and components
     // are never refreshed two times.
     //
-    ReactServer.renderToStaticMarkup(<PageContext.Provider value={controller}>
-        {children}
-        </PageContext.Provider>);
+    ReactServer.renderToStaticMarkup(<PageContext.Provider value={controller}>{children}</PageContext.Provider>);
 
-    const state = controller.exportState();
-
-    return <PageContext.Provider value={controller}>
-        <html {...state.htmlProps}>
-        <head {...state.headProps}>
-        {state.head}
-        <title>{state.pageTitle}</title>
-        </head>
-        <body {...state.bodyProps}>
-    {children}
-    </body>
-    </html>
-    </PageContext.Provider>;
+    return <Page controller={controller}>{children}</Page>;
 });
 
 const gVoidCache = new VoidPageCache();

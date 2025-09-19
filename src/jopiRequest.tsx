@@ -3,7 +3,7 @@
 import type {ServerInstance, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
-import {Page, PageController, type PageOptions} from "jopi-rewrite-ui";
+import {Page, PageController, type PageOptions, renderPage} from "jopi-rewrite-ui";
 import {getBundleUrl, hasExternalCssBundled, hasHydrateComponents} from "./hydrate.ts";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
@@ -708,15 +708,14 @@ export class JopiRequest {
             if (hasExternalCssBundled() || hasHydrateComponents()) {
                 const bundleUrl = getBundleUrl(this.webSite);
                 const hash = this.webSite.data["jopiLoaderHash"];
+
                 controller.addToHeader("jopi-bundle-style", <link rel="stylesheet" key={hash.css}
                                                                   href={bundleUrl + "/loader.css?" + hash.css}/>);
             }
 
             controller.serverRequest = this;
         }
-
-        return this.htmlResponse(ReactServer.renderToStaticMarkup(<Page hook={hook}
-                                                                        options={options}>{element}</Page>));
+        return this.htmlResponse(ReactServer.renderToStaticMarkup(renderPage(element, hook, options)));
     }
 
     reactToString(element: ReactNode): string {
