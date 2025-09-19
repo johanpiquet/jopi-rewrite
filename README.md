@@ -68,6 +68,7 @@ You can contact me on Discord. [link](https://discord.com/channels/1397868681253
 * React Hooks
     * [useExecuteOnce](_doc/hooks/use_execute_once.md)
     * [usePage](_doc/hooks/use_page.md)
+    * [usePageTitle](_doc/hooks/use_page_title.md)
     * [useUserInfos / logOut](_doc/hooks/use_user_infos.md)
     * [useCookie / deleteCookie](_doc/hooks/use_cookie.md)
     * [useFormSubmit](_doc/hooks/use_form_submit.md)
