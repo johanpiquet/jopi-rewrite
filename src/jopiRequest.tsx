@@ -28,6 +28,8 @@ import type {MetaUpdater} from "./metaUpdater.ts";
 
 export class JopiRequest {
     public cache: PageCache;
+    public readonly mustUseAutoCache: boolean;
+
     public readonly mainCache: PageCache;
     private cookies?: { [name: string]: string };
     private _headers: Headers;
@@ -38,6 +40,8 @@ export class JopiRequest {
                 public readonly coreServer: ServerInstance,
                 public readonly route: WebSiteRoute) {
         this.cache = (webSite as WebSiteImpl).mainCache;
+        this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && route && (route.mustDisableAutomaticCache!==true);
+
         this.mainCache = this.cache;
         this._headers = this.coreRequest.headers;
     }
@@ -362,6 +366,8 @@ export class JopiRequest {
 
     //region Cache
 
+    private _isAddedToCache = false;
+
     /**
      * Get from the cache the entry corresponding to the current url.
      *
@@ -392,6 +398,12 @@ export class JopiRequest {
     }
 
     addToCache(response: Response, metaUpdater?: MetaUpdater<unknown>) {
+        // Avoid adding two times in the same request.
+        // This is required ith automatic adde functionnality.
+        //
+        if (this._isAddedToCache) return;
+        this._isAddedToCache = false;
+
         return this.addToCache_Compressed(response, metaUpdater);
     }
 

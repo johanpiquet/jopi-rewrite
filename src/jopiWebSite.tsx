@@ -18,6 +18,7 @@ import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
 import {ONE_DAY} from "./publicTools.ts";
 import "jopi-node-space";
+import {getInMemoryCache} from "./caches/InMemoryCache.ts";
 
 const nSocket = NodeSpace.webSocket;
 
@@ -29,6 +30,7 @@ export interface WebSite {
     getCache(): PageCache;
 
     setCache(pageCache: PageCache): void;
+    enableAutomaticCache(): void;
 
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
 
@@ -244,7 +246,7 @@ export class WebSiteImpl implements WebSite {
     }
 
     private applyMiddlewares(handler: JopiRouteHandler): JopiRouteHandler {
-        return async function(req) {
+        return async function(req: JopiRequest) {
             const mdw = (req.webSite as WebSiteImpl).middlewares;
 
             if (mdw) {
@@ -259,8 +261,22 @@ export class WebSiteImpl implements WebSite {
                 }
             }
 
+            let mustUseAutoCache = req.mustUseAutoCache && (req.method === "GET");
+
+            if (mustUseAutoCache) {
+                let res = await req.getFromCache();
+
+                if (res) {
+                    return res;
+                }
+            }
+
             const pRes = handler(req);
             let res = pRes instanceof Promise ? await pRes : pRes;
+
+            if (mustUseAutoCache && (res.status===200)) {
+                res = await req.addToCache(res)!;
+            }
 
             if (req.getJwtToken()) {
                 (req.webSite as WebSiteImpl).storeJwtToken(req, res);
@@ -330,6 +346,7 @@ export class WebSiteImpl implements WebSite {
     //region Cache
 
     mainCache: PageCache;
+    mustUseAutomaticCache: boolean = false;
     private headersToCache: string[] = ["content-type", "etag", "last-modified"];
 
     getCache(): PageCache {
@@ -338,6 +355,11 @@ export class WebSiteImpl implements WebSite {
 
     setCache(pageCache: PageCache) {
         this.mainCache = pageCache || gVoidCache;
+    }
+
+    enableAutomaticCache() {
+        this.mustUseAutomaticCache = true;
+        if(!this.mainCache) this.mainCache = getInMemoryCache();
     }
 
     getHeadersToCache(): string[] {
@@ -582,6 +604,7 @@ export class WebSiteOptions {
 export interface WebSiteRoute {
     handler: JopiRouteHandler;
     searchParamFilter?: SearchParamFilterFunction;
+    mustDisableAutomaticCache?: boolean;
 }
 
 export class JopiWebSocket {

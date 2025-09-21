@@ -56,7 +56,8 @@ You can contact me on Discord. [link](https://discord.com/channels/1397868681253
     * [Using ReactJS](_doc/reactjs/using_reactjs.md)
     * [Using Tailwind CSS](_doc/reactjs/using_tailwind.md)
     * [Using React Page Router](_doc/reactjs/use_page_router.md)
-  * Cookbook
+    * [Automatic cache](_doc/reactjs/automatic_cache.md)
+* Cookbook
   * [Handling request data](_doc/cookbook/handling_request_data.md)
   * [Using page cache](_doc/cookbook/using_page_cache.md)
   * [Create a reverse proxy](_doc/cookbook/create_a_reverse_proxy.md)

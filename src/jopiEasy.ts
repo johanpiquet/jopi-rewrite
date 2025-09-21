@@ -38,7 +38,7 @@ import {
 } from "./jopiWebSite.js";
 import type {PageCache} from "./caches/cache.js";
 import {getServer} from "./jopiServer.js";
-import {HTTP_VERBS} from "./publicTools.js";
+import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
 
 serverInitChronos.start("jopiEasy lib");
 
@@ -421,6 +421,10 @@ class JopiEasyWebSite {
         return this;
     }
 
+    enable_automaticCache() {
+        return new WebSite_AutomaticCacheBuilder(this, this.internals);
+    }
+
     add_httpCertificate(): CertificateBuilder {
         return new CertificateBuilder(this, this.internals);
     }
@@ -433,18 +437,18 @@ class JopiEasyWebSite {
         }
     }
 
-    add_path(path: string|string[]): WebSitePathBuilder {
-        return new WebSitePathBuilder(this, this.internals, path);
+    add_path(path: string|string[]): WebSite_PathBuilder {
+        return new WebSite_PathBuilder(this, this.internals, path);
     }
 
     add_path_GET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): this {
-        let res = new WebSitePathBuilder(this, this.internals, path);
+        let res = new WebSite_PathBuilder(this, this.internals, path);
         res.onGET(handler);
         return this;
     }
 
-    add_cache(): WebSiteCacheBuilder {
-        return new WebSiteCacheBuilder(this, this.internals);
+    add_cache(): WebSite_CacheBuilder {
+        return new WebSite_CacheBuilder(this, this.internals);
     }
 
     add_sourceServer<T>(): WebSite_AddSourceServerBuilder<T> {
@@ -567,8 +571,6 @@ class WebSite_MiddlewareBuilder {
     }
 }
 
-//region WebSite_AddSourceServerBuilder
-
 class WebSite_AddSourceServerBuilder<T> extends CreateServerFetch<T, WebSite_AddSourceServerBuilder_NextStep<T>> {
     private serverFetch?: ServerFetch<T>;
 
@@ -613,11 +615,62 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
     }
 }
 
-//endregion
+class WebSite_PathBuilder {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string|string[]) {
+    }
 
-class WebSitePathBuilder_NextStep {
+    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, verb, handler);
+    }
+
+    onGET(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
+        return this.onRequest("GET", handler);
+    }
+
+    onPOST(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
+        return this.onRequest("POST", handler);
+    }
+
+    onPUT(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
+        return this.onRequest("PUT", handler);
+    }
+
+    onDELETE(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
+        return this.onRequest("DELETE", handler);
+    }
+
+    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
+        return this.onRequest("OPTIONS", handler);
+    }
+
+    onPATCH(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
+        return this.onRequest("PATCH", handler);
+    }
+
+    onHEAD(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
+        return this.onRequest("HEAD", handler);
+    }
+
+    onWebSocketConnect(handler: JopiWsRouteHandler): { add_path: (path: string) => WebSite_PathBuilder, DONE_add_path: () => JopiEasyWebSite } {
+        this.internals.afterHook.push(webSite => {
+            if (this.path instanceof Array) {
+                this.path.forEach(p => webSite.onWebSocketConnect(p, handler));
+            } else {
+                webSite.onWebSocketConnect(this.path as string, handler)
+            }
+        });
+
+        return {
+            add_path: (path: string) => new WebSite_PathBuilder(this.webSite, this.internals, path),
+            DONE_add_path: () => this.webSite
+        }
+    }
+}
+
+class WebSite_PathBuilder_NextStep {
     private requiredRoles?: string[];
     private searchParamFilter?: SearchParamFilterFunction;
+    private mustDisableAutomaticCache = false;
 
     constructor(private readonly webSite: JopiEasyWebSite,
                 private readonly internals: WebSiteInternal,
@@ -638,6 +691,7 @@ class WebSitePathBuilder_NextStep {
 
             let route = webSite.onVerb(verb, path, handler!);
             if (this.searchParamFilter) route.searchParamFilter = this.searchParamFilter;
+            if (this.mustDisableAutomaticCache) route.mustDisableAutomaticCache = true;
         });
     }
 
@@ -645,85 +699,38 @@ class WebSitePathBuilder_NextStep {
         return this.webSite;
     }
 
-    add_path(path: string|string[]): WebSitePathBuilder {
-        return new WebSitePathBuilder(this.webSite, this.internals, path);
+    add_path(path: string|string[]): WebSite_PathBuilder {
+        return new WebSite_PathBuilder(this.webSite, this.internals, path);
     }
 
-    add_samePath(): WebSitePathBuilder {
-        return new WebSitePathBuilder(this.webSite, this.internals, this.path);
+    add_samePath(): WebSite_PathBuilder {
+        return new WebSite_PathBuilder(this.webSite, this.internals, this.path);
     }
 
-    add_requiredRole(role: string): WebSitePathBuilder_NextStep {
+    add_requiredRole(role: string): WebSite_PathBuilder_NextStep {
         if (!this.requiredRoles) this.requiredRoles = [role];
         else this.requiredRoles.push(role);
         return this;
     }
 
-    add_requiredRoles(roles: string[]): WebSitePathBuilder_NextStep {
+    add_requiredRoles(roles: string[]): WebSite_PathBuilder_NextStep {
         if (!this.requiredRoles) this.requiredRoles = [...roles];
         else this.requiredRoles = [...this.requiredRoles, ...roles];
         return this;
     }
 
-    add_searchParamFiler(filter: SearchParamFilterFunction): WebSitePathBuilder_NextStep {
+    add_searchParamFiler(filter: SearchParamFilterFunction): WebSite_PathBuilder_NextStep {
         this.searchParamFilter = filter;
+        return this;
+    }
+
+    disable_automaticCache(): WebSite_PathBuilder_NextStep {
+        this.mustDisableAutomaticCache = true;
         return this;
     }
 }
 
-class WebSitePathBuilder {
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string|string[]) {
-    }
-
-    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
-        return new WebSitePathBuilder_NextStep(this.webSite, this.internals, this.path, verb, handler);
-    }
-
-    onGET(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
-        return this.onRequest("GET", handler);
-    }
-
-    onPOST(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
-        return this.onRequest("POST", handler);
-    }
-
-    onPUT(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
-        return this.onRequest("PUT", handler);
-    }
-
-    onDELETE(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
-        return this.onRequest("DELETE", handler);
-    }
-
-    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
-        return this.onRequest("OPTIONS", handler);
-    }
-
-    onPATCH(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
-        return this.onRequest("PATCH", handler);
-    }
-
-    onHEAD(handler: (req: JopiRequest) => Promise<Response>): WebSitePathBuilder_NextStep {
-        return this.onRequest("HEAD", handler);
-    }
-
-    onWebSocketConnect(handler: JopiWsRouteHandler): { add_path: (path: string) => WebSitePathBuilder, DONE_add_path: () => JopiEasyWebSite } {
-        this.internals.afterHook.push(webSite => {
-            if (this.path instanceof Array) {
-                this.path.forEach(p => webSite.onWebSocketConnect(p, handler));
-            } else {
-                webSite.onWebSocketConnect(this.path as string, handler)
-            }
-        });
-
-        return {
-            add_path: (path: string) => new WebSitePathBuilder(this.webSite, this.internals, path),
-            DONE_add_path: () => this.webSite
-        }
-    }
-}
-
-class WebSiteCacheBuilder {
+class WebSite_CacheBuilder {
     private cache?: PageCache;
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
@@ -748,6 +755,123 @@ class WebSiteCacheBuilder {
 
     END_add_cache(): JopiEasyWebSite {
         return this.webSite;
+    }
+}
+
+interface WebSite_AutomaticCacheBuilder_End {
+    END_use_AutomaticCache(): JopiEasyWebSite;
+}
+
+interface WebSite_AutomaticCacheBuilder_End {
+    END_use_AutomaticCache(): JopiEasyWebSite;
+}
+
+class WebSite_AutomaticCacheBuilder implements WebSite_AutomaticCacheBuilder_End {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+    }
+
+    use_memoryCache(): WebSite_AutomaticCacheBuilder_UseMemoryCache {
+        return new WebSite_AutomaticCacheBuilder_UseMemoryCache(this.webSite, this.internals);
+    }
+
+    use_fileCache(): WebSite_AutomaticCacheBuilder_UseFileCache {
+        return new WebSite_AutomaticCacheBuilder_UseFileCache(this.webSite, this.internals);
+    }
+
+    END_use_AutomaticCache() {
+        return this.webSite;
+    }
+}
+
+class WebSite_AutomaticCacheBuilder_UseFileCache {
+    private rootDir: string = path.join(process.cwd(), "temp", "page-cache");
+
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+        this.internals.afterHook.push(webSite => {
+            webSite.setCache(new SimpleFileCache(this.rootDir));
+            webSite.enableAutomaticCache();
+        });
+    }
+
+    setConfig_rootDir(rootDir: string): this {
+        this.rootDir = rootDir;
+        return this;
+    }
+
+    END_use_AutomaticCache() {
+        return this.webSite;
+    }
+}
+
+class WebSite_AutomaticCacheBuilder_UseMemoryCache {
+    private readonly cacheOptions: InMemoryCacheOptions = {};
+
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+        this.internals.afterHook.push(webSite => {
+            initMemoryCache(this.cacheOptions);
+            webSite.setCache(getInMemoryCache());
+            webSite.enableAutomaticCache();
+        })
+    }
+
+    END_use_AutomaticCache() {
+        return this.webSite;
+    }
+
+    /**
+     * The memory cache survives hot-reload.
+     * If a hot-reload occurs, the cache contact is kept as-is.
+     * This option allows changing this behavior and automatically clearing
+     * the memory cache if a hot-reload is detected.
+     */
+    setConfig_clearOnHotReload(value: boolean = true): this {
+        this.cacheOptions.clearOnHotReload = value;
+        return this;
+    }
+
+    /**
+     * If an item is larger than this value, then he will not be added to the cache.
+     * Default value is 600 ko.
+     */
+    setConfig_maxContentLength(value: number = ONE_KILO_OCTET * 600): this {
+        this.cacheOptions.maxContentLength = value;
+        return this;
+    }
+
+    /**
+     * The max number of items in the cache.
+     * Default is 5000.
+     */
+    setConfig_maxItemCount(value: number = 5000): this {
+        this.cacheOptions.maxItemCount = value;
+        return this;
+    }
+
+    /**
+     * A delta which allows not triggering garbage collector too soon.
+     * Default is 10% of maxItemCount.
+     */
+    setConfig_maxItemCountDelta(value: number): this {
+        this.cacheOptions.maxItemCountDelta = value;
+        return this;
+    }
+
+    /**
+     * The max memory usage (mesure is Mo).
+     * Default is 500Mo
+     */
+    setConfig_maxMemoryUsage_mo(value: number = 500): this {
+        this.cacheOptions.maxMemoryUsage_mo = value;
+        return this;
+    }
+
+    /**
+     * A delta which allows not triggering garbage collector too soon.
+     * Default is 10% of maxMemoryUsage_mo.
+     */
+    setConfig_maxMemoryUsageDela_mo(value: number = 500): this {
+        this.cacheOptions.maxMemoryUsageDela_mo = value;
+        return this;
     }
 }
 

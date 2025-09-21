@@ -34,7 +34,7 @@ export interface InMemoryCacheOptions {
     maxItemCount?: number;
 
     /**
-     * A delta allows not triggering garbage collector too soon.
+     * A delta which allows not triggering garbage collector too soon.
      */
     maxItemCountDelta?: number;
 
@@ -45,7 +45,7 @@ export interface InMemoryCacheOptions {
     maxMemoryUsage_mo?: number;
 
     /**
-     * A delta allows not triggering garbage collector too soon.
+     * A delta which allows not triggering garbage collector too soon.
      */
     maxMemoryUsageDela_mo?: number;
 }
@@ -123,6 +123,10 @@ class InMemoryCache implements PageCache {
         return Promise.resolve(this.key_getMeta(url.toString()));
     }
 
+    /**
+     * Set the binary value inside the cache entry.
+     * This by compressing the binary if needed.
+     */
     private async setBinary(cacheEntry: MyCacheEntry, response: Response, storeUncompressed: boolean) {
         // We only store a compressed version.
         // No gzipped version. Why? Probably because the content will be hacked.

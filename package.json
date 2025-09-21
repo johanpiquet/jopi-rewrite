@@ -34,7 +34,7 @@
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@jopi-loader/client": "workspace:^1.1.45",
-    "@jopi-loader/tools": "workspace:^1.0.28",
+    "@jopi-loader/tools": "workspace:^1.0.30",
     "@jopi-loader/types": "workspace:^1.0.12",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/ws": "^8.18.1",
