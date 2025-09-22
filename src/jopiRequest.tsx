@@ -399,7 +399,7 @@ export class JopiRequest {
 
     addToCache(response: Response, metaUpdater?: MetaUpdater<unknown>) {
         // Avoid adding two times in the same request.
-        // This is required ith automatic adde functionnality.
+        // This is required with automatic add functionnality.
         //
         if (this._isAddedToCache) return;
         this._isAddedToCache = false;
