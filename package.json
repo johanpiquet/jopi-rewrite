@@ -1,6 +1,6 @@
 {
   "name": "jopi-rewrite",
-  "version": "2.0.25",
+  "version": "2.0.26",
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": ["express.js", "nextjs", "react", "react-ssr", "react-hydrate"],
@@ -34,7 +34,7 @@
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@jopi-loader/client": "workspace:^1.1.45",
-    "@jopi-loader/tools": "workspace:^1.0.31",
+    "@jopi-loader/tools": "workspace:^1.0.33",
     "@jopi-loader/types": "workspace:^1.0.13",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/ws": "^8.18.1",
@@ -43,9 +43,9 @@
     "css-url-parser": "^1.1.4",
     "esbuild": "=0.25.9",
     "jopi-crawler": "^1.0.16",
-    "jopi-loader": "workspace:^1.0.28",
+    "jopi-loader": "workspace:^1.0.30",
     "jopi-node-space": "workspace:^0.0.21",
-    "jopi-rewrite-ui": "workspace:^2.0.8",
+    "jopi-rewrite-ui": "workspace:^2.0.9",
     "jsonwebtoken": "^9.0.2",
     "postcss": "^8.5.6",
     "react": "^19.1.1",
