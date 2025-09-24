@@ -30,6 +30,7 @@ export interface WebSite {
     getCache(): PageCache;
 
     setCache(pageCache: PageCache): void;
+
     enableAutomaticCache(): void;
 
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;

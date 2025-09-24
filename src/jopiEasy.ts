@@ -6,10 +6,11 @@ import fsc from "node:fs";
 import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
-import {UserStore_WithLoginPassword, type UserInfos_WithLoginPassword} from "./userStores.ts";
+import {type UserInfos_WithLoginPassword, UserStore_WithLoginPassword} from "./userStores.ts";
 import {
     type PostCssInitializer,
-    setConfig_disableTailwind, setConfig_postCssPluginsInitializer,
+    setConfig_disableTailwind,
+    setConfig_postCssPluginsInitializer,
     setConfig_setTailwindConfig,
     setConfig_setTailwindTemplate
 } from "./hydrate.ts";
@@ -31,13 +32,16 @@ import {
     type AuthHandler,
     type HttpMethod,
     type JopiMiddleware,
-    type JopiPostMiddleware, type JopiRouteHandler, type JopiWsRouteHandler, type UserInfos,
+    type JopiPostMiddleware,
+    type JopiRouteHandler,
+    JopiWebSocket,
+    type UserInfos,
     type WebSite,
     WebSiteImpl,
     WebSiteOptions
 } from "./jopiWebSite.js";
 import type {PageCache} from "./caches/cache.js";
-import {getServer} from "./jopiServer.js";
+import {getServer, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
 
 serverInitChronos.start("jopiEasy lib");
@@ -615,55 +619,55 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
     }
 }
 
+export interface RouterPathDefinition {
+    onGET?: (req: JopiRequest) => Promise<Response>;
+    onPOST?: (req: JopiRequest) => Promise<Response>;
+    onPUT?: (req: JopiRequest) => Promise<Response>;
+    onDELETE?: (req: JopiRequest) => Promise<Response>;
+    onOPTIONS?: (req: JopiRequest) => Promise<Response>;
+    onPATCH?: (req: JopiRequest) => Promise<Response>;
+    onHEAD?: (req: JopiRequest) => Promise<Response>;
+    onWebSocket?: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
+}
+
 class WebSite_PathBuilder {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string|string[]) {
     }
 
-    onRequest(verb: HttpMethod, handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, verb, handler);
+    use(def: RouterPathDefinition) {
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, def);
     }
 
     onGET(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return this.onRequest("GET", handler);
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onGET: handler});
     }
 
     onPOST(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return this.onRequest("POST", handler);
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onPOST: handler});
     }
 
     onPUT(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return this.onRequest("PUT", handler);
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onPUT: handler});
     }
 
     onDELETE(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return this.onRequest("DELETE", handler);
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onDELETE: handler});
     }
 
     onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return this.onRequest("OPTIONS", handler);
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onOPTIONS: handler});
     }
 
     onPATCH(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return this.onRequest("PATCH", handler);
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onPATCH: handler});
     }
 
     onHEAD(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return this.onRequest("HEAD", handler);
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onHEAD: handler});
     }
 
-    onWebSocketConnect(handler: JopiWsRouteHandler): { add_path: (path: string) => WebSite_PathBuilder, DONE_add_path: () => JopiEasyWebSite } {
-        this.internals.afterHook.push(webSite => {
-            if (this.path instanceof Array) {
-                this.path.forEach(p => webSite.onWebSocketConnect(p, handler));
-            } else {
-                webSite.onWebSocketConnect(this.path as string, handler)
-            }
-        });
-
-        return {
-            add_path: (path: string) => new WebSite_PathBuilder(this.webSite, this.internals, path),
-            DONE_add_path: () => this.webSite
-        }
+    onWebSocketConnect(handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void): Pick<WebSite_PathBuilder_NextStep, 'add_path' | 'add_samePath' | 'DONE_add_path'> {
+        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onWebSocket: handler});
     }
 }
 
@@ -675,24 +679,44 @@ class WebSite_PathBuilder_NextStep {
     constructor(private readonly webSite: JopiEasyWebSite,
                 private readonly internals: WebSiteInternal,
                 private readonly path: string|string[],
-                verb: HttpMethod,
-                handler: (req: JopiRequest) => Promise<Response>) {
+                routeDef: RouterPathDefinition) {
 
-        internals.afterHook.push(webSite => {
-            if (this.requiredRoles) {
-                const requiredRoles = this.requiredRoles;
-                const oldHandler = handler!;
+        const addVerb = (verb: HttpMethod, handler: JopiRouteHandler) => {
+            internals.afterHook.push(webSite => {
+                if (this.requiredRoles) {
+                    const requiredRoles = this.requiredRoles;
+                    const oldHandler = handler!;
 
-                handler = req => {
-                    req.assertUserHasRoles(requiredRoles);
-                    return oldHandler(req);
+                    handler = req => {
+                        req.assertUserHasRoles(requiredRoles);
+                        return oldHandler(req);
+                    }
                 }
-            }
 
-            let route = webSite.onVerb(verb, path, handler!);
-            if (this.searchParamFilter) route.searchParamFilter = this.searchParamFilter;
-            if (this.mustDisableAutomaticCache) route.mustDisableAutomaticCache = true;
-        });
+                let route = webSite.onVerb(verb, path, handler!);
+                if (this.searchParamFilter) route.searchParamFilter = this.searchParamFilter;
+                if (this.mustDisableAutomaticCache) route.mustDisableAutomaticCache = true;
+            });
+        };
+
+        if (routeDef.onGET) addVerb("GET", routeDef.onGET);
+        if (routeDef.onPOST) addVerb("POST", routeDef.onPOST);
+        if (routeDef.onPATCH) addVerb("PATCH", routeDef.onPATCH);
+        if (routeDef.onDELETE) addVerb("DELETE", routeDef.onDELETE);
+        if (routeDef.onOPTIONS) addVerb("OPTIONS", routeDef.onOPTIONS);
+        if (routeDef.onHEAD) addVerb("HEAD", routeDef.onHEAD);
+
+        if (routeDef.onWebSocket) {
+            const handler = routeDef.onWebSocket;
+
+            this.internals.afterHook.push(webSite => {
+                if (this.path instanceof Array) {
+                    this.path.forEach(p => webSite.onWebSocketConnect(p, handler));
+                } else {
+                    webSite.onWebSocketConnect(this.path as string, handler)
+                }
+            });
+        }
     }
 
     DONE_add_path(): JopiEasyWebSite {

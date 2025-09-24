@@ -38,7 +38,6 @@ For that you have three choices:
 * Let Jopi Rewrite generate a dev certificate.
 * Ask a LetsEncrypt certificate.
 
-
 ```typescript
 // With a local certificat.
 jopiEasy.new_webSite("https://127.0.0.1")
@@ -85,6 +84,20 @@ jopiApp.startApp(jopiEasy => {
         .add_samePath()
             .onPOST(async req => req.htmlResponse("Received" + JSON.stringify(req.getReqData())))
         .DONE_add_path();
+});
+```
+
+Here you can also use the `use` function in order to combine GET and POST:
+
+```typescript
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    jopiEasy.new_webSite("http://127.0.0.1")
+        .add_path("/").use({
+            onGET: async req => req.htmlResponse("A GET request"),
+            onPOST: async req => req.htmlResponse("Received" + JSON.stringify(req.getReqData()))
+        })
 });
 ```
 
