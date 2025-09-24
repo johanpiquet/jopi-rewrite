@@ -107,13 +107,13 @@ You can also use it to manually pre/post process GET call, for example, to enabl
 
 Here we use the same path logic, but instead of a file named `index.page.tsx` you will create a file named `index.server.tsx`.
 
-In this file, you will use a function named `getRouteContext` to bind listener to the server calls (GET/POST/...). 
+In this file, you will use a function named `getRouteServerContext` to bind listener to the server calls (GET/POST/...). 
 
 **Sample index.server.tsx file**
 ```typescript
-import {getRouteContext} from "jopi-rewrite";
+import {getRouteServerContext} from "jopi-rewrite";
 
-let ctx = getRouteContext();
+let ctx = getRouteServerContext();
 
 // Process POST call to the url corresponding the page route. 
 ctx.onPOST(async req => {
@@ -125,9 +125,9 @@ ctx.onPOST(async req => {
 
 // Here we will enable a cache for our React page.
 ctx.onGET(async (req, next) => {
-    import {getRouteContext} from "jopi-rewrite";
+    import {getRouteServerContext} from "jopi-rewrite";
 
-    let ctx = getRouteContext();
+    let ctx = getRouteServerContext();
 
     ctx.onGET(async (req, next) => {
         let res = await req.getFromCache();

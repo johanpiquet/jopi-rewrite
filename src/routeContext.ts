@@ -4,7 +4,7 @@ import type {WebSite, WebSiteRoute} from "./jopiWebSite.tsx";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import {JopiRequest} from "./jopiRequest.js";
 
-export function getRouteContext(): RouteContext {
+export function getRouteServerContext(): RouteContext {
     return gCurrentRouteContext!;
 }
 
