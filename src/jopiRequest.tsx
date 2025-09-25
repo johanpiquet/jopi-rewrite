@@ -3,7 +3,7 @@
 import type {ServerInstance, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
-import {Page, PageController, type PageOptions, renderPage} from "jopi-rewrite-ui";
+import {PageController, type PageOptions, renderPage} from "jopi-rewrite-ui";
 import {getBundleUrl, hasExternalCssBundled, hasHydrateComponents} from "./hydrate.ts";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
@@ -24,7 +24,6 @@ import {
 } from "./jopiWebSite.tsx";
 
 import {parseCookies} from "./internalTools.ts";
-import type {MetaUpdater} from "./metaUpdater.ts";
 
 export class JopiRequest {
     public cache: PageCache;
@@ -375,11 +374,9 @@ export class JopiRequest {
      * @param useGzippedVersion
      *      If true, returns the compressed version in priority.
      *      If it doesn't exist, then will return the uncompressed version.
-     * @param metaUpdater
-     *      Allow updating the meta of the cache entry.
      */
-    async getFromCache(useGzippedVersion: boolean = true, metaUpdater?: MetaUpdater<unknown>): Promise<Response | undefined> {
-        return await this.cache.getFromCache(this.urlInfos, useGzippedVersion, metaUpdater);
+    async getFromCache(useGzippedVersion: boolean = true): Promise<Response | undefined> {
+        return await this.cache.getFromCache(this.urlInfos, useGzippedVersion);
     }
 
     async hasInCache(useGzippedVersion?: boolean | undefined): Promise<boolean> {
@@ -398,22 +395,22 @@ export class JopiRequest {
         return this.cache.removeFromCache(url || this.urlInfos);
     }
 
-    addToCache(response: Response, metaUpdater?: MetaUpdater<unknown>) {
+    addToCache(response: Response) {
         // Avoid adding two times in the same request.
         // This is required with automatic add functionnality.
         //
         if (this._isAddedToCache) return;
         this._isAddedToCache = false;
 
-        return this.addToCache_Compressed(response, metaUpdater);
+        return this.addToCache_Compressed(response);
     }
 
-    addToCache_Compressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
-        return this.cache.addToCache(this.urlInfos, response, (this.webSite as WebSiteImpl).getHeadersToCache(), false, metaUpdater);
+    addToCache_Compressed(response: Response): Promise<Response> {
+        return this.cache.addToCache(this.urlInfos, response, (this.webSite as WebSiteImpl).getHeadersToCache(), false);
     }
 
-    addToCache_Uncompressed(response: Response, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
-        return this.cache.addToCache(this.urlInfos, response, (this.webSite as WebSiteImpl).getHeadersToCache(), true, metaUpdater);
+    addToCache_Uncompressed(response: Response): Promise<Response> {
+        return this.cache.addToCache(this.urlInfos, response, (this.webSite as WebSiteImpl).getHeadersToCache(), true);
     }
 
     /**

@@ -1,7 +1,6 @@
 import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
 
 import * as path from "node:path";
-import {type MetaUpdater, MetaUpdaterResult} from "../metaUpdater.ts";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {octetToMo, ONE_KILO_OCTET, ONE_MEGA_OCTET} from "../publicTools.ts";
 import {cacheEntryToResponse, readContentLength, responseToCacheEntry} from "../internalTools.ts";
@@ -95,16 +94,16 @@ class InMemoryCache implements PageCache {
         this.maxMemoryUsageDelta = Math.trunc(options.maxMemoryUsageDela_mo * ONE_MEGA_OCTET);
     }
 
-    async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
-        return this.key_AddToCache(url.toString(), response, headersToInclude, storeUncompressed, metaUpdater);
+    async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean): Promise<Response> {
+        return this.key_AddToCache(url.toString(), response, headersToInclude, storeUncompressed);
     }
 
     removeFromCache(url: URL): Promise<void> {
         return this.key_removeFromCache(url.toString());
     }
 
-    async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater<unknown>): Promise<Response|undefined> {
-        return this.key_getFromCache(url.toString(), getGzippedVersion, updater);
+    async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
+        return this.key_getFromCache(url.toString(), getGzippedVersion);
     }
 
     async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
@@ -117,10 +116,6 @@ class InMemoryCache implements PageCache {
 
         if (requireUncompressedVersion) return cacheEntry.ucpBinary!==undefined;
         return cacheEntry.gzipBinary!==undefined;
-    }
-
-    getMeta<T>(url: URL): Promise<T|undefined> {
-        return Promise.resolve(this.key_getMeta(url.toString()));
     }
 
     /**
@@ -158,19 +153,8 @@ class InMemoryCache implements PageCache {
 
     //region With a key
 
-    async key_AddToCache(key: string, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>) {
-        let meta: any;
-
-        if (metaUpdater) {
-            if (metaUpdater.requireCurrentMeta) meta = this.key_getMeta(key);
-            if (!meta) meta = {};
-
-            const mur = metaUpdater.updateMeta(meta, metaUpdater.data);
-            if (mur===MetaUpdaterResult.MUST_DELETE) meta = undefined;
-            else if (mur===MetaUpdaterResult.IS_NOT_UPDATED) meta = undefined;
-        }
-
-        const cacheEntry = responseToCacheEntry(response, headersToInclude, meta, !storeUncompressed) as MyCacheEntry;
+    async key_AddToCache(key: string, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean) {
+        const cacheEntry = responseToCacheEntry(response, headersToInclude, !storeUncompressed) as MyCacheEntry;
 
         if (response.status===200 && response.body) {
             const contentLength = readContentLength(response.headers);
@@ -223,34 +207,14 @@ class InMemoryCache implements PageCache {
         return Promise.resolve();
     }
 
-    key_getFromCache(key: string, getGzippedVersion: boolean, updater?: MetaUpdater<unknown>): Response|undefined {
+    key_getFromCache(key: string, getGzippedVersion: boolean): Response|undefined {
         const res = this.key_getValueFromCache(key, getGzippedVersion);
 
         if (res) {
-            if (updater) {
-                const meta = res.meta||{};
-                const updateResult = updater.updateMeta(meta, updater.data);
-
-                switch (updateResult) {
-                    case MetaUpdaterResult.MUST_DELETE:
-                        res.meta = undefined;
-                        break;
-                    case MetaUpdaterResult.IS_UPDATED:
-                        res.meta = meta;
-                        break;
-                }
-            }
-
             return cacheEntryToResponse(res);
         }
 
         return undefined;
-    }
-
-    key_getMeta<T>(key: string): T|undefined {
-        const cacheEntry = this.cache.get(key);
-        if (!cacheEntry) return undefined;
-        return cacheEntry.meta;
     }
 
     private key_getValueFromCache(key: string, getGzippedVersion: boolean): CacheEntry|undefined {
@@ -418,8 +382,8 @@ class InMemorySubCache implements PageCache {
         this.prefix = name + " : ";
     }
 
-    async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response> {
-        return this.parent.key_AddToCache(this.prefix + url.toString(), response, headersToInclude, storeUncompressed, metaUpdater);
+    async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean): Promise<Response> {
+        return this.parent.key_AddToCache(this.prefix + url.toString(), response, headersToInclude, storeUncompressed);
     }
 
     async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
@@ -430,12 +394,8 @@ class InMemorySubCache implements PageCache {
         return this.parent.key_removeFromCache(this.prefix + url.toString());
     }
 
-    async getFromCache(url: URL, getGzippedVersion: boolean, updater?: MetaUpdater<unknown>): Promise<Response|undefined> {
-        return this.parent.key_getFromCache(this.prefix + url.toString(), getGzippedVersion, updater);
-    }
-
-    getMeta<T>(url: URL): Promise<T|undefined> {
-        return Promise.resolve(this.parent.key_getMeta(this.prefix + url.toString()));
+    async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
+        return this.parent.key_getFromCache(this.prefix + url.toString(), getGzippedVersion);
     }
 
     createSubCache(name: string): PageCache {

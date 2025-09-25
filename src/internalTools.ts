@@ -50,9 +50,9 @@ export function cacheEntryToResponse(entry: CacheEntry) {
 
 const gDefaultHeadersToCache: string[] = [ "content-type", "etag", "last-modified"];
 
-export function responseToCacheEntry(response: Response, headersToInclude: string[]|undefined, meta: any, isGzipped: boolean): CacheEntry {
+export function responseToCacheEntry(response: Response, headersToInclude: string[]|undefined, isGzipped: boolean): CacheEntry {
     const status = response.status;
-    const entry: CacheEntry = {meta, isGzipped, status};
+    const entry: CacheEntry = {isGzipped, status};
 
     if (status===200) {
         const headers = {};

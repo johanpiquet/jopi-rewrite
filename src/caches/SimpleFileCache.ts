@@ -1,7 +1,6 @@
 import {gzipFile} from "../gzip.ts";
 import path from "node:path";
 import fs from "node:fs/promises";
-import {type MetaUpdater, MetaUpdaterResult} from "../metaUpdater.ts";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {cacheEntryToResponse, responseToCacheEntry} from "../internalTools.ts";
 
@@ -30,26 +29,10 @@ export class SimpleFileCache implements PageCache {
         return fp;
     }
 
-    async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean, metaUpdater: MetaUpdater<unknown>): Promise<Response> {
-        let meta: any;
-
-        if (metaUpdater) {
-            const murData = metaUpdater.data;
-
-            if (metaUpdater.requireCurrentMeta) {
-                const cacheEntry = await this.getCacheEntry(url);
-                if (cacheEntry) meta = cacheEntry.meta;
-            }
-
-            meta = meta || {};
-            const mur = metaUpdater.updateMeta(meta, murData);
-            if (mur===MetaUpdaterResult.MUST_DELETE) meta = undefined;
-            else if (mur===MetaUpdaterResult.IS_NOT_UPDATED) meta = undefined;
-        }
-
+    async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean): Promise<Response> {
         // >>> Store the infos.
 
-        await this.saveNewCacheEntry(url, response, headersToInclude, meta, !storeUncompressed);
+        await this.saveNewCacheEntry(url, response, headersToInclude, !storeUncompressed);
 
         // >>> Store the body.
 
@@ -89,36 +72,12 @@ export class SimpleFileCache implements PageCache {
         return Promise.resolve();
     }
 
-    async getFromCache(url: URL, getGzippedVersion: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response|undefined> {
+    async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
         const cacheEntry = await this.getCacheEntry(url);
 
         // Mean the entry doesn't exist.
         if (!cacheEntry) {
             return undefined;
-        }
-
-        let meta: any;
-
-        if (metaUpdater) {
-            const murData = metaUpdater.data;
-            if (metaUpdater.requireCurrentMeta) meta = cacheEntry.meta;
-
-            let bckMeta = meta;
-            meta = meta || {};
-
-            const mur = metaUpdater.updateMeta(meta, murData);
-
-            if (mur!==MetaUpdaterResult.IS_NOT_UPDATED) {
-                if (mur === MetaUpdaterResult.MUST_DELETE) {
-                    if (bckMeta!==undefined) {
-                        cacheEntry.meta = undefined;
-                        await this.saveCacheEntry(url, cacheEntry);
-                    }
-                } else {
-                    cacheEntry.meta = meta;
-                    await this.saveCacheEntry(url, cacheEntry);
-                }
-            }
         }
 
         if (cacheEntry.status===200) {
@@ -167,12 +126,6 @@ export class SimpleFileCache implements PageCache {
         return cacheEntry.isGzipped===true;
     }
 
-    async getMeta<T>(url: URL): Promise<T|undefined> {
-        const infos = await this.getCacheEntry(url);
-        if (!infos) return undefined;
-        return infos.meta as T|undefined;
-    }
-
     private async getCacheEntry(url: URL): Promise<CacheEntry|undefined> {
         const filePath = this.calcFilePath(url);
 
@@ -185,8 +138,8 @@ export class SimpleFileCache implements PageCache {
         }
     }
 
-    private async saveNewCacheEntry(url: URL, response: Response, headersToInclude: string[]|undefined, meta: any, isGzipped: boolean) {
-        const cacheEntry = responseToCacheEntry(response, headersToInclude, meta, isGzipped);
+    private async saveNewCacheEntry(url: URL, response: Response, headersToInclude: string[]|undefined, isGzipped: boolean) {
+        const cacheEntry = responseToCacheEntry(response, headersToInclude, isGzipped);
         return this.saveCacheEntry(url, cacheEntry);
     }
 

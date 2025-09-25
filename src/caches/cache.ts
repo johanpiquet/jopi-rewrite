@@ -1,7 +1,6 @@
 import path from "node:path";
 import "jopi-node-space";
 import fs from "node:fs/promises";
-import type {MetaUpdater} from "../metaUpdater.js";
 
 const nFS = NodeSpace.fs;
 
@@ -13,15 +12,13 @@ export interface CacheRole {
 export interface PageCache {
     cacheRole?: CacheRole;
 
-    getFromCache(url: URL, getGzippedVersion: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response | undefined>;
+    getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response | undefined>;
 
-    addToCache(url: URL, response: Response, headersToInclude: string[] | undefined, storeUncompressed: boolean, metaUpdater?: MetaUpdater<unknown>): Promise<Response>;
+    addToCache(url: URL, response: Response, headersToInclude: string[] | undefined, storeUncompressed: boolean): Promise<Response>;
 
     hasInCache(url: URL, requireUncompressedVersion?: boolean | undefined): Promise<boolean>;
 
     removeFromCache(url: URL): Promise<void>;
-
-    getMeta<T>(url: URL): Promise<T | undefined>;
 
     createSubCache(name: string): PageCache;
 }
@@ -111,19 +108,6 @@ export class WebSiteMirrorCache implements PageCache {
         return undefined;
     }
 
-    async getMeta<T>(url: URL): Promise<T|undefined> {
-        const filePath = this.calcFilePath(url);
-
-        try {
-            const text = await nFS.readTextFromFile(filePath + " meta");
-            return JSON.parse(text) as T;
-        }
-        catch {
-            // We are here if the meta doesn't exist.
-            return Promise.resolve(undefined);
-        }
-    }
-
     createSubCache(name: string): PageCache {
         const newDir = path.join(this.rootDir, "_ subCaches", name);
         return new WebSiteMirrorCache(newDir);
@@ -147,10 +131,6 @@ export class VoidPageCache implements PageCache {
         return Promise.resolve();
     }
 
-    getMeta<T>(_url: URL): Promise<T | undefined> {
-        return Promise.resolve(undefined);
-    }
-
     createSubCache(): PageCache {
         return this;
     }
@@ -163,7 +143,6 @@ export interface CacheEntry {
 
     headers?: {[key:string]: string};
 
-    meta?: any;
     status?: number;
 
     _refCount?: number;
