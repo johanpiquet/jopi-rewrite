@@ -38,7 +38,8 @@ export class JopiRequest {
                 public readonly urlInfos: URL,
                 public coreRequest: Request,
                 public readonly coreServer: ServerInstance,
-                public readonly route: WebSiteRoute) {
+                public readonly route: WebSiteRoute)
+    {
         this.cache = (webSite as WebSiteImpl).mainCache;
         this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && route && (route.mustDisableAutomaticCache!==true);
 

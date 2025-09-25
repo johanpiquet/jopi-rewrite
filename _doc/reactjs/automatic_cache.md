@@ -28,15 +28,13 @@ jopiApp.startApp(jopiEasy => {
             .onGET(async req => {
                 return req.reactResponse(<div>Date: {new Date().toDateString()}</div>)
             })
-            // Uncomment to disable automatic cache for this page.
-            //.disable_automaticCache()
 });
 ```
 
-## Clearing and controlling the cache
+## Controlling the cache
 
-Currently, there is no mechanism with automatic cache allowing to controller finely what to add to the cache and how to add it.
-
-If you are using an in-memory cache, like here, you will need to restart to clear the cache.
-
-If you are using file cache, you only need to delete the cache directly, without a restart needed.
+For each route (after the onGET), it's possible to :
+* Disable automatic cache for this route (disable_automaticCache)
+* Execute a function before taking content from the cache (on_beforeCheckingCache)
+* Execute a function before returning the value from the cache (on_afterGetFromCache)
+* Execute a function before adding a value to the cache (on_beforeAddToCache)

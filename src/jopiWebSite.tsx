@@ -246,54 +246,140 @@ export class WebSiteImpl implements WebSite {
         this.addPostMiddleware(PostMiddlewares.cors({accessControlAllowOrigin: allows}));
     }
 
-    private applyMiddlewares(handler: JopiRouteHandler): JopiRouteHandler {
-        return async function(req: JopiRequest) {
-            const mdw = (req.webSite as WebSiteImpl).middlewares;
+    private applyMiddlewares(verb: HttpMethod, handler: JopiRouteHandler): JopiRouteHandler {
+        const webSite = this;
 
-            if (mdw) {
-                const count = mdw.length;
+        if (verb==="GET") {
+            return async function (req: JopiRequest) {
+                // >>> Check the required roles.
 
-                // Use a simple loop, which allow us to add/remove middleware at runtime.
-                // For example, it allows enabling / disabling logging requests.
-                //
-                for (let i = 0; i < count; i++) {
-                    const res = mdw[i](req);
-                    if (res) return res;
+                if (req.route.requiredRoles) {
+                    req.assertUserHasRoles(req.route.requiredRoles);
                 }
-            }
 
-            let mustUseAutoCache = req.mustUseAutoCache && (req.method === "GET");
+                // >>> Take from the cache.
 
-            if (mustUseAutoCache) {
-                let res = await req.getFromCache();
+                let mustUseAutoCache = req.mustUseAutoCache;
 
-                if (res) {
-                    return res;
+                if (mustUseAutoCache) {
+                    if (req.route.beforeCheckingCache) {
+                        let r = await req.route.beforeCheckingCache(req);
+                        if (r) return r;
+                    }
+
+                    let res = await req.getFromCache();
+
+                    if (res) {
+                        if (req.route.afterGetFromCache) {
+                            let r = await req.route.afterGetFromCache(req, res);
+                            if (r) return r;
+                        } else {
+                            return res;
+                        }
+                    }
                 }
-            }
 
-            const pRes = handler(req);
-            let res = pRes instanceof Promise ? await pRes : pRes;
+                // >>> Apply the middlewares.
 
-            if (mustUseAutoCache && (res.status===200)) {
-                res = await req.addToCache(res)!;
-            }
+                const mdw = webSite.middlewares;
 
-            if (req.getJwtToken()) {
-                (req.webSite as WebSiteImpl).storeJwtToken(req, res);
-            }
+                if (mdw) {
+                    const count = mdw.length;
 
-            if ((req.webSite as WebSiteImpl).postMiddlewares) {
-                const pMdw = (req.webSite as WebSiteImpl).postMiddlewares!;
-                const count = pMdw.length;
-
-                for (let i = 0; i < count; i++) {
-                    const mRes = pMdw[i](req, res);
-                    res = mRes instanceof Promise ? await mRes : mRes;
+                    // Use a simple loop, which allow us to add/remove middleware at runtime.
+                    // For example, it allows enabling / disabling logging requests.
+                    //
+                    for (let i = 0; i < count; i++) {
+                        const res = mdw[i](req);
+                        if (res) return res;
+                    }
                 }
-            }
 
-            return res;
+                // >>> Create the content.
+
+                const pRes = handler(req);
+                let res = pRes instanceof Promise ? await pRes : pRes;
+
+                // >>> Add the authentification cookie.
+
+                if (req.getJwtToken()) {
+                    webSite.storeJwtToken(req, res);
+                }
+
+                // >>> Apply the post-middlewares.
+
+                if (webSite.postMiddlewares) {
+                    const pMdw = webSite.postMiddlewares!;
+                    const count = pMdw.length;
+
+                    for (let i = 0; i < count; i++) {
+                        const mRes = pMdw[i](req, res);
+                        res = mRes instanceof Promise ? await mRes : mRes;
+                    }
+                }
+
+                // >>> Add the result to the cache.
+
+                if (mustUseAutoCache && (res.status === 200)) {
+                    if (req.route.beforeAddToCache) {
+                        let r = await req.route.beforeAddToCache(req, res);
+                        if (r) res = await req.addToCache(r)!;
+                    } else {
+                        res = await req.addToCache(res)!;
+                    }
+                }
+
+                return res;
+            }
+        } else {
+            return async function (req: JopiRequest) {
+                // >>> Check the required roles.
+
+                if (req.route.requiredRoles) {
+                    req.assertUserHasRoles(req.route.requiredRoles);
+                }
+
+                // >>> Apply the middlewares.
+
+                const mdw = webSite.middlewares;
+
+                if (mdw) {
+                    const count = mdw.length;
+
+                    // Use a simple loop, which allow us to add/remove middleware at runtime.
+                    // For example, it allows enabling / disabling logging requests.
+                    //
+                    for (let i = 0; i < count; i++) {
+                        const res = mdw[i](req);
+                        if (res) return res;
+                    }
+                }
+
+                // >>> Create the content.
+
+                const pRes = handler(req);
+                let res = pRes instanceof Promise ? await pRes : pRes;
+
+                // >>> Add the authentification cookie.
+
+                if (req.getJwtToken()) {
+                    webSite.storeJwtToken(req, res);
+                }
+
+                // >>> Apply the post-middlewares.
+
+                if (webSite.postMiddlewares) {
+                    const pMdw = webSite.postMiddlewares!;
+                    const count = pMdw.length;
+
+                    for (let i = 0; i < count; i++) {
+                        const mRes = pMdw[i](req, res);
+                        res = mRes instanceof Promise ? await mRes : mRes;
+                    }
+                }
+
+                return res;
+            }
         }
     }
 
@@ -347,7 +433,9 @@ export class WebSiteImpl implements WebSite {
     //region Cache
 
     mainCache: PageCache;
+
     mustUseAutomaticCache: boolean = false;
+
     private headersToCache: string[] = ["content-type", "etag", "last-modified"];
 
     getCache(): PageCache {
@@ -476,7 +564,7 @@ export class WebSiteImpl implements WebSite {
     //region Path handler
 
     onVerb(verb: HttpMethod, path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        handler = this.applyMiddlewares(handler);
+        handler = this.applyMiddlewares(verb, handler);
 
         if (Array.isArray(path)) {
             return this.addSharedRoute(verb, path, handler);
@@ -604,8 +692,44 @@ export class WebSiteOptions {
 
 export interface WebSiteRoute {
     handler: JopiRouteHandler;
-    searchParamFilter?: SearchParamFilterFunction;
+
+    /**
+     * If true, the automatic cache is disabled for this path.
+     */
     mustDisableAutomaticCache?: boolean;
+
+    /**
+     * A list of roles which are required.
+     */
+    requiredRoles?: string[];
+
+    /**
+     * Define a filter to use to sanitize the search params of the url.
+     */
+    searchParamFilter?: SearchParamFilterFunction;
+
+    /**
+     * If true, the automatic cache will be disabled for this path.
+     */
+    disableAutoCache?: boolean;
+
+    /**
+     * Is executed before checking the cache.
+     * If a response is returned/void, then directly returns this response.
+     */
+    beforeCheckingCache?: (req: JopiRequest) => Promise<Response|undefined|void>;
+
+    /**
+     * Is executed before adding the response to the cache.
+     * Returns the response or undefined/void to avoid adding to the cache.
+     */
+    beforeAddToCache?: (req: JopiRequest, res: Response) => Promise<Response|undefined|void>;
+
+    /**
+     * Is executed after getting the response from the cache.
+     * Returns the response or undefined/void to avoid using this cache entry.
+     */
+    afterGetFromCache?: (req: JopiRequest, res: Response) => Promise<Response|undefined|void>;
 }
 
 export class JopiWebSocket {
