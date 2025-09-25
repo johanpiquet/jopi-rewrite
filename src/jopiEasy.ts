@@ -856,16 +856,34 @@ interface WebSite_AutomaticCacheBuilder_End {
     END_use_AutomaticCache(): JopiEasyWebSite;
 }
 
+interface AutoCacheBuilder_Internal {
+    webSiteInternal: WebSiteInternal;
+    initCache?: (webSite: WebSite) => void;
+}
+
 class WebSite_AutomaticCacheBuilder implements WebSite_AutomaticCacheBuilder_End {
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+    private readonly cacheInternal: AutoCacheBuilder_Internal;
+
+    constructor(private readonly webSite: JopiEasyWebSite, internals: WebSiteInternal) {
+        this.cacheInternal = {
+            webSiteInternal: internals,
+        }
+
+        internals.afterHook.push(webSite => {
+            if (this.cacheInternal.initCache) {
+                this.cacheInternal.initCache(webSite);
+            }
+        });
+
+        new WebSite_AutomaticCacheBuilder_UseMemoryCache(this.webSite, this.cacheInternal);
     }
 
     use_memoryCache(): WebSite_AutomaticCacheBuilder_UseMemoryCache {
-        return new WebSite_AutomaticCacheBuilder_UseMemoryCache(this.webSite, this.internals);
+        return new WebSite_AutomaticCacheBuilder_UseMemoryCache(this.webSite, this.cacheInternal);
     }
 
     use_fileCache(): WebSite_AutomaticCacheBuilder_UseFileCache {
-        return new WebSite_AutomaticCacheBuilder_UseFileCache(this.webSite, this.internals);
+        return new WebSite_AutomaticCacheBuilder_UseFileCache(this.webSite, this.cacheInternal);
     }
 
     END_use_AutomaticCache() {
@@ -876,11 +894,11 @@ class WebSite_AutomaticCacheBuilder implements WebSite_AutomaticCacheBuilder_End
 class WebSite_AutomaticCacheBuilder_UseFileCache {
     private rootDir: string = path.join(process.cwd(), "temp", "page-cache");
 
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
-        this.internals.afterHook.push(webSite => {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: AutoCacheBuilder_Internal) {
+        this.internals.initCache = (webSite) => {
             webSite.setCache(new SimpleFileCache(this.rootDir));
             webSite.enableAutomaticCache();
-        });
+        };
     }
 
     setConfig_rootDir(rootDir: string): this {
@@ -896,12 +914,12 @@ class WebSite_AutomaticCacheBuilder_UseFileCache {
 class WebSite_AutomaticCacheBuilder_UseMemoryCache {
     private readonly cacheOptions: InMemoryCacheOptions = {};
 
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
-        this.internals.afterHook.push(webSite => {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: AutoCacheBuilder_Internal) {
+        this.internals.initCache = (webSite) => {
             initMemoryCache(this.cacheOptions);
             webSite.setCache(getInMemoryCache());
             webSite.enableAutomaticCache();
-        })
+        };
     }
 
     END_use_AutomaticCache() {
