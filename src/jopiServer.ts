@@ -28,8 +28,7 @@ class JopiServer {
 
     addWebsite(webSite: WebSite): WebSite {
         if (this._isStarted) throw new ServerAlreadyStartedError();
-        const host = (webSite as WebSiteImpl).host;
-        this.webSites[host] = webSite;
+        this.webSites[(webSite as WebSiteImpl).host] = webSite;
         return webSite;
     }
 

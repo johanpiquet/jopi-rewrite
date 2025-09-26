@@ -99,9 +99,7 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
 
     const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
 
-    // Empty the dir, this makes tests easier.
-    await nFS.rmDir(gTempDirPath);
-    await nFS.mkDir(gTempDirPath);
+    // Note: outputDir is deleted at startup by jopi-loader.
 
     const entryPoint = await generateScript(outputDir, components);
 
@@ -123,6 +121,10 @@ async function createBundle_esbuild_external(webSite: WebSite): Promise<void> {
 }
 
 function calculateWebSiteTempDir(webSite: WebSite) {
+    // To known: the loader uses jopi.webSiteUrl from "package.json".
+    // This can create a situation where we have 2 output directories for
+    // the same website.
+    //
     let webSiteHost = (webSite as WebSiteImpl).host.replaceAll(".", "_").replaceAll(":", "_");
     return path.join(gTempDirPath, webSiteHost);
 }

@@ -167,7 +167,6 @@ export class WebSiteImpl implements WebSite {
         }
 
         this.host = urlInfos.host;
-
         this.mainCache = options.cache || gVoidCache;
         this.router = createRouter<WebSiteRoute>();
         this.wsRouter = createRouter<JopiWsRouteHandler>();
