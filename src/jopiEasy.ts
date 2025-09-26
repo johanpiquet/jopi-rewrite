@@ -451,6 +451,12 @@ class JopiEasyWebSite {
         return this;
     }
 
+    add_path_USE(path: string|string[], def: RouterPathDefinition): this {
+        let res = new WebSite_PathBuilder(this, this.internals, path);
+        res.use(def);
+        return this;
+    }
+
     add_cache(): WebSite_CacheBuilder {
         return new WebSite_CacheBuilder(this, this.internals);
     }

@@ -50,9 +50,9 @@ export function cacheEntryToResponse(entry: CacheEntry) {
 
 const gDefaultHeadersToCache: string[] = [ "content-type", "etag", "last-modified"];
 
-export function responseToCacheEntry(response: Response, headersToInclude: string[]|undefined, isGzipped: boolean): CacheEntry {
+export function responseToCacheEntry(url: string, response: Response, headersToInclude: string[]|undefined, isGzipped: boolean): CacheEntry {
     const status = response.status;
-    const entry: CacheEntry = {isGzipped, status};
+    const entry: CacheEntry = {isGzipped, status, url};
 
     if (status===200) {
         const headers = {};
@@ -75,4 +75,12 @@ export function responseToCacheEntry(response: Response, headersToInclude: strin
 export function addHeaderIfExist(headers: {[key: string]: string}, headerName: string, source: Headers) {
     const v = source.get(headerName);
     if (v!==null) headers[headerName] = v;
+}
+
+export function makeIterable<T>(iterator: Iterator<T>): Iterable<T> {
+    return {
+        [Symbol.iterator]() {
+            return iterator;
+        }
+    };
 }

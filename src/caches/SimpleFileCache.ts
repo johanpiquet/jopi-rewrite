@@ -1,8 +1,9 @@
 import {gzipFile} from "../gzip.ts";
 import path from "node:path";
 import fs from "node:fs/promises";
+import fss from "node:fs";
 import type {CacheEntry, PageCache} from "./cache.ts";
-import {cacheEntryToResponse, responseToCacheEntry} from "../internalTools.ts";
+import {cacheEntryToResponse, makeIterable, responseToCacheEntry} from "../internalTools.ts";
 
 const nCrypto = NodeSpace.crypto;
 const nFS = NodeSpace.fs;
@@ -139,7 +140,7 @@ export class SimpleFileCache implements PageCache {
     }
 
     private async saveNewCacheEntry(url: URL, response: Response, headersToInclude: string[]|undefined, isGzipped: boolean) {
-        const cacheEntry = responseToCacheEntry(response, headersToInclude, isGzipped);
+        const cacheEntry = responseToCacheEntry(url.href, response, headersToInclude, isGzipped);
         return this.saveCacheEntry(url, cacheEntry);
     }
 
@@ -152,5 +153,74 @@ export class SimpleFileCache implements PageCache {
     createSubCache(name: string): PageCache {
         const newDir = path.join(this.rootDir, "_ subCaches", name);
         return new SimpleFileCache(newDir);
+    }
+
+    getCacheEntryIterator() {
+        function getCacheEntryFrom(filePath: string): CacheEntry|undefined {
+            try {
+                return JSON.parse(nFS.readTextSyncFromFile(filePath));
+            }
+            catch {
+                // We are here if the file doesn't exist.
+                return undefined;
+            }
+        }
+
+        const rootDir = this.rootDir;
+        const nextFileProvider = iterateFiles(this.rootDir);
+
+        return makeIterable({
+            next(): IteratorResult<CacheEntry> {
+                while (true) {
+                    let nextFile = nextFileProvider.next();
+                    if (nextFile.done) return {done: true, value: undefined};
+
+                    const cacheEntry = getCacheEntryFrom(path.join(rootDir, nextFile.value));
+                    if (cacheEntry) return {done: false, value: cacheEntry};
+                }
+            }
+        });
+    }
+
+    getSubCacheIterator() {
+        const alreadyReturned: string[] = [];
+        const iterator = iterateFiles(this.rootDir);
+
+        return makeIterable({
+            next(): IteratorResult<string> {
+                while (true) {
+                    const result = iterator.next();
+                    if (!result.done) return {value: undefined, done: true};
+
+                    const filePath = result.value[0];
+
+                    if (filePath.startsWith("_ subCaches")) {
+                        const parts = filePath.split(path.sep);
+                        const subCacheName = parts[1];
+
+                        if (!alreadyReturned.includes(subCacheName)) {
+                            alreadyReturned.push(subCacheName);
+                            return {value: subCacheName, done: false};
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function* iterateFiles(rootDir: string): Generator<string> {
+    const items = fss.readdirSync(rootDir);
+
+    for (const item of items) {
+        const itemPath = path.join(rootDir, item);
+        const stats = fss.statSync(itemPath);
+
+        if (stats.isDirectory()) {
+            yield* iterateFiles(itemPath);
+        } else if (stats.isFile() && item.endsWith(' info')) {
+            const relativePath = path.relative(rootDir, itemPath);
+            yield relativePath;
+        }
     }
 }

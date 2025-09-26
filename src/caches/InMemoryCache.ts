@@ -3,7 +3,7 @@ import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
 import * as path from "node:path";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {octetToMo, ONE_KILO_OCTET, ONE_MEGA_OCTET} from "../publicTools.ts";
-import {cacheEntryToResponse, readContentLength, responseToCacheEntry} from "../internalTools.ts";
+import {cacheEntryToResponse, makeIterable, readContentLength, responseToCacheEntry} from "../internalTools.ts";
 
 const nFS = NodeSpace.fs;
 
@@ -95,7 +95,7 @@ class InMemoryCache implements PageCache {
     }
 
     async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean): Promise<Response> {
-        return this.key_AddToCache(url.toString(), response, headersToInclude, storeUncompressed);
+        return this.key_addToCache("", url.toString(), response, headersToInclude, storeUncompressed);
     }
 
     removeFromCache(url: URL): Promise<void> {
@@ -103,19 +103,11 @@ class InMemoryCache implements PageCache {
     }
 
     async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
-        return this.key_getFromCache(url.toString(), getGzippedVersion);
+        return this.key_getFromCache(':' + url.href, getGzippedVersion);
     }
 
     async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
-        const cacheEntry = this.cache.get(url.toString());
-        if (!cacheEntry) return false;
-
-        if (requireUncompressedVersion===undefined) {
-            return true;
-        }
-
-        if (requireUncompressedVersion) return cacheEntry.ucpBinary!==undefined;
-        return cacheEntry.gzipBinary!==undefined;
+        return this.key_hasInCache(':' + url.href, requireUncompressedVersion);
     }
 
     /**
@@ -151,16 +143,80 @@ class InMemoryCache implements PageCache {
         await nFS.unlink(fileGzip);
     }
 
+    getCacheEntryIterator(subCacheName?: string): Iterable<CacheEntry> {
+        const iterator = this.cache.entries();
+        if (!subCacheName) subCacheName = "";
+
+        return makeIterable({
+            next(): IteratorResult<CacheEntry> {
+                let result = iterator.next();
+
+                while (!result.done) {
+                    let v = result.value[0];
+                    let idx = v.indexOf(":");
+
+                    if (subCacheName===v.substring(0, idx)) {
+                        const entry = {...result.value[1], url: v.substring(idx+1)};
+                        return {value: entry, done: false};
+                    }
+
+                    result = iterator.next();
+                }
+
+                return { value: undefined, done: true };
+            }
+        });
+    }
+
+    getSubCacheIterator(): Iterable<string> {
+        const alreadyReturned: string[] = [];
+        const iterator = this.cache.entries();
+
+        return makeIterable({
+            next(): IteratorResult<string> {
+                while (true) {
+                    let result = iterator.next();
+                    if (result.done) return { value: undefined, done: true };
+
+                    let key = result.value[0];
+                    let idx = key.indexOf(":");
+
+                    if (idx===0) continue;
+
+                    let subCacheName = key.substring(0, idx);
+
+                    if (!alreadyReturned.includes(subCacheName)) {
+                        alreadyReturned.push(subCacheName);
+                        return { value: subCacheName, done: false };
+                    }
+                }
+            }
+        });
+    }
+
     //region With a key
 
-    async key_AddToCache(key: string, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean) {
-        const cacheEntry = responseToCacheEntry(response, headersToInclude, !storeUncompressed) as MyCacheEntry;
+    async key_hasInCache(key: string, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
+        const cacheEntry = this.cache.get(key);
+        if (!cacheEntry) return false;
+
+        if (requireUncompressedVersion===undefined) {
+            return true;
+        }
+
+        if (requireUncompressedVersion) return cacheEntry.ucpBinary!==undefined;
+        return cacheEntry.gzipBinary!==undefined;
+    }
+
+    async key_addToCache(subCacheName: string, url: string, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean) {
+        const cacheEntry = responseToCacheEntry("", response, headersToInclude, !storeUncompressed) as MyCacheEntry;
+        const key = subCacheName + ':' + url;
 
         if (response.status===200 && response.body) {
             const contentLength = readContentLength(response.headers);
 
             if (contentLength>this.maxContentLength) {
-                console.log("Excluded:", key, "(size: " + octetToMo(contentLength) + "Mo)");
+                //console.log("Excluded:", key, "(size: " + octetToMo(contentLength) + "Mo)");
                 return response;
             }
 
@@ -383,23 +439,31 @@ class InMemorySubCache implements PageCache {
     }
 
     async addToCache(url: URL, response: Response, headersToInclude: string[]|undefined, storeUncompressed: boolean): Promise<Response> {
-        return this.parent.key_AddToCache(this.prefix + url.toString(), response, headersToInclude, storeUncompressed);
+        return this.parent.key_addToCache(this.prefix, url.href, response, headersToInclude, storeUncompressed);
     }
 
     async hasInCache(url: URL, requireUncompressedVersion?: boolean|undefined): Promise<boolean> {
-        return this.parent.hasInCache(url, requireUncompressedVersion);
+        return this.parent.key_hasInCache(this.prefix + ':' + url.href, requireUncompressedVersion);
     }
 
     removeFromCache(url: URL): Promise<void> {
-        return this.parent.key_removeFromCache(this.prefix + url.toString());
+        return this.parent.key_removeFromCache(this.prefix + ':' + url.href);
     }
 
     async getFromCache(url: URL, getGzippedVersion: boolean): Promise<Response|undefined> {
-        return this.parent.key_getFromCache(this.prefix + url.toString(), getGzippedVersion);
+        return this.parent.key_getFromCache(this.prefix + ':' + url.href, getGzippedVersion);
     }
 
     createSubCache(name: string): PageCache {
         return this.parent.createSubCache(name);
+    }
+
+    getCacheEntryIterator(subCacheName?: string) {
+        return this.parent.getCacheEntryIterator(subCacheName);
+    }
+
+    getSubCacheIterator() {
+        return this.parent.getSubCacheIterator();
     }
 }
 

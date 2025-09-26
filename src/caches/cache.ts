@@ -1,6 +1,7 @@
 import path from "node:path";
 import "jopi-node-space";
 import fs from "node:fs/promises";
+import {makeIterable} from "../internalTools.js";
 
 const nFS = NodeSpace.fs;
 
@@ -21,6 +22,10 @@ export interface PageCache {
     removeFromCache(url: URL): Promise<void>;
 
     createSubCache(name: string): PageCache;
+
+    getSubCacheIterator(): Iterable<string>;
+
+    getCacheEntryIterator(subCacheName?: string): Iterable<CacheEntry>;
 }
 
 export class WebSiteMirrorCache implements PageCache {
@@ -112,6 +117,22 @@ export class WebSiteMirrorCache implements PageCache {
         const newDir = path.join(this.rootDir, "_ subCaches", name);
         return new WebSiteMirrorCache(newDir);
     }
+
+    getCacheEntryIterator() {
+        return makeIterable({
+            next(): IteratorResult<CacheEntry> {
+                return { value: undefined, done: true };
+            }
+        });
+    }
+
+    getSubCacheIterator() {
+        return makeIterable({
+            next(): IteratorResult<string> {
+                return { value: undefined, done: true };
+            }
+        });
+    }
 }
 
 export class VoidPageCache implements PageCache {
@@ -134,9 +155,26 @@ export class VoidPageCache implements PageCache {
     createSubCache(): PageCache {
         return this;
     }
+
+    getCacheEntryIterator() {
+        return makeIterable({
+            next(): IteratorResult<CacheEntry> {
+                return { value: undefined, done: true };
+            }
+        });
+    }
+
+    getSubCacheIterator() {
+        return makeIterable({
+            next(): IteratorResult<string> {
+                return { value: undefined, done: true };
+            }
+        });
+    }
 }
 
 export interface CacheEntry {
+    url: string;
     binary?: ArrayBuffer;
     binarySize?: number;
     isGzipped?: boolean;
