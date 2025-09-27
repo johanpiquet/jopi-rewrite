@@ -25,51 +25,67 @@ jopiApp.startApp(jopiEasy => {
 });
 ```
 
-## Optional parameters to add into package.json
+## Optional parameters for resources import
 
-Two parameters inside `package.json` allows setting some important behaviors.
+### Make your import compatible for web
+
+Jopi Rewrite allows mimicking Vite.js behaviors for the imports: importing CSS, and images as url, or data-url.
+To do return an url, we need to know how to map a file path to an url, and it's why we need to say it through a 
+configuration parameter.
+
+For exemple if you have this ```import resPath from "./logo.png";``` then `resPath` is the path to the file
+on server (by default) or the url to the resource (if you configure the url of your website).
+
+We can do it:
+- By using an environment a variable JOPI_WEBSITE_URL.
+- By using en entry into `package.json`.
 
 **Sample package.json**
 ```json
 {
+  "scripts": {},
+  "dependencies": {},
+  
   "jopi": {
-    "webSiteUrl": "https://my-public-url",
+    // Here it's the PUBLIC url.
+    "webSiteUrl": "https://my-public-url"
+  }
+}
+```
+
+### Use config to define the website url
+
+In the same idea, you can use a configuration to define what url your website must listen. If it's a front server, 
+then it will be the public url, but if this server is behind a proxy then this will be a local url.
+
+Here you can do it:
+- By using an environment a variable JOPI_WEBSITE_LISTENING_URL.
+- By using en entry into `package.json`.
+
+**Sample package.json**
+```json
+{
+  "scripts": {},
+  "dependencies": {},
+
+  "jopi": {
+    // Here it's the LISTENED url.
     "webSiteListeningUrl": "http://127.0.0.1:3000"
   }
 }
 ```
 
-### webSiteUrl: allowing transforming import to url
-
-If using custom imports, like importing an image, you must define `webSiteUrl` with the public url of your website.
-It allows transforming a local file path to an url pointing to the resource.
-
-For exemple if you have this ```import resPath from "./logo.png";``` then `resPath` is the path to the file
-on server (by default) or the url to the resource (if you set the url of your website into `webSiteUrl`).
-
-### webSiteListeningUrl: allowing defining the listening url
-
-`webSiteListeningUrl` allows to not set the url when starting a website.
+Once defined, you can create a website without defining his url in your code.
 
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
 jopiApp.startApp(jopiEasy => {
-    // Here the website url is not set.
-    // It will take the value of webSiteListeningUrl.
-    //
-    jopiEasy.new_webSite()      // <---
-        .add_path("/welcome")
-            .onGET(async req => req.htmlResponse("hello world"))
-            .DONE_add_path();
+    jopiEasy.new_webSite(/* will use webSiteListeningUrl */)
 });
 ```
 
-
-
-
-
-## Enable HTTPS
+## Enabling HTTPS
 
 Jopi Rewrite can manage several websites at the same time, and each of them
 can have its own SSL certificate. To enable HTTPS, you need two things:
