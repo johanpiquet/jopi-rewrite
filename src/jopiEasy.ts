@@ -43,6 +43,7 @@ import {
 import type {PageCache} from "./caches/cache.js";
 import {getServer, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
+import {getDefaultWebSiteUrl, getImportTransformConfig} from "@jopi-loader/tools";
 
 serverInitChronos.start("jopiEasy lib");
 
@@ -71,7 +72,12 @@ class JopiApp {
 }
 
 class JopiEasy {
-    new_webSite(url: string, ref?: RefFor_WebSite): JopiEasyWebSite {
+    new_webSite(url?: string, ref?: RefFor_WebSite): JopiEasyWebSite {
+        if (!url) {
+            // Throw an exception if unset.
+            url = getDefaultWebSiteUrl(true);
+        }
+
         const res = new JopiEasyWebSite_ExposePrivate(url);
         if (ref) ref.webSite = res;
         return res;

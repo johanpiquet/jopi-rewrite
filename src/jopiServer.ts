@@ -17,6 +17,7 @@ import "jopi-node-space";
 import bunJsServer from "./serverImpl/server_bunjs.js";
 import nodeJsServer from "./serverImpl/server_nodejs.js";
 import {findExecutable} from "@jopi-loader/tools/dist/tools.js";
+import {getDefaultWebSiteUrl} from "@jopi-loader/tools";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -28,7 +29,7 @@ class JopiServer {
 
     addWebsite(webSite: WebSite): WebSite {
         if (this._isStarted) throw new ServerAlreadyStartedError();
-        this.webSites[(webSite as WebSiteImpl).host] = webSite;
+        this.webSites[(webSite as WebSiteImpl).welcomeUrl] = webSite;
         return webSite;
     }
 
@@ -47,7 +48,7 @@ class JopiServer {
 
         // In case we are using Jopi Loader (jopin).
         //
-        // The load must not refresh the browser once this process created but wait until we are ready.
+        // The load must not refresh the browser once this process is created but wait until we are ready.
         // The main reason is that we create as JavaScript bundle that takes time to create, and the
         // browser must not refresh too soon (event if it's only one second)
         //
@@ -63,6 +64,19 @@ class JopiServer {
         }
 
         const byPorts: { [port: number]: WebSiteMap } = {};
+
+        // Check there is no mismatch between the config and the declarations.
+        //
+        let defaultWebSite = getDefaultWebSiteUrl(false);
+        //
+        if (defaultWebSite) {
+            let origin = new URL(defaultWebSite).origin;
+
+            if (!Object.keys(this.webSites).includes(origin)) {
+                throw new Error(`The default website "${defaultWebSite}" is not defined.
+                Please add it to the server or update section jopi.defaultWebsite of your package.json file.`);
+            }
+        }
 
         Object.values(this.webSites).forEach(e => {
             const webSite = e as WebSiteImpl;
