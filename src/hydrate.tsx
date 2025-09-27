@@ -5,7 +5,7 @@ import {setNewHydrateListener, setNewMustBundleExternalCssListener, useCssModule
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler/bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler/bundler_esBuildExternal.ts";
 import fs from "node:fs/promises";
-import {scssToCss, searchSourceOf} from "@jopi-loader/tools";
+import {findPackageJson, scssToCss, searchSourceOf} from "@jopi-loader/tools";
 import {fileURLToPath, pathToFileURL} from "node:url";
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
@@ -221,7 +221,7 @@ async function applyPostCss(sourceFiles: string[]): Promise<string|undefined> {
 
     let plugins: postcss.AcceptedPlugin[] = [];
 
-    let tailwindPlugins = gConfig_disableTailwind ?
+    let tailwindPlugin = gConfig_disableTailwind ?
         undefined : tailwindPostcss({
             content: sourceFiles,
             theme: {extend: {}},
@@ -230,20 +230,22 @@ async function applyPostCss(sourceFiles: string[]): Promise<string|undefined> {
         } as any)
 
     if (gConfig_postCssPluginsInitializer) {
-        plugins = gConfig_postCssPluginsInitializer(sourceFiles, tailwindPlugins);
-    } else if (tailwindPlugins) {
-        plugins = [tailwindPlugins];
+        plugins = gConfig_postCssPluginsInitializer(sourceFiles, tailwindPlugin);
+    } else if (tailwindPlugin) {
+        plugins = [tailwindPlugin];
     } else {
         return undefined;
     }
 
     if (!plugins.length) return undefined;
 
+    let cssTemplate = gConfig_tailwindTemplate || await getTailwindTemplateFromShadCnConfig() || `@import "tailwindcss";`;
+
     try {
         const processor = postcss(plugins);
 
-        const result = await processor.process(gConfig_tailwindTemplate, {
-            // Setting from allows resolving correctly the node_modules resolving.
+        const result = await processor.process(cssTemplate, {
+            // Setting 'from' allows resolving correctly the node_modules resolving.
             // Without that, the compiler emits an error saying he doesn't found his
             // dependencies (he searches package.json in the bad folder, is ok in monorep
             // but ko in a solo project).
@@ -406,9 +408,9 @@ setNewMustBundleExternalCssListener(onNewMustIncludeCss);
 
 //region Config
 
-export type PostCssInitializer = (sources: string[], tailwindPluging:  postcss.AcceptedPlugin|undefined) => postcss.AcceptedPlugin[];
+export type PostCssInitializer = (sources: string[], tailwindPlugin:  postcss.AcceptedPlugin|undefined) => postcss.AcceptedPlugin[];
 
-let gConfig_tailwindTemplate: string = `@import "tailwindcss";`;
+let gConfig_tailwindTemplate: string|undefined; // = `@import "tailwindcss";`;
 let gConfig_disableTailwind = false;
 let gConfig_tailwindConfig: TailwindConfig|undefined;
 let gConfig_postCssPluginsInitializer: undefined|PostCssInitializer;
@@ -430,3 +432,33 @@ export function setConfig_postCssPluginsInitializer(handler: PostCssInitializer)
 }
 
 //endregion
+
+/**
+ * Get Tailwind template CSS file from Shadcn config file (components.json).
+ * See: https://ui.shadcn.com/docs/components-json
+ */
+async function getTailwindTemplateFromShadCnConfig() {
+    const pkgJsonPath = findPackageJson();
+    if (!pkgJsonPath) return undefined;
+
+    let filePath = path.join(path.dirname(pkgJsonPath), "components.json");
+    if (!await nFS.isFile(filePath)) return undefined;
+
+    try {
+        let asText = nFS.readTextSyncFromFile(filePath);
+        let asJSON = JSON.parse(asText);
+
+        let tailwindConfig = asJSON.tailwind;
+        if (!tailwindConfig) return undefined;
+
+        let tailwindCssTemplate = tailwindConfig.css;
+        if (!tailwindCssTemplate) return undefined;
+
+        let fullPath = path.resolve(path.dirname(pkgJsonPath), tailwindCssTemplate);
+        return nFS.readTextSyncFromFile(fullPath);
+    }
+    catch (e) {
+        console.error("Error reading Shadcn config file:", e);
+        return undefined;
+    }
+}
