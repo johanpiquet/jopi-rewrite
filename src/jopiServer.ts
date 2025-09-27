@@ -17,7 +17,7 @@ import "jopi-node-space";
 import bunJsServer from "./serverImpl/server_bunjs.js";
 import nodeJsServer from "./serverImpl/server_nodejs.js";
 import {findExecutable} from "@jopi-loader/tools/dist/tools.js";
-import {getDefaultWebSiteUrl} from "@jopi-loader/tools";
+import {getImportTransformConfig} from "@jopi-loader/tools";
 
 const nFS = NodeSpace.fs;
 const nOS = NodeSpace.os;
@@ -67,14 +67,19 @@ class JopiServer {
 
         // Check there is no mismatch between the config and the declarations.
         //
-        let defaultWebSite = getDefaultWebSiteUrl(false);
+        let importTransformConfig = getImportTransformConfig();
         //
-        if (defaultWebSite) {
-            let origin = new URL(defaultWebSite).origin;
+        if (importTransformConfig.webSiteUrl) {
+            if (
+                !importTransformConfig.webSiteListeningUrl ||
+                (importTransformConfig.webSiteListeningUrl===importTransformConfig.webSiteUrl)
+            ) {
+                let origin = new URL(importTransformConfig.webSiteUrl).origin;
 
-            if (!Object.keys(this.webSites).includes(origin)) {
-                throw new Error(`The default website "${defaultWebSite}" is not defined.
+                if (!Object.keys(this.webSites).includes(origin)) {
+                    throw new Error(`The default website "${importTransformConfig.webSiteUrl}" is not defined.
                 Please add it to the server or update section jopi.defaultWebsite of your package.json file.`);
+                }
             }
         }
 

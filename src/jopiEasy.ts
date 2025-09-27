@@ -43,7 +43,7 @@ import {
 import type {PageCache} from "./caches/cache.js";
 import {getServer, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
-import {getDefaultWebSiteUrl, getImportTransformConfig} from "@jopi-loader/tools";
+import {getImportTransformConfig} from "@jopi-loader/tools";
 
 serverInitChronos.start("jopiEasy lib");
 
@@ -74,8 +74,11 @@ class JopiApp {
 class JopiEasy {
     new_webSite(url?: string, ref?: RefFor_WebSite): JopiEasyWebSite {
         if (!url) {
-            // Throw an exception if unset.
-            url = getDefaultWebSiteUrl(true);
+            let config = getImportTransformConfig();
+
+            if (config.webSiteListeningUrl) url = config.webSiteListeningUrl;
+            else if (config.webSiteUrl) url = config.webSiteUrl;
+            else throw new Error("Invalid package.json configuration. 'jopi.webSiteUrl' or 'jopi.webSiteListeningUrl' must be set");
         }
 
         const res = new JopiEasyWebSite_ExposePrivate(url);
