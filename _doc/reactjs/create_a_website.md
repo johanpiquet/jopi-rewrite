@@ -1,6 +1,6 @@
 # Create a website
 
-### More than one WebSite
+## More than one WebSite
 Jopi Rewrite allows you to create servers exposing multiple websites, which is useful when used as a cache or as a proxy. For this reason, the creation of the server and the creation of the *WebSite* are done in two steps.
 
 ```typescript title="Simple server sample"
@@ -25,7 +25,51 @@ jopiApp.startApp(jopiEasy => {
 });
 ```
 
-### Enable HTTPS
+## Optional parameters to add into package.json
+
+Two parameters inside `package.json` allows setting some important behaviors.
+
+**Sample package.json**
+```json
+{
+  "jopi": {
+    "webSiteUrl": "https://my-public-url",
+    "webSiteListeningUrl": "http://127.0.0.1:3000"
+  }
+}
+```
+
+### webSiteUrl: allowing transforming import to url
+
+If using custom imports, like importing an image, you must define `webSiteUrl` with the public url of your website.
+It allows transforming a local file path to an url pointing to the resource.
+
+For exemple if you have this ```import resPath from "./logo.png";``` then `resPath` is the path to the file
+on server (by default) or the url to the resource (if you set the url of your website into `webSiteUrl`).
+
+### webSiteListeningUrl: allowing defining the listening url
+
+`webSiteListeningUrl` allows to not set the url when starting a website.
+
+```typescript
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(jopiEasy => {
+    // Here the website url is not set.
+    // It will take the value of webSiteListeningUrl.
+    //
+    jopiEasy.new_webSite()      // <---
+        .add_path("/welcome")
+            .onGET(async req => req.htmlResponse("hello world"))
+            .DONE_add_path();
+});
+```
+
+
+
+
+
+## Enable HTTPS
 
 Jopi Rewrite can manage several websites at the same time, and each of them
 can have its own SSL certificate. To enable HTTPS, you need two things:
