@@ -10,7 +10,7 @@ Here is a minimal sample, which in most cases will be the only thing needed:
 ```typescript
 import {jopiApp, RefFor_WebSite} from "jopi-rewrite";
 
-jopiApp.startApp(async jopiEasy => {
+jopiApp.startApp(import.meta, async jopiEasy => {
     await jopiEasy.new_downloader("http://127.0.0.1")
         // www-out is already the default, can be omitted.
         .set_outputDir("www-out")
@@ -23,7 +23,7 @@ Here is a full-featured sample:
 ```typescript
 import {jopiApp, RefFor_WebSite} from "jopi-rewrite";
 
-jopiApp.startApp(async jopiEasy => {
+jopiApp.startApp(import.meta, async jopiEasy => {
     
     // >>> >>> Create the website to download.
     

@@ -15,9 +15,9 @@ Here we use a simple configuration option to enable the cache globally
 which will include all the page requested thought a GET request. 
 
 ```typescript jsx
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
-        .enable_reactRouter(import.meta)
+        .enable_reactRouter()
 
         // Enable the page.
         .enable_automaticCache()

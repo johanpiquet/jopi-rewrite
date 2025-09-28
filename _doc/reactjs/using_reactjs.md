@@ -27,7 +27,7 @@ import {jopiApp} from "jopi-rewrite";
 // Is automatically included!
 import "./myButton.css";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path_GET("/**", async req => {
             return req.reactResponse(<MyButton />)
@@ -72,7 +72,7 @@ import {jopiApp} from "jopi-rewrite";
 
 import ComponentA from "./HydrateComponentA.tsx";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1:3000")
         .add_path_GET("/**", async req => {
             return req.reactResponse(<ComponentA name="hello jopi" />)

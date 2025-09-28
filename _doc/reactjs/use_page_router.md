@@ -21,10 +21,10 @@ Here is a sample that enables the router. It's very simple, since all the requir
 ```typescript jsx
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         // This enable the router.
-        .enable_reactRouter(import.meta);
+        .enable_reactRouter();
 });
 ```
 

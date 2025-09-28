@@ -5,7 +5,7 @@ Jopi Rewrite includes a file server. It's a basic file server, with memory effic
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_fileServer("https://127.0.0.1")
         .set_rootDir("www")
         .DONE_new_fileServer()

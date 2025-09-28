@@ -7,7 +7,7 @@ The functions `req.getUserRoles`, `req.userHasRoles`, and `req.assertUserHasRole
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
 
         .add_path_GET("/", async req => {

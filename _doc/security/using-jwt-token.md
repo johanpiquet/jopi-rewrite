@@ -31,7 +31,7 @@ You must start by logging in, which you can do with this request:
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_jwtTokenAuth()
 

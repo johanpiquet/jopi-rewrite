@@ -20,7 +20,7 @@ const filter_SearchPage = buildSearchParamFilter({}, {
     query: {allowAllValues: true}
 });
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path("/search")
         .onGET(async req => {

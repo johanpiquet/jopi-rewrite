@@ -44,6 +44,7 @@ import type {PageCache} from "./caches/cache.js";
 import {getServer, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
 import {getImportTransformConfig} from "@jopi-loader/tools";
+import {getCodeSourceDirHint, setCodeSourceDirHint} from "@jopi-loader/tools/dist/tools.js";
 
 serverInitChronos.start("jopiEasy lib");
 
@@ -55,7 +56,7 @@ class JopiApp {
         return new GlobalConfigBuilder();
     }
 
-    startApp(f: (jopiEasy: JopiEasy) => void|Promise<void>): void {
+    startApp(importMeta: any, f: (jopiEasy: JopiEasy) => void|Promise<void>): void {
         async function doStart() {
             await NodeSpace.app.waitServerSideReady();
             NodeSpace.app.declareAppStarted();
@@ -66,6 +67,8 @@ class JopiApp {
 
         if (this._isStartAppSet) throw "App is already started";
         this._isStartAppSet = true;
+
+        setCodeSourceDirHint(importMeta.dirname);
 
         doStart().then();
     }
@@ -370,6 +373,7 @@ class JopiEasyWebSite {
     protected readonly beforeHook: (()=>Promise<void>)[] = [];
 
     protected readonly internals: WebSiteInternal;
+    private readonly modules: string[] = [];
 
     protected _isWebSiteReady: boolean = false;
 
@@ -424,11 +428,11 @@ class JopiEasyWebSite {
         return jopiApp;
     }
 
-    enable_reactRouter(importMeta: any, reactPageDir = "reactPages") {
-        const dir = importMeta.dirname as string;
+    enable_reactRouter(reactPageDir = "reactPages") {
+        const dirHint = getCodeSourceDirHint();
 
         this.internals.afterHook.push(async webSite => {
-            await webSite.enableReactRouter(dir, reactPageDir);
+            await webSite.enableReactRouter(dirHint, reactPageDir);
         });
 
         return this;
@@ -493,6 +497,11 @@ class JopiEasyWebSite {
         }
 
         this.options.onWebSiteReady!.push(listener);
+        return this;
+    }
+
+    add_module(moduleName: string) {
+        this.modules.push(moduleName);
         return this;
     }
 }

@@ -19,7 +19,7 @@ It will start at the time of the first request, then automatically shut down aft
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_sourceServer()
         .useOrigin("http://my-source-server-a.local")

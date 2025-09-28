@@ -10,7 +10,7 @@ Example: the request handler alters himself the HTML.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_sourceServer()
         .useOrigin("http://127.0.0.1:8080")
@@ -31,7 +31,7 @@ Example: using a post-middleware for altering HTML.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_sourceServer().useOrigin("http://127.0.0.1:8080").END_add_sourceServer()
         .add_postMiddleware().use_custom(async (req, res) => {

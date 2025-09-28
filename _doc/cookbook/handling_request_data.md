@@ -24,7 +24,7 @@ Sample of using getReqData:
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path("/").onGET(async req => {
             const myData = await req.getReqData();
@@ -45,7 +45,7 @@ We do this for several types of requests.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
   jopiEasy.new_webSite("http://127.0.0.1")
       .add_path("/").onGET(async req => {
         const myData = await req.getReqData();
@@ -172,7 +172,7 @@ As you may have seen in the example, there is a priority order in case of confli
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path("/category/:selectedCategory/list")
         .onGET(async req => {

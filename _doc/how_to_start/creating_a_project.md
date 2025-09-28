@@ -92,7 +92,7 @@ import {jopiApp} from "jopi-rewrite";
 // Doing this allow registering handlers
 // for when the app exists, for cleanup.
 //
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     // Create a website.
     jopiEasy.new_webSite("http://127.0.0.1:3000")
         // Add a listener for http://127.0.0.1:3000/welcome

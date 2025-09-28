@@ -16,7 +16,7 @@ NodeSpace.app.onAppExiting(async () => {
     console.log("App Exited!");
 });
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path_GET("/", async req => {
             await getServer().stopServer();

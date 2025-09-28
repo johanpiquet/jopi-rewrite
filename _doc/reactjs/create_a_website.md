@@ -11,7 +11,7 @@ import {jopiApp} from "jopi-rewrite";
 // Doing this allows registering handlers
 // for when the app exists, for cleanup.
 //
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     // Create a website.
     jopiEasy.new_webSite("http://127.0.0.1")
         // Add a listener for http://127.0.0.1:3000/welcome
@@ -80,7 +80,7 @@ Once defined, you can create a website without defining his url in your code.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite(/* will use webSiteListeningUrl */)
 });
 ```
@@ -137,7 +137,7 @@ a URL pattern with a function that will handle this URL.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path("/")
             .onGET(async req => req.htmlResponse("A GET request"))
@@ -152,7 +152,7 @@ Here you can also use the `use` function in order to combine GET and POST:
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path("/").use({
             onGET: async req => req.htmlResponse("A GET request"),
@@ -169,7 +169,7 @@ Here you can try http://127.0.0.1/computer/listing for sample.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
     // Note the ":" before name.
     .add_path("/products/:name/listing")
@@ -185,7 +185,7 @@ The wildcard `/*` allows catching one level (and only one).
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         // Accept http://127.0.0.1/products/
         // Accept http://127.0.0.1/products/listing
@@ -204,7 +204,7 @@ It's the most used pattern.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         // Accept http://127.0.0.1/products/
         // Accept http://127.0.0.1/products/listing
@@ -228,7 +228,7 @@ jopiApp.startApp(jopiEasy => {
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_path("/json")
         .onGET(async req => req.jsonResponse({myData: 123}))
@@ -243,7 +243,7 @@ Jopi Rewrite allows you to define a template for 404 pages to customize them.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_specialPageHandler()
         .on_404_NotFound(async req => req.htmlResponse("My not-found page content", 404))
@@ -295,7 +295,7 @@ const postMiddlewareA = (req: JopiRequest, res: Response) => {
     return res;
 }
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_middleware()
             // When a request occurs,
@@ -331,7 +331,7 @@ however enable it manually if you are interested in this mechanism, through a mi
 ```typescript
 import {jopiApp, Middlewares} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .hook_webSite(website => {
             // 2 seconds max
@@ -387,7 +387,7 @@ of IP addresses.
 ```typescript
 import {jopiApp, Middlewares} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .hook_webSite(website => {
             website.addMiddleware(Middlewares.ddosProtection({

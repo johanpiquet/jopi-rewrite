@@ -64,7 +64,7 @@ Here we will set up load-balancing where all target servers are called equally. 
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_sourceServer().useOrigin("http://my-source-server-a.local").set_weight(1)
         .add_sourceServer().useOrigin("http://my-source-server-b.local").set_weight(1)
@@ -114,7 +114,7 @@ This example shows how to be notified when a server goes down and how to replace
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_sourceServer()
         .useOrigin("http://my-source-server-a.local")

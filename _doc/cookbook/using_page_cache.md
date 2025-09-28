@@ -20,7 +20,7 @@ The result will be cached, which will allow us to see how the logic works.
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_cache().use_inMemoryCache().END_add_cache()
 
@@ -61,7 +61,7 @@ The logic will be the same as for the previous example, only the server configur
 ```typescript
 import {jopiApp} from "jopi-rewrite";
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_sourceServer()
             .useOrigin("https://developer.mozilla.org")
@@ -112,7 +112,7 @@ import {jopiApp, JopiRequest} from "jopi-rewrite";
 // The page for which we need a cache per user.
 const urlForUserCache = ["/card", "/card/**", "/user", "/user/**"];
 
-jopiApp.startApp(jopiEasy => {
+jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         .add_cache().use_inMemoryCache().END_add_cache()
 
