@@ -22,7 +22,7 @@ interface RouteInfo {
 export class ReactRouterManager {
     private readonly routes: Record<string, RouteInfo> = {};
 
-    constructor(private readonly webSite: WebSite, private readonly dirHint: string) {
+    constructor(private readonly webSite: WebSite, private readonly dirHint: string, private readonly reactPagesDir: string) {
     }
 
     async initialize() {
@@ -103,8 +103,8 @@ export class ReactRouterManager {
 
         const pkgJsonDir = path.dirname(pkgJsonFilePath);
 
-        let distDir = path.join(pkgJsonDir, "dist", "reactPages");
-        let srcDir = path.join(pkgJsonDir, "src", "reactPages");
+        let distDir = path.join(pkgJsonDir, "dist", this.reactPagesDir);
+        let srcDir = path.join(pkgJsonDir, "src", this.reactPagesDir);
 
         if (!await NodeSpace.fs.isDirectory(srcDir)) {
             throw "React router - Directory not found: " + srcDir;

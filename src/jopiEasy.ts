@@ -424,11 +424,11 @@ class JopiEasyWebSite {
         return jopiApp;
     }
 
-    enable_reactRouter(importMeta: any) {
+    enable_reactRouter(importMeta: any, reactPageDir = "reactPages") {
         const dir = importMeta.dirname as string;
 
         this.internals.afterHook.push(async webSite => {
-            await webSite.enableReactRouter(dir);
+            await webSite.enableReactRouter(dir, reactPageDir);
         });
 
         return this;
