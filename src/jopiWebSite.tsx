@@ -121,7 +121,7 @@ export interface WebSite {
 
     enableCors(allows?: string[]): void;
 
-    enableReactRouter(dirHint: string): Promise<void>;
+    enableReactRouter(dirHint: string, reactPagesDir: string): Promise<void>;
 }
 
 export class WebSiteImpl implements WebSite {
@@ -424,8 +424,8 @@ export class WebSiteImpl implements WebSite {
         return this.addWsRoute(path, handler);
     }
 
-    async enableReactRouter(dirHint: string): Promise<void> {
-        this.reactRouterManager = new ReactRouterManager(this, dirHint);
+    async enableReactRouter(dirHint: string, reactPagesDir: string): Promise<void> {
+        this.reactRouterManager = new ReactRouterManager(this, dirHint, reactPagesDir);
         await this.reactRouterManager.initialize();
     }
 
