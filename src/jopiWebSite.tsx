@@ -122,7 +122,7 @@ export interface WebSite {
 
     enableCors(allows?: string[]): void;
 
-    enableReactRouter(reactPagesDir: string): Promise<void>;
+    getReactRouterManager(): ReactRouterManager;
 }
 
 export class WebSiteImpl implements WebSite {
@@ -425,9 +425,12 @@ export class WebSiteImpl implements WebSite {
         return this.addWsRoute(path, handler);
     }
 
-    async enableReactRouter(reactPagesDir: string): Promise<void> {
-        this.reactRouterManager = new ReactRouterManager(this, reactPagesDir);
-        await this.reactRouterManager.initialize();
+    getReactRouterManager(): ReactRouterManager {
+        if (!this.reactRouterManager) {
+            this.reactRouterManager = new ReactRouterManager(this);
+        }
+
+        return this.reactRouterManager;
     }
 
     //region Cache
@@ -664,7 +667,7 @@ export class WebSiteImpl implements WebSite {
 
     getModulesManager(): ModulesManager {
         if (!this.modulesManager) {
-            this.modulesManager = new ModulesManager();
+            this.modulesManager = new ModulesManager(this);
         }
 
         return this.modulesManager;

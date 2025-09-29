@@ -22,17 +22,72 @@ interface RouteInfo {
 
 export class ReactRouterManager {
     private readonly routes: Record<string, RouteInfo> = {};
+    private pageToPath: Record<string, string> = {};
 
-    constructor(private readonly webSite: WebSite, private readonly reactPagesDir: string) {
-    }
-
-    async initialize() {
+    constructor(private readonly webSite: WebSite) {
         // Will allow adding content to the JavaScript file.
         // Here the goal of the script addon, is to bind the pages to ReactRouter.
         //
         addGenerateScriptPlugin((script, outDir) => this.scriptPlugin(script, outDir));
+    }
 
-        await this.scanPages();
+    async initialize(reactPagesDir: string = "reactPages") {
+        await this.scanRoutesFrom(
+            path.join(nApp.getSourceCodeDir(), reactPagesDir)
+        );
+    }
+
+    async scanRoutesFrom(dirToScan: string) {
+        const scanRoutesFromAux = async (dirToScan: string, rootDirUrl: string, checkPath: string|undefined) => {
+            const entries = await fs.readdir(dirToScan, {withFileTypes: true});
+            const isBunJS = NodeSpace.what.isBunJs;
+            const extension = isBunJS ? ".tsx" : ".js";
+
+            for (const entry of entries) {
+                let fullPath = path.join(dirToScan, entry.name);
+                let cFullPath = checkPath ? path.join(checkPath, entry.name) : undefined;
+
+                if (entry.isDirectory()) {
+                    await scanRoutesFromAux(fullPath, rootDirUrl, cFullPath);
+                } else if (entry.isFile()) {
+                    if (entry.name.endsWith(".page" + extension)) {
+                        let name = entry.name.slice(0, -(5 + extension.length));
+
+                        if (cFullPath) {
+                            cFullPath = cFullPath.slice(0, -3) + ".tsx";
+
+                            // For node.js, assert that the source file exists.
+                            // It's required because the dist directory can have garbage files.
+                            if (!await nFS.isFile(cFullPath)) {
+                                continue;
+                            }
+                        }
+
+                        fullPath = path.resolve(fullPath);
+                        const fileUrl = pathToFileURL(fullPath).href;
+                        const fileRelPath = fileUrl.substring(rootDirUrl.length);
+                        await this.registerPage(name, fullPath, fileUrl, fileRelPath.slice(0, -extension.length));
+                    }
+                }
+            }
+        }
+
+        let srcDirToScan: string;
+        let distDirToScan: string;
+
+        if (dirToScan.startsWith(nApp.getCompiledCodeDir())) {
+            distDirToScan = dirToScan;
+            srcDirToScan = path.join(nApp.getSourceCodeDir(), dirToScan.substring(nApp.getCompiledCodeDir().length));
+        } else {
+            srcDirToScan = dirToScan;
+            distDirToScan = path.join(nApp.getCompiledCodeDir(), dirToScan.substring(nApp.getSourceCodeDir().length));
+        }
+
+        let isBunJS = NodeSpace.what.isBunJs;
+        await scanRoutesFromAux(distDirToScan, pathToFileURL(distDirToScan).href, isBunJS ? undefined : srcDirToScan);
+
+        // Release memory.
+        this.pageToPath = {};
     }
 
     private async scriptPlugin(script: string, _outDir: string) {
@@ -66,70 +121,7 @@ export class ReactRouterManager {
         return script;
     }
 
-    async scanForPageFiles(dirToScan: string, rootDirUrl: string, checkPath: string|undefined) {
-        const entries = await fs.readdir(dirToScan, {withFileTypes: true});
-        const isBunJS = NodeSpace.what.isBunJs;
-        const extension = isBunJS ? ".tsx" : ".js";
-
-        for (const entry of entries) {
-            let fullPath = path.join(dirToScan, entry.name);
-            let cFullPath = checkPath ? path.join(checkPath, entry.name) : undefined;
-
-            if (entry.isDirectory()) {
-                await this.scanForPageFiles(fullPath, rootDirUrl, cFullPath);
-            } else if (entry.isFile()) {
-                if (entry.name.endsWith(".page" + extension)) {
-                    let name = entry.name.slice(0, -(5 + extension.length));
-
-                    if (cFullPath) {
-                        cFullPath = cFullPath.slice(0, -3) + ".tsx";
-
-                        // For node.js, assert that the source file exists.
-                        // It's required because the dist directory can have garbage files.
-                        if (!await nFS.isFile(cFullPath)) {
-                            continue;
-                        }
-                    }
-
-                    fullPath = path.resolve(fullPath);
-                    const fileUrl = pathToFileURL(fullPath).href;
-                    const fileRelPath = fileUrl.substring(rootDirUrl.length);
-                    await this.registerPage(name, fullPath, fileUrl, fileRelPath.slice(0, -extension.length));
-                }
-            }
-        }
-    }
-
-    private async scanPages() {
-        let isBunJS = NodeSpace.what.isBunJs;
-
-        let pkgJsonFilePath = NodeSpace.app.findPackageJson();
-        if (!pkgJsonFilePath) throw new Error("React Router - Can't find package.json file");
-
-        const srcDir = path.join(nApp.getSourceCodeDir(), this.reactPagesDir);
-        const distDir = path.join(nApp.getCompiledCodeDir(), this.reactPagesDir);
-
-        if (!await NodeSpace.fs.isDirectory(srcDir)) {
-            throw new Error("React router - Directory not found: " + srcDir);
-        }
-
-        if (!isBunJS) {
-            if (!await NodeSpace.fs.isDirectory(distDir)) {
-                throw new Error("React router - Directory not found: " + distDir);
-            }
-        }
-
-        let mainDir = isBunJS ? srcDir : distDir;
-
-        await this.scanForPageFiles(mainDir, pathToFileURL(mainDir).href, isBunJS ? undefined : srcDir);
-
-        // Release memory.
-        this.pageToPath = {};
-    }
-
-    private pageToPath: Record<string, string> = {};
-
-    private async registerPage(name:  string, fileFullPath: string, fileUrl: string, route: string) {
+    private async registerPage(name: string, fileFullPath: string, fileUrl: string, route: string) {
         if (this.pageToPath[name]) {
             console.error(`🚫 Page ${name} already declared at ${fileFullPath}`);
             process.exit(1);

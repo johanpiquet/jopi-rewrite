@@ -1,5 +1,6 @@
 import path from "node:path";
 import NodeSpace from "jopi-node-space";
+import type {WebSite} from "./jopiWebSite.js";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
@@ -7,6 +8,9 @@ const nApp = NodeSpace.app;
 export class ModulesManager {
     private readonly allModuleDir: string[] = [];
     private readonly allModuleInfo: ModuleInfoWithPath[] = [];
+
+    constructor(public readonly webSite: WebSite) {
+    }
 
     addModules(modulesDir: string, moduleNames: string[]) {
         for (const moduleName of moduleNames) {
@@ -26,7 +30,7 @@ export class ModulesManager {
 
     private async initModule(moduleDirPath: string) {
         let file = path.join(moduleDirPath, "jopiGetModuleInfo.tsx");
-        file = nApp.getCompiledSourcesFor(file);
+        file = nApp.getCompiledFilePathFor(file);
 
         if (await nFS.isFile(file)) {
             gCurrentModuleInfo = undefined;
@@ -49,10 +53,16 @@ export class ModulesManager {
         }
 
         file = path.join(moduleDirPath, "jopiInitModule.tsx");
-        file = nApp.getCompiledSourcesFor(file);
+        file = nApp.getCompiledFilePathFor(file);
 
         if (await nFS.isFile(file)) {
             await import(file);
+        }
+
+        let dirPath = path.join(moduleDirPath, "routes");
+
+        if (await nFS.isDirectory(dirPath)) {
+            await this.webSite.getReactRouterManager().scanRoutesFrom(dirPath);
         }
     }
 }

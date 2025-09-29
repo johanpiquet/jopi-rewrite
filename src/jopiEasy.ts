@@ -442,7 +442,7 @@ class JopiEasyWebSite {
 
     enable_reactRouter(reactPageDir = "reactPages") {
         this.internals.afterHook.push(async webSite => {
-            await webSite.enableReactRouter(reactPageDir);
+            await webSite.getReactRouterManager().initialize(reactPageDir);
         });
 
         return this;
