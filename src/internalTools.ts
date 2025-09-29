@@ -1,4 +1,5 @@
 import type {CacheEntry} from "./caches/cache.ts";
+import NodeSpace from "jopi-node-space";
 
 export const serverInitChronos = NodeSpace.timer.chrono(false);
 

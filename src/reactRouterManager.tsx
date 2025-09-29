@@ -3,16 +3,17 @@ import {
     type WebSite
 } from "./jopiWebSite.tsx";
 import path from "node:path";
-import fss from "node:fs";
 import fs from "node:fs/promises";
 import {pathToFileURL, fileURLToPath} from "node:url";
 import {mustHydrate} from "jopi-rewrite-ui";
 import {addGenerateScriptPlugin, getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {RouteContext_ExposePrivate} from "./routeContext.ts";
-import {JopiRequest} from "./jopiRequest.js";
+import {JopiRequest} from "./jopiRequest.ts";
+import NodeSpace from "jopi-node-space";
 
 const nFS = NodeSpace.fs;
+const nApp = NodeSpace.app;
 
 interface RouteInfo {
     componentKey: string;
@@ -22,18 +23,22 @@ interface RouteInfo {
 export class ReactRouterManager {
     private readonly routes: Record<string, RouteInfo> = {};
 
-    constructor(private readonly webSite: WebSite, private readonly dirHint: string, private readonly reactPagesDir: string) {
+    constructor(private readonly webSite: WebSite, private readonly reactPagesDir: string) {
     }
 
     async initialize() {
+        // Will allow adding content to the JavaScript file.
+        // Here the goal of the script addon, is to bind the pages to ReactRouter.
+        //
         addGenerateScriptPlugin((script, outDir) => this.scriptPlugin(script, outDir));
+
         await this.scanPages();
     }
 
     private async scriptPlugin(script: string, _outDir: string) {
         let resolvedPath = import.meta.resolve("./../src/codeGen/template_router.jsx");
-        resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
-        let template = await NodeSpace.fs.readTextFromFile(resolvedPath);
+        resolvedPath = nFS.fileURLToPath(resolvedPath);
+        let template = await nFS.readTextFromFile(resolvedPath);
 
         let reactRoutes: any[] = [];
 
@@ -61,64 +66,62 @@ export class ReactRouterManager {
         return script;
     }
 
-    private async scanPages() {
-        const scanForPageFiles = async (dirToScan: string, rootDirUrl: string, checkPath: string|undefined) => {
-            const entries = await fs.readdir(dirToScan, {withFileTypes: true});
+    async scanForPageFiles(dirToScan: string, rootDirUrl: string, checkPath: string|undefined) {
+        const entries = await fs.readdir(dirToScan, {withFileTypes: true});
+        const isBunJS = NodeSpace.what.isBunJs;
+        const extension = isBunJS ? ".tsx" : ".js";
 
-            for (const entry of entries) {
-                let fullPath = path.join(dirToScan, entry.name);
-                let cFullPath = checkPath ? path.join(checkPath, entry.name) : undefined;
+        for (const entry of entries) {
+            let fullPath = path.join(dirToScan, entry.name);
+            let cFullPath = checkPath ? path.join(checkPath, entry.name) : undefined;
 
-                if (entry.isDirectory()) {
-                    await scanForPageFiles(fullPath, rootDirUrl, cFullPath);
-                } else if (entry.isFile()) {
-                    if (entry.name.endsWith(".page" + extension)) {
-                        let name = entry.name.slice(0, -(5 + extension.length));
+            if (entry.isDirectory()) {
+                await this.scanForPageFiles(fullPath, rootDirUrl, cFullPath);
+            } else if (entry.isFile()) {
+                if (entry.name.endsWith(".page" + extension)) {
+                    let name = entry.name.slice(0, -(5 + extension.length));
 
-                        if (cFullPath) {
-                            cFullPath = cFullPath.slice(0, -3) + ".tsx";
+                    if (cFullPath) {
+                        cFullPath = cFullPath.slice(0, -3) + ".tsx";
 
-                            // For node.js, assert that the source file exists.
-                            // It's required because the dist directory can have garbage files.
-                            if (!await nFS.isFile(cFullPath)) {
-                                continue;
-                            }
+                        // For node.js, assert that the source file exists.
+                        // It's required because the dist directory can have garbage files.
+                        if (!await nFS.isFile(cFullPath)) {
+                            continue;
                         }
-
-                        fullPath = path.resolve(fullPath);
-                        const fileUrl = pathToFileURL(fullPath).href;
-                        const fileRelPath = fileUrl.substring(rootDirUrl.length);
-                        await this.registerPage(name, fullPath, fileUrl, fileRelPath.slice(0, -extension.length));
                     }
+
+                    fullPath = path.resolve(fullPath);
+                    const fileUrl = pathToFileURL(fullPath).href;
+                    const fileRelPath = fileUrl.substring(rootDirUrl.length);
+                    await this.registerPage(name, fullPath, fileUrl, fileRelPath.slice(0, -extension.length));
                 }
             }
         }
+    }
 
+    private async scanPages() {
         let isBunJS = NodeSpace.what.isBunJs;
 
-        const extension = isBunJS ? ".tsx" : ".js";
+        let pkgJsonFilePath = NodeSpace.app.findPackageJson();
+        if (!pkgJsonFilePath) throw new Error("React Router - Can't find package.json file");
 
-        let pkgJsonFilePath = findPackageJson(this.dirHint);
-        if (!pkgJsonFilePath) throw "React Router - Can't find package.json file";
-
-        const pkgJsonDir = path.dirname(pkgJsonFilePath);
-
-        let distDir = path.join(pkgJsonDir, "dist", this.reactPagesDir);
-        let srcDir = path.join(pkgJsonDir, "src", this.reactPagesDir);
+        const srcDir = path.join(nApp.getSourceCodeDir(), this.reactPagesDir);
+        const distDir = path.join(nApp.getCompiledCodeDir(), this.reactPagesDir);
 
         if (!await NodeSpace.fs.isDirectory(srcDir)) {
-            throw "React router - Directory not found: " + srcDir;
+            throw new Error("React router - Directory not found: " + srcDir);
         }
 
         if (!isBunJS) {
             if (!await NodeSpace.fs.isDirectory(distDir)) {
-                throw "React router - Directory not found: " + distDir;
+                throw new Error("React router - Directory not found: " + distDir);
             }
         }
 
         let mainDir = isBunJS ? srcDir : distDir;
 
-        await scanForPageFiles(mainDir, pathToFileURL(mainDir).href, isBunJS ? undefined : srcDir);
+        await this.scanForPageFiles(mainDir, pathToFileURL(mainDir).href, isBunJS ? undefined : srcDir);
 
         // Release memory.
         this.pageToPath = {};
@@ -131,8 +134,6 @@ export class ReactRouterManager {
             console.error(`🚫 Page ${name} already declared at ${fileFullPath}`);
             process.exit(1);
         }
-
-        // console.log("🔥  Registering page", name);
 
         let serverUrlParts = fileUrl.split("/");
         serverUrlParts.push(serverUrlParts.pop()!.replace("page", "server"));
@@ -171,7 +172,7 @@ export class ReactRouterManager {
 
         let mod = await import(fileUrl);
         const defaultValue = mod.default;
-        if (!defaultValue) throw "A default export is required. File: " + fileUrl;
+        if (!defaultValue) throw new Error("A default export is required. File: " + fileUrl);
 
         let Cpn = mustHydrate({filename: fileFullPath}, defaultValue);
 
@@ -219,23 +220,4 @@ export class ReactRouterManager {
             componentPath: fileFullPath
         };
     }
-}
-
-function findPackageJson(currentDir: string): string|null {
-    while (true) {
-        const packagePath = path.join(currentDir, 'package.json');
-
-        if (fss.existsSync(packagePath)) {
-            return packagePath;
-        }
-
-        const parentDir = path.dirname(currentDir);
-
-        // Reached root directory
-        if (parentDir === currentDir) break;
-
-        currentDir = parentDir;
-    }
-
-    return null;
 }

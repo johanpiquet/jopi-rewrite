@@ -4,6 +4,7 @@ import {type SendingBody} from "./jopiWebSite.tsx";
 import type {LoadBalancer} from "./loadBalancing.ts";
 import {AutomaticStartStop} from "./automaticStartStop.js";
 import {JopiRequest} from "./jopiRequest.js";
+import NodeSpace from "jopi-node-space";
 
 export interface ServerDownResult<T> {
     newServer?: ServerFetch<T>,

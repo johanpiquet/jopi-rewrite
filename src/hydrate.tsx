@@ -1,11 +1,12 @@
 import path from "node:path";
+import NodeSpace from "jopi-node-space";
 
 import React from "react";
 import {setNewHydrateListener, setNewMustBundleExternalCssListener, useCssModule} from "jopi-rewrite-ui";
 import {esBuildBundle, jopiReplaceServerPlugin} from "./bundler/bundler_esBuild.ts";
 import {esBuildBundleExternal} from "./bundler/bundler_esBuildExternal.ts";
 import fs from "node:fs/promises";
-import {findPackageJson, scssToCss, searchSourceOf} from "@jopi-loader/tools";
+import {scssToCss} from "@jopi-loader/tools";
 import {fileURLToPath, pathToFileURL} from "node:url";
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
@@ -33,7 +34,7 @@ async function generateScript(outputDir: string, components: {[key: string]: str
         let declarations = "";
 
         for (const componentKey in components) {
-            let componentPath = await searchSourceOf(components[componentKey]);
+            let componentPath = NodeSpace.app.requireSourceOf(components[componentKey]);
 
             // Patch for windows. Require a linux-like path.
             if (isWin32) componentPath = pathToFileURL(componentPath).href.substring("file:///".length);
@@ -155,7 +156,7 @@ async function createBundle_esbuild(webSite: WebSite): Promise<void> {
 
 async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sourceFiles: string[]) {
     // Prefer the sources if possible.
-    sourceFiles = await Promise.all(sourceFiles.map(searchSourceOf))
+    sourceFiles = await Promise.all(sourceFiles.map(NodeSpace.app.requireSourceOf))
 
     //region Creates the CSS bundle (include Tailwind CSS).
 
@@ -270,9 +271,7 @@ global.jopiOnCssImported = function(cssFilePath: string) {
 // This bug is doing that WebStorm doesn't resolve the file to his real location
 // but to the workspace node_modules (and not the project inside the workspace).
 //
-// TODO: allow configuring it.
-//
-let gTempDirPath = path.resolve(process.cwd(), "temp", ".reactHydrateCache");
+let gTempDirPath = path.resolve(NodeSpace.app.getTempDir(), ".reactHydrateCache");
 
 const gAllCssFiles: string[] = [];
 
@@ -347,12 +346,11 @@ function onNewHydrate(importMeta: {filename: string}, f: React.FunctionComponent
     // Register the component.
     const id = useHydrateComponent(importMeta);
 
+    useCssModule(cssModules);
+
     // Wrap our component.
     let cpn = (p: any) => {
-        return <>
-            {useCssModule(cssModules)}
-            <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent}/>
-        </>;
+        return <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent}/>;
     }
 
     gPathToHydrateComponent[importMeta.filename] = cpn;
@@ -369,7 +367,7 @@ async function onNewMustIncludeCss(importMeta: {filename: string}, cssFilePath: 
         cssFileUrl = cssFilePath;
     } else {
         if (!cssFilePath.startsWith("./")) {
-            console.error("* CSS file must starts with 'file:/' or './'\n|- See:", await searchSourceOf(importMeta.filename));
+            console.error("* CSS file must starts with 'file:/' or './'\n|- See:", await NodeSpace.app.requireSourceOf(importMeta.filename));
         }
 
         let dirPath = path.dirname(importMeta.filename);
@@ -379,7 +377,7 @@ async function onNewMustIncludeCss(importMeta: {filename: string}, cssFilePath: 
     cssFilePath = fileURLToPath(cssFileUrl);
 
     // If using a TypeScript compiler, then the CSS remain in the source folder.
-    cssFilePath = await searchSourceOf(cssFilePath);
+    cssFilePath = await NodeSpace.app.requireSourceOf(cssFilePath);
 
     if (!await nFS.isFile(cssFilePath)) {
         console.warn("JopiHydrate: CSS file not found:", cssFilePath);
@@ -438,7 +436,7 @@ export function setConfig_postCssPluginsInitializer(handler: PostCssInitializer)
  * See: https://ui.shadcn.com/docs/components-json
  */
 async function getTailwindTemplateFromShadCnConfig() {
-    const pkgJsonPath = findPackageJson();
+    const pkgJsonPath = NodeSpace.app.findPackageJson();
     if (!pkgJsonPath) return undefined;
 
     let filePath = path.join(path.dirname(pkgJsonPath), "components.json");

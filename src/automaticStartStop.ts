@@ -1,4 +1,4 @@
-import "jopi-node-space";
+import NodeSpace from "jopi-node-space";
 
 const ONE_MINUTE = NodeSpace.timer.ONE_MINUTE;
 const newInterval = NodeSpace.timer.newInterval;

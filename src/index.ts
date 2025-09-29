@@ -1,4 +1,4 @@
-import "jopi-node-space";
+import NodeSpace from "jopi-node-space";
 
 export * from "./publicTools.ts";
 export * from "./searchParamFilter.ts";
@@ -16,3 +16,4 @@ export * from "./routeContext.ts";
 export * from "./jopiRequest.ts";
 export * from "./jopiWebSite.tsx";
 export * from "./jopiServer.ts";
+export * from "./modulesManager.ts";

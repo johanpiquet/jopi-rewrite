@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import fss from "node:fs";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {cacheEntryToResponse, makeIterable, responseToCacheEntry} from "../internalTools.ts";
+import NodeSpace from "jopi-node-space";
 
 const nCrypto = NodeSpace.crypto;
 const nFS = NodeSpace.fs;

@@ -2,6 +2,7 @@ import http from "node:http";
 import https from "node:https";
 import type {ServerImpl, ServerInstance, ServerSocketAddress, StartServerOptions} from "../jopiServer.ts";
 import {WebSocketServer} from "ws";
+import NodeSpace from "jopi-node-space";
 
 const nFS = NodeSpace.fs;
 

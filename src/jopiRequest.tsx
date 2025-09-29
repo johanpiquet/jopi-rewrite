@@ -24,6 +24,7 @@ import {
 } from "./jopiWebSite.tsx";
 
 import {parseCookies} from "./internalTools.ts";
+import NodeSpace from "jopi-node-space";
 
 export class JopiRequest {
     public cache: PageCache;

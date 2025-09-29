@@ -1,6 +1,7 @@
 import * as acme from 'acme-client';
 import {type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 import path from "node:path";
+import NodeSpace from "jopi-node-space";
 
 const nFS = NodeSpace.fs;
 const nTimer = NodeSpace.timer;

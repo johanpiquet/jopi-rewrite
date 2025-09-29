@@ -5,6 +5,7 @@ import {createReadStream, createWriteStream} from "node:fs";
 import {createGunzip, createGzip} from "node:zlib";
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import NodeSpace from "jopi-node-space";
 
 export async function gzipFile(inputPath: string, outputPath: string) {
     try {

@@ -2,6 +2,7 @@
 
 import path from "node:path";
 import fsc from "node:fs";
+import NodeSpace from "jopi-node-space";
 
 import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
@@ -44,7 +45,6 @@ import type {PageCache} from "./caches/cache.js";
 import {getServer, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
 import {getImportTransformConfig} from "@jopi-loader/tools";
-import {getCodeSourceDirHint, setCodeSourceDirHint} from "@jopi-loader/tools/dist/tools.js";
 
 serverInitChronos.start("jopiEasy lib");
 
@@ -68,7 +68,7 @@ class JopiApp {
         if (this._isStartAppSet) throw "App is already started";
         this._isStartAppSet = true;
 
-        setCodeSourceDirHint(importMeta.dirname);
+        NodeSpace.app.setApplicationMainFile(importMeta.filename);
 
         doStart().then();
     }
@@ -369,16 +369,17 @@ class JopiEasyWebSite {
     private webSite?: WebSiteImpl;
     protected readonly options: WebSiteOptions = {};
 
-    protected readonly afterHook: ((webSite: WebSite)=>(void|Promise<void>))[] = [];
+    protected readonly afterHook: ((webSite: WebSite)=>(Promise<void>))[] = [];
     protected readonly beforeHook: (()=>Promise<void>)[] = [];
 
     protected readonly internals: WebSiteInternal;
-    private readonly modules: string[] = [];
 
     protected _isWebSiteReady: boolean = false;
 
     constructor(url: string) {
-        setTimeout(() => { this.initWebSiteInstance().then() }, 1);
+        setTimeout(async () => {
+            await this.initWebSiteInstance();
+        }, 1);
 
         const urlInfos = new URL(url);
         this.hostName = urlInfos.hostname; // 127.0.0.1
@@ -403,10 +404,21 @@ class JopiEasyWebSite {
             this.webSite = new WebSiteImpl(this.origin, this.options);
 
             for (const hook of  this.afterHook) {
-                let res = hook(this.webSite!);
+                try {
+                    await hook(this.webSite!);
+                }
+                catch (e: any) {
+                    if (e instanceof Error) {
+                        console.error("Error when initializing website", this.origin);
+                        NodeSpace.term.logRed("|-", e.message);
+                        console.log(e.stack);
+                    }
+                    else {
+                        console.error("Error when initializing website", this.origin);
+                        NodeSpace.term.logRed("|-", e.message);
+                    }
 
-                if (res instanceof Promise) {
-                    await res;
+                    process.exit(1);
                 }
             }
 
@@ -429,10 +441,8 @@ class JopiEasyWebSite {
     }
 
     enable_reactRouter(reactPageDir = "reactPages") {
-        const dirHint = getCodeSourceDirHint();
-
         this.internals.afterHook.push(async webSite => {
-            await webSite.enableReactRouter(dirHint, reactPageDir);
+            await webSite.enableReactRouter(reactPageDir);
         });
 
         return this;
@@ -500,9 +510,43 @@ class JopiEasyWebSite {
         return this;
     }
 
-    add_module(moduleName: string) {
+    use_modules(): WebSite_UserModules {
+        return new WebSite_UserModules(this, this.internals);
+    }
+}
+
+class WebSite_UserModules {
+    private readonly modules: string[] = [];
+    private moduleDir?: string;
+
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+        this.internals.afterHook.push(async webSite => {
+            if (!this.moduleDir) {
+                this.moduleDir = path.join(NodeSpace.app.getSourceCodeDir(), "modules");
+            } else {
+                if (!path.isAbsolute(this.moduleDir)) {
+                    this.moduleDir = path.join(NodeSpace.app.getSourceCodeDir(), this.moduleDir);
+                }
+            }
+
+            const modulesManager = (webSite as WebSiteImpl).getModulesManager();
+            modulesManager.addModules(this.moduleDir , this.modules);
+            await modulesManager.initializeModules();
+        });
+    }
+
+    set_moduleDir(dirName: string): WebSite_UserModules {
+        this.moduleDir = dirName;
+        return this;
+    }
+
+    add_module(moduleName: string): WebSite_UserModules {
         this.modules.push(moduleName);
         return this;
+    }
+
+    END_use_modules(): JopiEasyWebSite {
+        return this.webSite;
     }
 }
 
@@ -525,7 +569,7 @@ class WebSite_AddSpecialPageHandler {
     }
 
     on_404_NotFound(handler: (req: JopiRequest) => Promise<Response>): this {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.on404_NotFound(handler);
         });
 
@@ -533,7 +577,7 @@ class WebSite_AddSpecialPageHandler {
     }
 
     on_500_Error(handler: (req: JopiRequest) => Promise<Response>): this {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.on500_Error(handler);
         });
 
@@ -541,7 +585,7 @@ class WebSite_AddSpecialPageHandler {
     }
 
     on_401_Unauthorized(handler: (req: JopiRequest) => Promise<Response>): this {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.on401_Unauthorized(handler);
         });
 
@@ -558,7 +602,7 @@ class WebSite_PostMiddlewareBuilder {
     }
 
     use_custom(myMiddleware: JopiPostMiddleware): this {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.addPostMiddleware(myMiddleware);
         });
 
@@ -575,7 +619,7 @@ class WebSite_MiddlewareBuilder {
     }
 
     use_custom(myMiddleware: JopiMiddleware): WebSite_MiddlewareBuilder {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.addMiddleware(myMiddleware);
         });
 
@@ -587,7 +631,7 @@ class WebSite_MiddlewareBuilder {
     }
 
     use_cors(): WebSite_MiddlewareBuilder {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.enableCors();
         })
 
@@ -605,7 +649,7 @@ class WebSite_AddSourceServerBuilder<T> extends CreateServerFetch<T, WebSite_Add
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
         super();
 
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             if (this.serverFetch) {
                 webSite.addSourceServer(this.serverFetch);
             }
@@ -629,7 +673,7 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, options: ServerFetchOptions<T>) {
         super(options);
 
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.addSourceServer(ServerFetch.useAsIs(this.options));
         });
     }
@@ -728,7 +772,7 @@ class WebSite_PathBuilder {
     }
 }
 
-function usePathDefinition(path: string | string[], routeDef: RouterPathDefinition, webSite: WebSite, internals: WebSiteInternal) {
+function usePathDefinition(path: string | string[], routeDef: RouterPathDefinition, webSite: WebSite) {
     const addVerb = (verb: HttpMethod, handler: JopiRouteHandler) => {
         let route = webSite.onVerb(verb, path, handler!);
 
@@ -764,10 +808,8 @@ class WebSite_PathBuilder_UsePathDefinition {
                 private readonly path: string | string[],
                 routeDef: RouterPathDefinition)
     {
-        this.internals.afterHook.push(webSite => {
-            usePathDefinition(
-                path, routeDef, webSite, this.internals,
-            );
+        this.internals.afterHook.push(async webSite => {
+            usePathDefinition(path, routeDef, webSite);
         });
     }
 
@@ -789,8 +831,8 @@ class WebSite_PathBuilder_NextStep {
                 private readonly internals: WebSiteInternal,
                 private readonly path: string|string[],
                 private readonly routeDef: RouterPathDefinition) {
-        this.internals.afterHook.push(webSite => {
-            usePathDefinition(path, routeDef, webSite, this.internals);
+        this.internals.afterHook.push(async webSite => {
+            usePathDefinition(path, routeDef, webSite);
         });
     }
 
@@ -848,7 +890,7 @@ class WebSite_CacheBuilder {
     private cache?: PageCache;
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             if (this.cache) {
                 webSite.setCache(this.cache);
             }
@@ -893,7 +935,7 @@ class WebSite_AutomaticCacheBuilder implements WebSite_AutomaticCacheBuilder_End
             webSiteInternal: internals,
         }
 
-        internals.afterHook.push(webSite => {
+        internals.afterHook.push(async webSite => {
             if (this.cacheInternal.initCache) {
                 this.cacheInternal.initCache(webSite);
             }
@@ -916,7 +958,7 @@ class WebSite_AutomaticCacheBuilder implements WebSite_AutomaticCacheBuilder_End
 }
 
 class WebSite_AutomaticCacheBuilder_UseFileCache {
-    private rootDir: string = path.join(process.cwd(), "temp", "page-cache");
+    private rootDir: string = path.join(NodeSpace.app.getTempDir(), "page-cache");
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: AutoCacheBuilder_Internal) {
         this.internals.initCache = (webSite) => {
@@ -1038,7 +1080,7 @@ class ReverseProxyBuilder {
 
         this.internals = this.webSite.getInternals();
 
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             const handler: JopiRouteHandler = req => {
                 req.headers.set('X-Forwarded-Proto', req.urlInfos.protocol.replace(':', ''));
                 req.headers.set('X-Forwarded-Host', req.urlInfos.host)
@@ -1058,7 +1100,7 @@ class ReverseProxyBuilder {
     add_target<T>(): ReverseProxyBuilder_AddTarget<T> {
         const {builder, getOptions} = ReverseProxyBuilder_AddTarget.newBuilder<T>(this);
 
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             let options = getOptions();
 
             if (options) {
@@ -1126,7 +1168,7 @@ class FileServerBuilder {
             onNotFound: req => req.returnError404_NotFound()
         };
 
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.onGET("/**", req => {
                 return req.serveFile(this.options.rootDir, {
                     replaceIndexHtml: this.options.replaceIndexHtml,
@@ -1342,7 +1384,7 @@ class JwtTokenAuth_Builder {
             use_simpleLoginPassword: () => {
                 this.loginPasswordStore = new UserStore_WithLoginPassword();
 
-                this.internals.afterHook.push(webSite => {
+                this.internals.afterHook.push(async webSite => {
                     this.loginPasswordStore!.setAuthHandler(webSite);
                 });
 
@@ -1363,7 +1405,7 @@ class JwtTokenAuth_Builder {
     //region useCustomStore
 
     useCustomStore_BEGIN<T>(store: AuthHandler<T>) {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.setAuthHandler(store);
         })
 
@@ -1426,7 +1468,7 @@ class JwtTokenAuth_Builder {
     }
 
     setTokenStore_useCookie(expirationDuration_hours: number = 3600) {
-        this.internals.afterHook.push(webSite => {
+        this.internals.afterHook.push(async webSite => {
             webSite.setJwtTokenStore((token, cookieValue, req, res) => {
                 req.addCookie(res, "authorization", cookieValue, {maxAge: NodeSpace.timer.ONE_HOUR * expirationDuration_hours})
             });

@@ -13,10 +13,9 @@ import {
     type WebSiteMap
 } from "./jopiWebSite.tsx";
 
-import "jopi-node-space";
+import NodeSpace from "jopi-node-space";
 import bunJsServer from "./serverImpl/server_bunjs.js";
 import nodeJsServer from "./serverImpl/server_nodejs.js";
-import {findExecutable} from "@jopi-loader/tools/dist/tools.js";
 import {getImportTransformConfig} from "@jopi-loader/tools";
 
 const nFS = NodeSpace.fs;
@@ -172,7 +171,7 @@ class JopiServer {
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
 
         if (!await nFS.isFile(certFilePath)) {
-            let mkCertToolPath = findExecutable("mkcert", null);
+            let mkCertToolPath = NodeSpace.os.whichSync("mkcert");
 
             if (mkCertToolPath) {
                 await fs.mkdir(sslDirPath, {recursive: true});

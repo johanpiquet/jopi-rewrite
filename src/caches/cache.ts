@@ -1,5 +1,5 @@
 import path from "node:path";
-import "jopi-node-space";
+import NodeSpace from "jopi-node-space";
 import fs from "node:fs/promises";
 import {makeIterable} from "../internalTools.js";
 

@@ -17,8 +17,9 @@ import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
 import {ONE_DAY} from "./publicTools.ts";
-import "jopi-node-space";
+import NodeSpace from "jopi-node-space";
 import {getInMemoryCache} from "./caches/InMemoryCache.ts";
+import {ModulesManager} from "./modulesManager.ts";
 
 const nSocket = NodeSpace.webSocket;
 
@@ -121,7 +122,7 @@ export interface WebSite {
 
     enableCors(allows?: string[]): void;
 
-    enableReactRouter(dirHint: string, reactPagesDir: string): Promise<void>;
+    enableReactRouter(reactPagesDir: string): Promise<void>;
 }
 
 export class WebSiteImpl implements WebSite {
@@ -424,8 +425,8 @@ export class WebSiteImpl implements WebSite {
         return this.addWsRoute(path, handler);
     }
 
-    async enableReactRouter(dirHint: string, reactPagesDir: string): Promise<void> {
-        this.reactRouterManager = new ReactRouterManager(this, dirHint, reactPagesDir);
+    async enableReactRouter(reactPagesDir: string): Promise<void> {
+        this.reactRouterManager = new ReactRouterManager(this, reactPagesDir);
         await this.reactRouterManager.initialize();
     }
 
@@ -654,6 +655,20 @@ export class WebSiteImpl implements WebSite {
     }
 
     //endregion
+
+    //endregion
+
+    //region Modules processing
+
+    private modulesManager?: ModulesManager;
+
+    getModulesManager(): ModulesManager {
+        if (!this.modulesManager) {
+            this.modulesManager = new ModulesManager();
+        }
+
+        return this.modulesManager;
+    }
 
     //endregion
 }

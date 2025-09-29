@@ -1,4 +1,5 @@
 import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
+import NodeSpace from "jopi-node-space";
 
 import * as path from "node:path";
 import type {CacheEntry, PageCache} from "./cache.ts";
@@ -124,7 +125,7 @@ class InMemoryCache implements PageCache {
             return;
         }
 
-        const fileUncompressed = path.resolve(path.join(".", "temp", crypto.randomUUID()));
+        const fileUncompressed = path.resolve(path.join(NodeSpace.app.getTempDir(), crypto.randomUUID()));
         const fileGzip = fileUncompressed + ".gzip";
         await mkDirForFile(fileUncompressed);
 
