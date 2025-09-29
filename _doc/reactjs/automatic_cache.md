@@ -17,7 +17,7 @@ which will include all the page requested thought a GET request.
 ```typescript jsx
 jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
-        .enable_reactRouter()
+        .enable_automaticRoutes()
 
         // Enable the page.
         .enable_automaticCache()

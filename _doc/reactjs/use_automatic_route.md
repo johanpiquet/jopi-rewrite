@@ -1,21 +1,21 @@
 # Use page router
 
-The page router is a mechanism allowing simplifying many things by replacing API call by automatic behaviors based on code convention.
+The file router is a mechanism allowing simplifying many things by replacing API call by automatic behaviors based on code convention.
 Using it saves a lot of time!
 
-Its allows using a file-based convention to:
+It allows using a file-based convention to:
 * Automatically declare server routes.
-* Bind a React.js component to these routes.
+* Bind a React.js component to these routes to server pages.
 * Configure React Router for the browser side [see](https://reactrouter.com/).
-* Bind POST/PUT/ ... listener to this routes.  
+* Bind POST/PUT/ ... listener to these routes.  
 
 ## How to use it?
 
-To enable router, you need to enable this feature and create the files inside the `src/reactPages` directory.
+To enable router, you need to enable this feature and create the files inside the `src/routes` directory.
 
-### Enabling the page router
+### Enabling the router
 
-Here is a sample that enables the router. It's very simple, since all the required things are automatic once the router enabled.
+Here is a sample that enables the router. It's basic, since all the required things are automatic once the router enabled.
 
 **Enabling the page router**
 ```typescript jsx
@@ -24,16 +24,16 @@ import {jopiApp} from "jopi-rewrite";
 jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
         // This enable the router.
-        .enable_reactRouter();
+        .enable_automaticRoutes();
 });
 ```
 
-### Adding a page
+### Adding a route
 
-Here we will add a page for the url `http:/127.0.0.1/products/listing`.
-To do it, we only need to create a file named `index.page.tsx` in the directory `src/products/listing`.
+Here we will add an HTML page for the url `http:/127.0.0.1/products/listing`.
+To do it, we only need to create a file named `index.page.tsx` in the directory `src/routes/products/listing`.
 
-> You can also replace it by `src/product/listing.page.tsx` to shorten things.
+> You can also replace it by `src/routes/product/listing.page.tsx` to shorten things.
 
 **File `src/products/listing/index.page.tsx`**
 
@@ -49,15 +49,15 @@ export default function() {
 }
 ```
 
-### A page with url parameters
+### A route with url parameters
 
 Here we want to handle urls of type `http://127.0.0.1/products/my-product-name` by using the same React
 component for all our products (and this without a file per product!).
 
-To do it, with use a thing called `url parameter`. Enabling it is simple, and only need a special convention in the directory name.
+To do it, with use a thing called `url parameter`. Enabling it is simple and only needs a special convention in the directory name.
 
-Instead of creating a file `src/reactRouter/products/my-product-name/index.page.tsx` here you
-will create a file `src/reactRouter/products/$productName/index.page.tsx` with this content.
+Instead of creating a file `src/routes/products/my-product-name/index.page.tsx` here you
+will create a file `src/routes/products/$productName/index.page.tsx` with this content.
 
 This same file will allow to response to all url this type:
 * http://127.0.0.1/products/computer

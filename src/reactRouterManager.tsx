@@ -31,9 +31,9 @@ export class ReactRouterManager {
         addGenerateScriptPlugin((script, outDir) => this.scriptPlugin(script, outDir));
     }
 
-    async initialize(reactPagesDir: string = "reactPages") {
+    async initialize(routesDir: string = "routes") {
         await this.scanRoutesFrom(
-            path.join(nApp.getSourceCodeDir(), reactPagesDir)
+            path.join(nApp.getSourceCodeDir(), routesDir)
         );
     }
 
