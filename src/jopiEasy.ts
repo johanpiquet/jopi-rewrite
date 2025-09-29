@@ -1170,7 +1170,7 @@ class FileServerBuilder {
 
         this.internals.afterHook.push(async webSite => {
             webSite.onGET("/**", req => {
-                return req.serveFile(this.options.rootDir, {
+                return req.serverFromDir(this.options.rootDir, {
                     replaceIndexHtml: this.options.replaceIndexHtml,
                     onNotFound: this.options.onNotFound
                 });

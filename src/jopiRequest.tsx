@@ -26,6 +26,8 @@ import {
 import {parseCookies} from "./internalTools.ts";
 import NodeSpace from "jopi-node-space";
 
+const nFS = NodeSpace.fs;
+
 export class JopiRequest {
     public cache: PageCache;
     public readonly mustUseAutoCache: boolean;
@@ -946,10 +948,36 @@ export class JopiRequest {
         return response.headers.get("content-type");
     }
 
+    async returnFile(filePath: string): Promise<Response> {
+        let res = await this.tryReturnFile(filePath);
+        if (res) return res;
+
+        return this.returnError404_NotFound();
+    }
+
+    async tryReturnFile(filePath: string): Promise<Response|undefined> {
+        const stats = await nFS.getFileStat(filePath);
+
+        if (stats && stats.isFile()) {
+            let contentType = nFS.getMimeTypeFromName(filePath);
+            const contentLength = stats.size;
+
+            const headers: any = {
+                "content-type": contentType,
+                "content-length": contentLength.toString()
+            };
+
+            return nFS.createResponseFromFile(filePath, 200, headers);
+        }
+
+        return undefined;
+    }
+
     /**
      * Allow serving a file as a response.
+     * Automatically get the file from the url and a root dir.
      */
-    async serveFile(filesRootPath: string, options?: ServeFileOptions): Promise<Response> {
+    async serverFromDir(filesRootPath: string, options?: ServeFileOptions): Promise<Response> {
         options = options || gEmptyObject;
 
         if (options.replaceIndexHtml !== false) {

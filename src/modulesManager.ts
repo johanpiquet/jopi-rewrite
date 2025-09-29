@@ -64,6 +64,33 @@ export class ModulesManager {
         if (await nFS.isDirectory(dirPath)) {
             await this.webSite.getReactRouterManager().scanRoutesFrom(dirPath);
         }
+
+        dirPath = path.join(moduleDirPath, "public");
+
+        if (await nFS.isDirectory(dirPath)) {
+            await this.addPublicDir(dirPath);
+        }
+    }
+
+    async addPublicDir(dirPath: string) {
+        const addDir = async (dirPath: string, route: string) => {
+            const dirItems = await nFS.listDir(dirPath);
+
+            for (const dirItem of dirItems) {
+                if (dirItem.name[0]===".") continue;
+                let thisRoute = route + '/' + dirItem.name;
+
+                if (dirItem.isDirectory) {
+                    await addDir(dirItem.fullPath, thisRoute);
+                } else if (dirItem.isFile) {
+                    this.webSite.onGET(thisRoute, async req => {
+                        return req.returnFile(dirItem.fullPath)
+                    });
+                }
+            }
+        }
+
+        await addDir(dirPath, "");
     }
 }
 

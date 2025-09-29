@@ -207,7 +207,7 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     req.urlInfos.pathname = req.urlInfos.pathname.substring("/_bundle".length);
 
-    return req.serveFile(calculateWebSiteTempDir(req.webSite));
+    return req.serverFromDir(calculateWebSiteTempDir(req.webSite));
 }
 
 /**

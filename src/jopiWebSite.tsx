@@ -677,9 +677,9 @@ export class WebSiteImpl implements WebSite {
 }
 
 export interface ServeFileOptions {
-    /*
-        If true, then /index.html is replaced by / in the browser nav bar.
-        Default is true.
+    /**
+     * If true, then /index.html is replaced by / in the browser nav bar.
+     * Default is true.
      */
     replaceIndexHtml?: boolean;
 
