@@ -38,35 +38,46 @@ export class ReactRouterManager {
     }
 
     async scanRoutesFrom(dirToScan: string) {
-        const scanRoutesFromAux = async (dirToScan: string, rootDirUrl: string, checkPath: string|undefined) => {
-            const entries = await fs.readdir(dirToScan, {withFileTypes: true});
-            const isBunJS = NodeSpace.what.isBunJs;
-            const extension = isBunJS ? ".tsx" : ".js";
+        const scanRoutesFromAux = async (srcDirToScan: string, baseUrl: string, dstDirToCheck: string|undefined) => {
+            const entries = await fs.readdir(srcDirToScan, {withFileTypes: true});
+            const extension = ".tsx";
 
             for (const entry of entries) {
-                let fullPath = path.join(dirToScan, entry.name);
-                let cFullPath = checkPath ? path.join(checkPath, entry.name) : undefined;
+                let srcEntryFullPath = path.join(srcDirToScan, entry.name);
+                let dstEntryFullPath = dstDirToCheck ? path.join(dstDirToCheck, entry.name) : undefined;
 
                 if (entry.isDirectory()) {
-                    await scanRoutesFromAux(fullPath, rootDirUrl, cFullPath);
+                    await scanRoutesFromAux(srcEntryFullPath, baseUrl, dstEntryFullPath);
                 } else if (entry.isFile()) {
                     if (entry.name.endsWith(".page" + extension)) {
                         let name = entry.name.slice(0, -(5 + extension.length));
 
-                        if (cFullPath) {
-                            cFullPath = cFullPath.slice(0, -3) + ".tsx";
+                        // For Node.js, assert that the source file exists.
+                        //
+                        if (dstEntryFullPath) {
+                            let idx = dstEntryFullPath.lastIndexOf(".");
+                            dstEntryFullPath = dstEntryFullPath.substring(0, idx) + ".js";
 
-                            // For node.js, assert that the source file exists.
-                            // It's required because the dist directory can have garbage files.
-                            if (!await nFS.isFile(cFullPath)) {
-                                continue;
+                            if (!await nFS.isFile(dstEntryFullPath)) {
+                                throw new Error("Source file has not been compiled: " + srcDirToScan);
                             }
                         }
 
-                        fullPath = path.resolve(fullPath);
-                        const fileUrl = pathToFileURL(fullPath).href;
-                        const fileRelPath = fileUrl.substring(rootDirUrl.length);
-                        await this.registerPage(name, fullPath, fileUrl, fileRelPath.slice(0, -extension.length));
+                        let finalPath = srcEntryFullPath;
+
+                        if (dstDirToCheck) {
+                            finalPath = nApp.getCompiledFilePathFor(srcEntryFullPath);
+                        }
+
+                        // Calc the route of the page, something like "/product/listing".
+                        //
+                        srcEntryFullPath = path.resolve(srcEntryFullPath);
+                        const fileRelPath = pathToFileURL(srcEntryFullPath).href.substring(baseUrl.length);
+                        let idx = fileRelPath.lastIndexOf(".");
+                        let route = fileRelPath.substring(0, idx);
+
+                        // Register the page.
+                        await this.registerPage(name, finalPath, pathToFileURL(finalPath).href, route);
                     }
                 }
             }
@@ -84,7 +95,7 @@ export class ReactRouterManager {
         }
 
         let isBunJS = NodeSpace.what.isBunJs;
-        await scanRoutesFromAux(distDirToScan, pathToFileURL(distDirToScan).href, isBunJS ? undefined : srcDirToScan);
+        await scanRoutesFromAux(srcDirToScan, pathToFileURL(srcDirToScan).href, isBunJS ? undefined : distDirToScan);
 
         // Release memory.
         this.pageToPath = {};
