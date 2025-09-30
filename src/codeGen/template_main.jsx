@@ -77,6 +77,10 @@ let onInit = [
 //[ON_INIT]
 ];
 
+function onAllInitDone() {
+    alert("loader.jsx - onAllInitDone");
+}
+
 //[PLUGINS]
 
 // Allow waiting that all is ok.

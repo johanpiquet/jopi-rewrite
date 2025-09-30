@@ -72,12 +72,12 @@ async function generateScript(outputDir: string, components: {[key: string]: str
 
         //region ON_INIT
 
-        let toImport = "function() {";
+        let toImport = "function() { Promise.all([";
 
         for (const uiInit of getUiInitFiles()) {
-            toImport += `\nimport("${uiInit}");`;
+            toImport += `\nimport("${uiInit}"),`;
         }
-        toImport += "\n},";
+        toImport += "\n]).then(onAllInitDone) },";
 
         script = script.replace("//[ON_INIT]", toImport);
 
