@@ -9,7 +9,7 @@ export function getRouteServerContext(): RouteContext {
 }
 
 export class RouteContext {
-    protected  _hasGetHandler = false;
+    protected _hasGetHandler = false;
 
     constructor(protected readonly webSite: WebSite,
                 protected readonly serverFilePath: string,
