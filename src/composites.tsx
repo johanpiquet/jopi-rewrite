@@ -1,11 +1,11 @@
 import React from "react";
 import {setCompositeRenderer} from "jopi-rewrite-ui";
-import {getCompositeItems} from "./modulesManager.js";
+import {getUiCompositeItems} from "./modulesManager.js";
 
 setCompositeRenderer((name) => {
     return <div composite-name={name}>
         {
-            getCompositeItems(name).map((e, i) => {
+            getUiCompositeItems(name).map((e, i) => {
                 const C = e.Component;
                 return <C key={i}/>;
             })

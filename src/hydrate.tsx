@@ -14,7 +14,7 @@ import type {Config as TailwindConfig} from 'tailwindcss';
 import {serverInitChronos} from "./internalTools.ts";
 import {JopiRequest} from "./jopiRequest.ts";
 import {type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
-import {getAllComposites, getCompositeItems} from "./modulesManager.js";
+import {getAllUiComposites, getUiCompositeItems, getUiInitFiles} from "./modulesManager.js";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
@@ -43,8 +43,10 @@ async function generateScript(outputDir: string, components: {[key: string]: str
             declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
         }
 
-        for (const compositeName in getAllComposites()) {
-            const items = getCompositeItems(compositeName);
+        //region UiComposites
+
+        for (const compositeName in getAllUiComposites()) {
+            const items = getUiCompositeItems(compositeName);
 
             declarations += `\n\njopiComposites["${compositeName}"] = [`
 
@@ -54,6 +56,8 @@ async function generateScript(outputDir: string, components: {[key: string]: str
 
             declarations += `\n];`
         }
+
+        //endregion
 
         let resolvedPath = import.meta.resolve("./../src/codeGen/template_main.jsx");
         resolvedPath = NodeSpace.fs.fileURLToPath(resolvedPath);
@@ -65,6 +69,19 @@ async function generateScript(outputDir: string, components: {[key: string]: str
         for (let plugin of gGenerateScriptPlugins) {
             scriptPlugins = await plugin(scriptPlugins, outputDir);
         }
+
+        //region ON_INIT
+
+        let toImport = "function() {";
+
+        for (const uiInit of getUiInitFiles()) {
+            toImport += `\nimport("${uiInit}");`;
+        }
+        toImport += "\n},";
+
+        script = script.replace("//[ON_INIT]", toImport);
+
+        //endregion
 
         script = script.replace("//[PLUGINS]", scriptPlugins);
 

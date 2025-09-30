@@ -3,7 +3,7 @@ import { lazy } from 'react';
 import React from "react";
 import ReactDOM from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from "react-router";
-import {Page, PageController_ExposePrivate} from "jopi-rewrite-ui";
+import {Page} from "jopi-rewrite-ui";
 
 const jopiComposites = {};
 const jopiHydrate = { components: {} };
@@ -71,7 +71,11 @@ window["_JOPI_COMPOSITE_RENDERER_"] = function(name) {
 }
 
 let gHydrateAllHook;
-let onInit = [() => hydrateAll()];
+
+let onInit = [
+    () => hydrateAll(),
+//[ON_INIT]
+];
 
 //[PLUGINS]
 

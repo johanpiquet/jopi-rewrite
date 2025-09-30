@@ -64,11 +64,16 @@ export class ModulesManager {
             gCurrentModuleInfo = undefined;
         }
 
-        file = path.join(moduleDirPath, "jopiInitModule.tsx");
-        file = nApp.getCompiledFilePathFor(file);
+        file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
 
         if (await nFS.isFile(file)) {
             await import(file);
+        }
+
+        file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
+
+        if (await nFS.isFile(file)) {
+            addUiInitFile(file);
         }
 
         let dirPath = path.join(moduleDirPath, "routes");
@@ -83,7 +88,7 @@ export class ModulesManager {
             await this.processPublicDir(dirPath);
         }
 
-        dirPath = path.join(moduleDirPath, "composites");
+        dirPath = path.join(moduleDirPath, "uiComposites");
 
         if (await nFS.isDirectory(dirPath)) {
             await this.processCompositesDir(dirPath, currentModuleInfo);
@@ -129,7 +134,7 @@ export class ModulesManager {
                 let extensionName = subDirItem.name.slice(0, -14);
                 console.log(`Adding extension point ${extensionName}[${module.moduleName}] to ${compositeName}`);
 
-                await addComposite(compositeName, extensionName, subDirItem.fullPath);
+                await addUiComposite(compositeName, extensionName, subDirItem.fullPath);
             }
         }
     }
@@ -143,7 +148,17 @@ interface CompositeItem {
 
 const gAllComposites: Record<string, CompositeItem[]> = {};
 
-async function addComposite(compositeName: string, extensionName: string, implFilePath: string) {
+const gUiInitFiles: string[] = [];
+
+function addUiInitFile(file: string) {
+    gUiInitFiles.push(file);
+}
+
+export function getUiInitFiles(): string[] {
+    return gUiInitFiles;
+}
+
+async function addUiComposite(compositeName: string, extensionName: string, implFilePath: string) {
     const distFilePath = getCompiledFilePathFor(implFilePath);
 
     let composite = gAllComposites[compositeName];
@@ -159,11 +174,11 @@ async function addComposite(compositeName: string, extensionName: string, implFi
     }
 }
 
-export function getCompositeItems(compositeName: string): CompositeItem[] {
+export function getUiCompositeItems(compositeName: string): CompositeItem[] {
     return gAllComposites[compositeName] || [];
 }
 
-export function getAllComposites(): Record<string, CompositeItem[]> {
+export function getAllUiComposites(): Record<string, CompositeItem[]> {
     return gAllComposites;
 }
 
