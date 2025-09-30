@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from "react-router";
 import {Page, PageController_ExposePrivate} from "jopi-rewrite-ui";
 
+const jopiComposites = {};
 const jopiHydrate = { components: {} };
 //[DECLARE]
 
@@ -58,6 +59,15 @@ function hydrateAll() {
 
 function process() {
     onInit.forEach(e => e());
+}
+
+window["_JOPI_COMPOSITE_RENDERER_"] = function(name) {
+    let composite = jopiComposites[name];
+    if (!composite) return undefined;
+
+    return <>
+        {composite.map(C => <C/>)}
+    </>;
 }
 
 let gHydrateAllHook;

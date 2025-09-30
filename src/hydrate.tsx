@@ -14,6 +14,7 @@ import type {Config as TailwindConfig} from 'tailwindcss';
 import {serverInitChronos} from "./internalTools.ts";
 import {JopiRequest} from "./jopiRequest.ts";
 import {type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
+import {getAllComposites, getCompositeItems} from "./modulesManager.js";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
@@ -40,6 +41,18 @@ async function generateScript(outputDir: string, components: {[key: string]: str
             if (isWin32) componentPath = pathToFileURL(componentPath).href.substring("file:///".length);
 
             declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
+        }
+
+        for (const compositeName in getAllComposites()) {
+            const items = getCompositeItems(compositeName);
+
+            declarations += `\n\njopiComposites["${compositeName}"] = [`
+
+            for (let item of items) {
+                declarations += `\n    lazy(() => import("${item.filePath}")),`;
+            }
+
+            declarations += `\n];`
         }
 
         let resolvedPath = import.meta.resolve("./../src/codeGen/template_main.jsx");

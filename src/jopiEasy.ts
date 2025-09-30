@@ -409,8 +409,8 @@ class JopiEasyWebSite {
                 }
                 catch (e: any) {
                     if (e instanceof Error) {
-                        console.error("Error when initializing website", this.origin);
-                        NodeSpace.term.logRed("|-", e.message);
+                        NodeSpace.term.logBgRed("Error when initializing website", this.origin);
+                        NodeSpace.term.logRed(e.message);
                         console.log(e.stack);
                     }
                     else {

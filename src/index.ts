@@ -17,3 +17,6 @@ export * from "./jopiRequest.ts";
 export * from "./jopiWebSite.tsx";
 export * from "./jopiServer.ts";
 export * from "./modulesManager.ts";
+
+// Will initialize things.
+import "./composites.tsx";
