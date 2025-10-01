@@ -28,6 +28,12 @@ export class ModulesManager {
         return this.allModuleInfo;
     }
 
+    currentModuleInitializer?: ModuleInitializer;
+
+    getCurrentModuleInitializer(): ModuleInitializer {
+        return this.currentModuleInitializer!;
+    }
+
     async initializeModules() {
         for (const moduleDirPath of this.allModuleDir) {
             await this.initModule(moduleDirPath);
@@ -35,39 +41,24 @@ export class ModulesManager {
     }
 
     private async initModule(moduleDirPath: string) {
-        let file = path.join(moduleDirPath, "jopiGetModuleInfo.tsx");
-        file = nApp.getCompiledFilePathFor(file);
-
         let currentModuleInfo: ModuleInfoWithPath = {
             moduleDir: moduleDirPath,
             moduleName: nFS.basename(moduleDirPath)
         };
 
+        let moduleInitializer = new ModuleInitializer(currentModuleInfo);
+
+        let file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
+
         if (await nFS.isFile(file)) {
-            gCurrentModuleInfo = undefined;
             gCurrentModuleManager = this;
+            this.currentModuleInitializer = moduleInitializer;
 
             await import(file);
 
-            const cmi = gCurrentModuleInfo!;
-
-            if (cmi) {
-                let newModuleInfo = {...cmi, moduleDir: moduleDirPath};
-                if (!newModuleInfo.moduleName) newModuleInfo.moduleName = currentModuleInfo.moduleName;
-                if (!newModuleInfo.moduleTitle) newModuleInfo.moduleTitle = currentModuleInfo.moduleTitle;
-                currentModuleInfo = newModuleInfo;
-
-                this.allModuleInfo.push(currentModuleInfo);
-                gCurrentModuleManager = undefined;
-            }
-
-            gCurrentModuleInfo = undefined;
-        }
-
-        file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
-
-        if (await nFS.isFile(file)) {
-            await import(file);
+            this.allModuleInfo.push(currentModuleInfo);
+            gCurrentModuleManager = undefined;
+            this.currentModuleInitializer = undefined;
         }
 
         file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
@@ -187,17 +178,27 @@ export interface ModuleInfo {
     moduleTitle?: string;
 }
 
+class ModuleInitializer {
+    constructor(private readonly moduleInfo: ModuleInfoWithPath) {
+    }
+
+    setModuleInfo(moduleInfo: ModuleInfo) {
+        if (moduleInfo.moduleName) {
+            this.moduleInfo.moduleName = moduleInfo.moduleName;
+        }
+
+        if (moduleInfo.moduleTitle) {
+            this.moduleInfo.moduleTitle = moduleInfo.moduleTitle;
+        }
+    }
+}
+
 interface ModuleInfoWithPath extends ModuleInfo {
     moduleDir: string;
 }
 
-export function setCurrentModuleInfo(infos: ModuleInfo) {
-    gCurrentModuleInfo = infos;
+export function getModuleServerInitContent(): ModuleInitializer {
+    return gCurrentModuleManager!.getCurrentModuleInitializer();
 }
 
-export function getCurrentModuleManager() {
-    return gCurrentModuleManager;
-}
-
-let gCurrentModuleInfo: ModuleInfo | undefined;
 let gCurrentModuleManager: ModulesManager | undefined;
