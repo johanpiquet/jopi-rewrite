@@ -3,17 +3,25 @@ import NodeSpace from "jopi-node-space";
 import type {WebSite} from "./jopiWebSite.js";
 import React from "react";
 import {getCompiledFilePathFor} from "jopi-node-space/dist/_app.js";
-import {PriorityArray, PriorityLevel} from "jopi-rewrite-ui";
+import {HierarchyBuilder, PriorityArray, PriorityLevel} from "jopi-rewrite-ui";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
+
+//region ModuleManager
 
 export class ModulesManager {
     private readonly allModuleDir: string[] = [];
     private readonly allModuleInfo: ModuleInfoWithPath[] = [];
     private initializerPriorityArray?: PriorityArray<()=>Promise<void>>;
+    private menuManager?: MenuManager;
 
     constructor(public readonly webSite: WebSite) {
+    }
+
+    getMenuManager() {
+        if (!this.menuManager) this.menuManager = new MenuManager();
+        return this.menuManager;
     }
 
     addModules(modulesDir: string, moduleNames: string[]) {
@@ -42,7 +50,7 @@ export class ModulesManager {
         }
 
         if (this.initializerPriorityArray) {
-            const initializers = this.initializerPriorityArray.build();
+            const initializers = this.initializerPriorityArray.value;
             this.initializerPriorityArray = undefined;
 
             for (const initializer of initializers) {
@@ -150,53 +158,6 @@ export class ModulesManager {
     }
 }
 
-interface CompositeItem {
-    filePath: string;
-    extensionName: string;
-    Component: React.FunctionComponent<any>;
-}
-
-const gAllComposites: Record<string, CompositeItem[]> = {};
-
-const gUiInitFiles: string[] = [];
-
-function addUiInitFile(file: string) {
-    gUiInitFiles.push(file);
-}
-
-export function getUiInitFiles(): string[] {
-    return gUiInitFiles;
-}
-
-async function addUiComposite(compositeName: string, extensionName: string, implFilePath: string) {
-    const distFilePath = getCompiledFilePathFor(implFilePath);
-
-    let composite = gAllComposites[compositeName];
-    if (!composite) gAllComposites[compositeName] = composite = [];
-
-    try {
-        const c = await import(distFilePath);
-        composite.push({extensionName, filePath: distFilePath, Component: c.default as React.FunctionComponent<any>});
-    }
-    catch (e) {
-        console.error(`Can't load component for composite '${compositeName}'. File:  ${implFilePath}`);
-        throw e;
-    }
-}
-
-export function getUiCompositeItems(compositeName: string): CompositeItem[] {
-    return gAllComposites[compositeName] || [];
-}
-
-export function getAllUiComposites(): Record<string, CompositeItem[]> {
-    return gAllComposites;
-}
-
-export interface ModuleInfo {
-    moduleName?: string;
-    moduleTitle?: string;
-}
-
 class ModuleInitializer {
     constructor(private readonly modulesManager: ModulesManager, private readonly moduleInfo: ModuleInfoWithPath) {
     }
@@ -214,14 +175,112 @@ class ModuleInitializer {
     addInitializer(priority: PriorityLevel, initializer: ()=>Promise<void>) {
         this.modulesManager.addInitializer(priority, initializer);
     }
+
+    getMenuManager() {
+        return this.modulesManager.getMenuManager();
+    }
+}
+
+export interface ModuleInfo {
+    moduleName?: string;
+    moduleTitle?: string;
 }
 
 interface ModuleInfoWithPath extends ModuleInfo {
     moduleDir: string;
 }
 
-export function getModuleServerInitContent(): ModuleInitializer {
+export function getModuleServerInitContext(): ModuleInitializer {
     return gCurrentModuleManager!.getCurrentModuleInitializer();
 }
 
 let gCurrentModuleManager: ModulesManager | undefined;
+
+//endregion
+
+//region UI initialization files
+
+const gUiInitFiles: string[] = [];
+
+function addUiInitFile(file: string) {
+    gUiInitFiles.push(file);
+}
+
+export function getUiInitFiles(): string[] {
+    return gUiInitFiles;
+}
+
+//endregion
+
+//region UI Composite
+
+interface UiCompositeItem {
+    filePath: string;
+    extensionName: string;
+    Component: React.FunctionComponent<any>;
+}
+
+const gAllComposites: Record<string, UiCompositeItem[]> = {};
+
+async function addUiComposite(compositeName: string, extensionName: string, implFilePath: string) {
+    const distFilePath = getCompiledFilePathFor(implFilePath);
+
+    let composite = gAllComposites[compositeName];
+    if (!composite) gAllComposites[compositeName] = composite = [];
+
+    try {
+        const c = await import(distFilePath);
+        composite.push({extensionName, filePath: distFilePath, Component: c.default as React.FunctionComponent<any>});
+    }
+    catch (e) {
+        console.error(`Can't load component for composite '${compositeName}'. File:  ${implFilePath}`);
+        throw e;
+    }
+}
+
+export function getUiCompositeItems(compositeName: string): UiCompositeItem[] {
+    return gAllComposites[compositeName] || [];
+}
+
+export function getAllUiComposites(): Record<string, UiCompositeItem[]> {
+    return gAllComposites;
+}
+
+//endregion
+
+//region Menu Manager
+
+class MenuManager {
+    readonly allMenus: Record<string, AppMenu> = {};
+
+    getMenu(name: string) {
+        let menu = this.allMenus[name];
+
+        if (!menu) {
+            menu = new AppMenu({key: ""});
+            this.allMenus[name] = menu;
+        }
+
+        return menu;
+    }
+
+    getLeftMenu(): AppMenu {
+        return this.getMenu("layout.left");
+    }
+
+    getTopMenu(): AppMenu {
+        return this.getMenu("layout.top");
+    }
+}
+
+interface MenuItem {
+    key: string;
+    items?: MenuItem[];
+
+    title?: string;
+}
+
+class AppMenu extends HierarchyBuilder<MenuItem> {
+}
+
+//endregion
