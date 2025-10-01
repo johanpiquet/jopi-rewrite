@@ -3,6 +3,7 @@ import NodeSpace from "jopi-node-space";
 import type {WebSite} from "./jopiWebSite.js";
 import React from "react";
 import {getCompiledFilePathFor} from "jopi-node-space/dist/_app.js";
+import {PriorityArray, PriorityLevel} from "jopi-rewrite-ui";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
@@ -10,6 +11,7 @@ const nApp = NodeSpace.app;
 export class ModulesManager {
     private readonly allModuleDir: string[] = [];
     private readonly allModuleInfo: ModuleInfoWithPath[] = [];
+    private initializerPriorityArray?: PriorityArray<()=>Promise<void>>;
 
     constructor(public readonly webSite: WebSite) {
     }
@@ -38,6 +40,23 @@ export class ModulesManager {
         for (const moduleDirPath of this.allModuleDir) {
             await this.initModule(moduleDirPath);
         }
+
+        if (this.initializerPriorityArray) {
+            const initializers = this.initializerPriorityArray.build();
+            this.initializerPriorityArray = undefined;
+
+            for (const initializer of initializers) {
+                await initializer();
+            }
+        }
+    }
+
+    addInitializer(priority: PriorityLevel, initializer: ()=>Promise<void>) {
+        if (!this.initializerPriorityArray) {
+            this.initializerPriorityArray = new PriorityArray();
+        }
+
+        this.initializerPriorityArray.add(priority, initializer);
     }
 
     private async initModule(moduleDirPath: string) {
@@ -46,7 +65,7 @@ export class ModulesManager {
             moduleName: nFS.basename(moduleDirPath)
         };
 
-        let moduleInitializer = new ModuleInitializer(currentModuleInfo);
+        let moduleInitializer = new ModuleInitializer(this, currentModuleInfo);
 
         let file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
 
@@ -179,7 +198,7 @@ export interface ModuleInfo {
 }
 
 class ModuleInitializer {
-    constructor(private readonly moduleInfo: ModuleInfoWithPath) {
+    constructor(private readonly modulesManager: ModulesManager, private readonly moduleInfo: ModuleInfoWithPath) {
     }
 
     setModuleInfo(moduleInfo: ModuleInfo) {
@@ -190,6 +209,10 @@ class ModuleInitializer {
         if (moduleInfo.moduleTitle) {
             this.moduleInfo.moduleTitle = moduleInfo.moduleTitle;
         }
+    }
+
+    addInitializer(priority: PriorityLevel, initializer: ()=>Promise<void>) {
+        this.modulesManager.addInitializer(priority, initializer);
     }
 }
 
