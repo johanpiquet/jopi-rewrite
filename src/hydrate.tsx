@@ -77,7 +77,7 @@ async function generateScript(outputDir: string, components: {[key: string]: str
         for (const uiInit of getUiInitFiles()) {
             toImport += `\nimport("${uiInit}"),`;
         }
-        toImport += "\n]).then(onAllInitDone) },";
+        toImport += "\n]).then(_onAllInitDone) },";
 
         script = script.replace("//[ON_INIT]", toImport);
 

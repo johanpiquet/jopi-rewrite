@@ -3,7 +3,14 @@ import NodeSpace from "jopi-node-space";
 import type {WebSite} from "./jopiWebSite.js";
 import React from "react";
 import {getCompiledFilePathFor} from "jopi-node-space/dist/_app.js";
-import {HierarchyBuilder, PriorityArray, PriorityLevel} from "jopi-rewrite-ui";
+import {
+    _setModuleUiContext,
+    HierarchyBuilder,
+    MenuManager,
+    PriorityArray,
+    PriorityLevel,
+    UiModuleInitContext
+} from "jopi-rewrite-ui";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
@@ -19,7 +26,7 @@ export class ModulesManager {
     constructor(public readonly webSite: WebSite) {
     }
 
-    getMenuManager() {
+    getMenuManager(): MenuManager {
         if (!this.menuManager) this.menuManager = new MenuManager();
         return this.menuManager;
     }
@@ -91,7 +98,14 @@ export class ModulesManager {
         file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
 
         if (await nFS.isFile(file)) {
-            addUiInitFile(file);
+            // Will allows an init inside the browser.
+            gUiInitFiles.push(file);
+
+            const ctx = new UiModuleInitContext();
+            ctx.getMenuManager = () => this.getMenuManager();
+            _setModuleUiContext(ctx);
+            //
+            await import(file);
         }
 
         let dirPath = path.join(moduleDirPath, "routes");
@@ -150,7 +164,7 @@ export class ModulesManager {
                 if (!subDirItem.name.endsWith(".extension.tsx")) continue;
 
                 let extensionName = subDirItem.name.slice(0, -14);
-                console.log(`Adding extension point ${extensionName}[${module.moduleName}] to ${compositeName}`);
+                //console.log(`Adding extension point ${extensionName}[${module.moduleName}] to ${compositeName}`);
 
                 await addUiComposite(compositeName, extensionName, subDirItem.fullPath);
             }
@@ -175,10 +189,6 @@ class ModuleInitializer {
     addInitializer(priority: PriorityLevel, initializer: ()=>Promise<void>) {
         this.modulesManager.addInitializer(priority, initializer);
     }
-
-    getMenuManager() {
-        return this.modulesManager.getMenuManager();
-    }
 }
 
 export interface ModuleInfo {
@@ -201,10 +211,6 @@ let gCurrentModuleManager: ModulesManager | undefined;
 //region UI initialization files
 
 const gUiInitFiles: string[] = [];
-
-function addUiInitFile(file: string) {
-    gUiInitFiles.push(file);
-}
 
 export function getUiInitFiles(): string[] {
     return gUiInitFiles;
@@ -244,43 +250,6 @@ export function getUiCompositeItems(compositeName: string): UiCompositeItem[] {
 
 export function getAllUiComposites(): Record<string, UiCompositeItem[]> {
     return gAllComposites;
-}
-
-//endregion
-
-//region Menu Manager
-
-class MenuManager {
-    readonly allMenus: Record<string, AppMenu> = {};
-
-    getMenu(name: string) {
-        let menu = this.allMenus[name];
-
-        if (!menu) {
-            menu = new AppMenu({key: ""});
-            this.allMenus[name] = menu;
-        }
-
-        return menu;
-    }
-
-    getLeftMenu(): AppMenu {
-        return this.getMenu("layout.left");
-    }
-
-    getTopMenu(): AppMenu {
-        return this.getMenu("layout.top");
-    }
-}
-
-interface MenuItem {
-    key: string;
-    items?: MenuItem[];
-
-    title?: string;
-}
-
-class AppMenu extends HierarchyBuilder<MenuItem> {
 }
 
 //endregion
