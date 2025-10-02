@@ -3,14 +3,7 @@ import NodeSpace from "jopi-node-space";
 import type {WebSite} from "./jopiWebSite.js";
 import React from "react";
 import {getCompiledFilePathFor} from "jopi-node-space/dist/_app.js";
-import {
-    _setModuleUiContext,
-    HierarchyBuilder,
-    MenuManager,
-    PriorityArray,
-    PriorityLevel,
-    UiModuleInitContext
-} from "jopi-rewrite-ui";
+import {_setModuleUiContext, MenuManager, PriorityArray, PriorityLevel, UiModuleInitContext_exposeInternals} from "jopi-rewrite-ui";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
@@ -45,10 +38,11 @@ export class ModulesManager {
         return this.allModuleInfo;
     }
 
-    currentModuleInitializer?: ModuleInitializer;
+    serverInitializer?: ModuleInitializer;
+    uiInitializer?: UiModuleInitContext_exposeInternals;
 
     getCurrentModuleInitializer(): ModuleInitializer {
-        return this.currentModuleInitializer!;
+        return this.serverInitializer!;
     }
 
     async initializeModules() {
@@ -63,6 +57,10 @@ export class ModulesManager {
             for (const initializer of initializers) {
                 await initializer();
             }
+        }
+
+        if (this.uiInitializer) {
+            await this.uiInitializer.initialize();
         }
     }
 
@@ -86,13 +84,13 @@ export class ModulesManager {
 
         if (await nFS.isFile(file)) {
             gCurrentModuleManager = this;
-            this.currentModuleInitializer = moduleInitializer;
+            this.serverInitializer = moduleInitializer;
 
             await import(file);
 
             this.allModuleInfo.push(currentModuleInfo);
             gCurrentModuleManager = undefined;
-            this.currentModuleInitializer = undefined;
+            this.serverInitializer = undefined;
         }
 
         file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
@@ -101,10 +99,13 @@ export class ModulesManager {
             // Will allows an init inside the browser.
             gUiInitFiles.push(file);
 
-            const ctx = new UiModuleInitContext();
-            ctx.getMenuManager = () => this.getMenuManager();
-            _setModuleUiContext(ctx);
-            //
+            if (!this.uiInitializer) {
+                this.uiInitializer = new UiModuleInitContext_exposeInternals();
+                this.uiInitializer.getMenuManager = () => this.getMenuManager();
+            }
+
+            _setModuleUiContext(this.uiInitializer);
+
             await import(file);
         }
 
@@ -186,7 +187,7 @@ class ModuleInitializer {
         }
     }
 
-    addInitializer(priority: PriorityLevel, initializer: ()=>Promise<void>) {
+    addServerInitializer(priority: PriorityLevel, initializer: ()=>Promise<void>) {
         this.modulesManager.addInitializer(priority, initializer);
     }
 }
