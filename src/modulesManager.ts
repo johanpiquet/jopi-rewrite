@@ -3,7 +3,7 @@ import NodeSpace from "jopi-node-space";
 import type {WebSite} from "./jopiWebSite.js";
 import React from "react";
 import {getCompiledFilePathFor} from "jopi-node-space/dist/_app.js";
-import {_setModuleUiContext, MenuManager, PriorityArray, PriorityLevel, UiModuleInitContext_exposeInternals} from "jopi-rewrite-ui";
+import {_MIC_UI_exposeInternals, MenuManager, PriorityArray, PriorityLevel} from "jopi-rewrite-ui";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
@@ -38,12 +38,7 @@ export class ModulesManager {
         return this.allModuleInfo;
     }
 
-    serverInitializer?: ModuleInitializer;
-    uiInitializer?: UiModuleInitContext_exposeInternals;
-
-    getCurrentModuleInitializer(): ModuleInitializer {
-        return this.serverInitializer!;
-    }
+    uiInitializer?: _MIC_UI_exposeInternals;
 
     async initializeModules() {
         for (const moduleDirPath of this.allModuleDir) {
@@ -61,6 +56,7 @@ export class ModulesManager {
 
         if (this.uiInitializer) {
             await this.uiInitializer.initialize();
+            this.uiInitializer = undefined
         }
     }
 
@@ -78,19 +74,17 @@ export class ModulesManager {
             moduleName: nFS.basename(moduleDirPath)
         };
 
-        let moduleInitializer = new ModuleInitializer(this, currentModuleInfo);
-
         let file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
 
         if (await nFS.isFile(file)) {
-            gCurrentModuleManager = this;
-            this.serverInitializer = moduleInitializer;
+            const exportDefault = (await import(file)).default;
 
-            await import(file);
+            if (exportDefault && typeof exportDefault === "function") {
+                let res = exportDefault(new ModuleInitContext_Server(this, currentModuleInfo));
+                if (res instanceof Promise) await res;
+            }
 
             this.allModuleInfo.push(currentModuleInfo);
-            gCurrentModuleManager = undefined;
-            this.serverInitializer = undefined;
         }
 
         file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
@@ -99,14 +93,20 @@ export class ModulesManager {
             // Will allows an init inside the browser.
             gUiInitFiles.push(file);
 
-            if (!this.uiInitializer) {
-                this.uiInitializer = new UiModuleInitContext_exposeInternals();
-                this.uiInitializer.getMenuManager = () => this.getMenuManager();
+            // > Do the UI init on the server-side.
+            //   Require because the server is also a UI generator.
+
+            const exportDefault = (await import(file)).default;
+
+            if (exportDefault && typeof exportDefault === "function") {
+                if (!this.uiInitializer) {
+                    this.uiInitializer = new _MIC_UI_exposeInternals();
+                    this.uiInitializer.getMenuManager = () => this.getMenuManager();
+                }
+
+                let res = exportDefault(this.uiInitializer);
+                if (res instanceof Promise) await res;
             }
-
-            _setModuleUiContext(this.uiInitializer);
-
-            await import(file);
         }
 
         let dirPath = path.join(moduleDirPath, "routes");
@@ -173,7 +173,7 @@ export class ModulesManager {
     }
 }
 
-class ModuleInitializer {
+export class ModuleInitContext_Server {
     constructor(private readonly modulesManager: ModulesManager, private readonly moduleInfo: ModuleInfoWithPath) {
     }
 
@@ -200,12 +200,6 @@ export interface ModuleInfo {
 interface ModuleInfoWithPath extends ModuleInfo {
     moduleDir: string;
 }
-
-export function getModuleServerInitContext(): ModuleInitializer {
-    return gCurrentModuleManager!.getCurrentModuleInitializer();
-}
-
-let gCurrentModuleManager: ModulesManager | undefined;
 
 //endregion
 
