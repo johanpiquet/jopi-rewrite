@@ -3,7 +3,7 @@ import NodeSpace from "jopi-node-space";
 import type {WebSite} from "./jopiWebSite.js";
 import React from "react";
 import {getCompiledFilePathFor} from "jopi-node-space/dist/_app.js";
-import {_MIC_UI_exposeInternals, MenuManager, PriorityArray, PriorityLevel} from "jopi-rewrite-ui";
+import {_MIC_UI_exposeInternals, PriorityArray, PriorityLevel} from "jopi-rewrite-ui";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
@@ -14,14 +14,8 @@ export class ModulesManager {
     private readonly allModuleDir: string[] = [];
     private readonly allModuleInfo: ModuleInfoWithPath[] = [];
     private initializerPriorityArray?: PriorityArray<()=>Promise<void>>;
-    private menuManager?: MenuManager;
 
     constructor(public readonly webSite: WebSite) {
-    }
-
-    getMenuManager(): MenuManager {
-        if (!this.menuManager) this.menuManager = new MenuManager();
-        return this.menuManager;
     }
 
     addModules(modulesDir: string, moduleNames: string[]) {
@@ -101,7 +95,6 @@ export class ModulesManager {
             if (exportDefault && typeof exportDefault === "function") {
                 if (!this.uiInitializer) {
                     this.uiInitializer = new _MIC_UI_exposeInternals();
-                    this.uiInitializer.getMenuManager = () => this.getMenuManager();
                 }
 
                 let res = exportDefault(this.uiInitializer);
