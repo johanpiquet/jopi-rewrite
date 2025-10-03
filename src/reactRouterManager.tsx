@@ -62,7 +62,7 @@ export class ReactRouterManager {
                             dstEntryFullPath = dstEntryFullPath.substring(0, idx) + ".js";
 
                             if (!await nFS.isFile(dstEntryFullPath)) {
-                                throw new Error("Source file has not been compiled: " + srcDirToScan);
+                                throw new Error("No compiled file found for: " + srcDirToScan + "\nExpected: " + dstEntryFullPath);
                             }
                         }
 
