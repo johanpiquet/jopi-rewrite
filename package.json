@@ -33,11 +33,11 @@
     "@types/acme-client": "^3.3.4"
   },
   "dependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
     "@jopi-loader/client": "workspace:^",
     "@jopi-loader/tools": "workspace:^",
     "@jopi-loader/types": "workspace:^",
     "@tailwindcss/postcss": "^4.1.12",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/ws": "^8.18.1",
     "acme-client": "^5.4.0",
     "cheerio": "^1.1.2",
@@ -57,5 +57,7 @@
     "ws": "^8.18.3"
   },
   "nodeSwitch": true,
-  "nodeSwitch-default": "node","publishedDate": "9/29/2025","publicPublishedDate": "9/25/2025"
+  "nodeSwitch-default": "node",
+  "publishedDate": "9/29/2025",
+  "publicPublishedDate": "9/25/2025"
 }
