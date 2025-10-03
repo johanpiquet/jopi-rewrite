@@ -726,12 +726,15 @@ export class JopiRequest {
                 const bundleUrl = getBundleUrl(this.webSite);
                 const hash = this.webSite.data["jopiLoaderHash"];
 
-                controller.addToHeader("jopi-bundle-style", <link rel="stylesheet" key={hash.css}
-                                                                  href={bundleUrl + "/loader.css?" + hash.css}/>);
+                controller.addToHeader("jopi-bundle-style",
+                    <link rel="stylesheet" key={hash.css}
+                          href={bundleUrl + "/loader.css?" + hash.css}/>
+                );
             }
 
             controller.serverRequest = this;
         }
+
         return this.htmlResponse(ReactServer.renderToStaticMarkup(renderPage(element, hook, options)));
     }
 
