@@ -2,13 +2,13 @@
 
 ✓ For browser-side.
 
-This hook allows to force refreshing the current component and redraw it. 
+This hook allows forcing refreshing the current component and redraw it. 
 
 **Usage sample**
 
 ```typescript jsx
 import React from "react";
-import {logOutUser, useRefresh, useUserInfos} from "jopi-rewrite-ui";
+import {useLogOutUser, useRefresh, useUserInfos} from "jopi-rewrite-ui";
 
 export default function () {
     const doLogOut = () => {
@@ -19,6 +19,7 @@ export default function () {
         refresh();
     };
     
+    const logOutUser = useLogOutUser();
     const refresh = useRefresh();
     const infos = useUserInfos();
     

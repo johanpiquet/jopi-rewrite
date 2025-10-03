@@ -1,4 +1,4 @@
-# useUserInfos and logOut
+# useUserInfos and useLogOutUser
 
 ✓ For server-side and browser-side.
 
@@ -8,11 +8,12 @@ This hook allows getting information about the user connected.
 
 **Usage sample**
 ```typescript jsx
-import {logOutUser, usePage} from "jopi-rewrite-ui";
+import {useLogOutUser, usePage} from "jopi-rewrite-ui";
 import React from "react";
 
 export default function() {
     usePage().setPageTitle("My page title");
+    const logOutUser = useLogOutUser();
     
     // logOutUser has not effect on server-side.
     // On browser side, it delete the authentification cookie.
