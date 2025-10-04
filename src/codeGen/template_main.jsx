@@ -3,7 +3,8 @@ import { lazy } from 'react';
 import React from "react";
 import ReactDOM from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from "react-router";
-import {_MIC_UI_exposeInternals, Page} from "jopi-rewrite-ui";
+import {ModuleInitContext_UI, Page} from "jopi-rewrite-ui";
+import NodeSpace from "jopi-node-space";
 
 const jopiComposites = {};
 const jopiHydrate = { components: {} };
@@ -72,23 +73,21 @@ window["_JOPI_COMPOSITE_RENDERER_"] = function(name) {
 
 let gHydrateAllHook;
 
-let gModuleInitContext_UI = new _MIC_UI_exposeInternals();
-
 async function mod_initializeMod(exportDefault) {
     try {
         if (exportDefault && typeof exportDefault === "function") {
-            let res = exportDefault(gModuleInitContext_UI);
+            let res = exportDefault(new ModuleInitContext_UI());
             if (res instanceof Promise) await res;
         }
     }
     catch (e) {
-        console.error(`Error while initializing module '${modFilePath}'.`);
+        console.error(`Error while initializing module`);
         throw e;
     }
 }
 
 async function mod_onAllModInitialized() {
-    await gModuleInitContext_UI.initialize();
+    await NodeSpace.events.sendEvent("app.init.ui", undefined);
 }
 
 let onInit = [

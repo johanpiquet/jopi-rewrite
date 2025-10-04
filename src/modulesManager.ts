@@ -1,19 +1,18 @@
 import path from "node:path";
-import NodeSpace from "jopi-node-space";
+import NodeSpace, {EventPriority} from "jopi-node-space";
 import type {WebSite} from "./jopiWebSite.js";
 import React from "react";
-import {getCompiledFilePathFor} from "jopi-node-space/dist/_app.js";
-import {_MIC_UI_exposeInternals, PriorityArray, PriorityLevel} from "jopi-rewrite-ui";
+import {ModuleInitContext_UI} from "jopi-rewrite-ui";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
+const nEvents = NodeSpace.events;
 
 //region ModuleManager
 
 export class ModulesManager {
     private readonly allModuleDir: string[] = [];
     private readonly allModuleInfo: ModuleInfoWithPath[] = [];
-    private initializerPriorityArray?: PriorityArray<()=>Promise<void>>;
 
     constructor(public readonly webSite: WebSite) {
     }
@@ -32,34 +31,17 @@ export class ModulesManager {
         return this.allModuleInfo;
     }
 
-    uiInitializer?: _MIC_UI_exposeInternals;
-
     async initializeModules() {
         for (const moduleDirPath of this.allModuleDir) {
             await this.initModule(moduleDirPath);
         }
 
-        if (this.initializerPriorityArray) {
-            const initializers = this.initializerPriorityArray.value;
-            this.initializerPriorityArray = undefined;
-
-            for (const initializer of initializers) {
-                await initializer();
-            }
-        }
-
-        if (this.uiInitializer) {
-            await this.uiInitializer.initialize();
-            this.uiInitializer = undefined
-        }
+        await nEvents.sendEvent("app.init.server", undefined);
+        await nEvents.sendEvent("app.init.ui", undefined);
     }
 
-    addInitializer(priority: PriorityLevel, initializer: ()=>Promise<void>) {
-        if (!this.initializerPriorityArray) {
-            this.initializerPriorityArray = new PriorityArray();
-        }
-
-        this.initializerPriorityArray.add(priority, initializer);
+    addInitializer(priority: EventPriority, initializer: ()=>Promise<void>) {
+        nEvents.addListener("app.init.server", priority, initializer);
     }
 
     private async initModule(moduleDirPath: string) {
@@ -93,11 +75,7 @@ export class ModulesManager {
             const exportDefault = (await import(file)).default;
 
             if (exportDefault && typeof exportDefault === "function") {
-                if (!this.uiInitializer) {
-                    this.uiInitializer = new _MIC_UI_exposeInternals();
-                }
-
-                let res = exportDefault(this.uiInitializer);
+                let res = exportDefault(new ModuleInitContext_UI());
                 if (res instanceof Promise) await res;
             }
         }
@@ -180,7 +158,7 @@ export class ModuleInitContext_Server {
         }
     }
 
-    addServerInitializer(priority: PriorityLevel, initializer: ()=>Promise<void>) {
+    addServerInitializer(priority: EventPriority, initializer: ()=>Promise<void>) {
         this.modulesManager.addInitializer(priority, initializer);
     }
 }
@@ -217,7 +195,7 @@ interface UiCompositeItem {
 const gAllComposites: Record<string, UiCompositeItem[]> = {};
 
 async function addUiComposite(compositeName: string, extensionName: string, implFilePath: string) {
-    const distFilePath = getCompiledFilePathFor(implFilePath);
+    const distFilePath = nApp.getCompiledFilePathFor(implFilePath);
 
     let composite = gAllComposites[compositeName];
     if (!composite) gAllComposites[compositeName] = composite = [];
