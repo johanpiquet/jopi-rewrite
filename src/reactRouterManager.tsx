@@ -216,12 +216,13 @@ export class ReactRouterManager {
                     route = "*";
                 } else if (route === "/500") {
                     setDefaultPage500Template(Cpn);
-                    // No React Router support (it's server only).
-                    return;
+                    route = "error";
                 } else if (route === "/401") {
                     setDefaultPage401Template(Cpn);
-                    // No React Router support (it's server only).
-                    return;
+
+                    // Will allows the router to redirect
+                    // to this page if a user is not authorized.
+                    route = "not-authorized";
                 }
             }
 
