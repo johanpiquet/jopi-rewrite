@@ -15,8 +15,10 @@ import React from "react";
 import {
     ModuleInitContext_UI,
     Page,
-    PageContext, PageController,
+    PageContext,
+    PageController,
     PageController_ExposePrivate,
+    renderPage,
     setPageRenderer,
     type UiUserInfos
 } from "jopi-rewrite-ui";
@@ -643,16 +645,33 @@ export class WebSiteImpl implements WebSite {
         this._on401_Unauthorized = handler;
     }
 
+    private cacheFor_404_NotFound?: string;
+
+    /**
+     * Allow resetting the cache if the generator has been updated.
+     */
+    private cacheFor_404_NotFound_ref?: any;
+
     return404(req: JopiRequest): Response|Promise<Response> {
         if (this._on404_NotFound) {
             return this._on404_NotFound(req);
         }
 
-        if (G_Default404Template) {
-            return req.reactResponse(<G_Default404Template />);
+        // Use a cache. Without that here 404 will trigger a full React rendering.
+        //
+        if (this.cacheFor_404_NotFound === undefined) {
+            if (G_Default404Template) {
+                this.cacheFor_404_NotFound = ReactServer.renderToStaticMarkup(renderPage(<G_Default404Template />));
+                this.cacheFor_404_NotFound_ref = G_Default404Template;
+            } else {
+                this.cacheFor_404_NotFound = "404 Not Found";
+            }
+        } else if (this.cacheFor_404_NotFound_ref!==G_Default404Template) {
+            this.cacheFor_404_NotFound_ref = undefined;
+            return this.return404(req);
         }
 
-        return new Response("", {status: 404});
+        return new Response(this.cacheFor_404_NotFound, {status: 404, headers: {"content-type": "text/html"}});
     }
 
     return500(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
