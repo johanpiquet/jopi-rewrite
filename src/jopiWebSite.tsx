@@ -13,7 +13,6 @@ import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
 import {
-    MenuManager,
     ModuleInitContext_UI,
     Page,
     PageContext, PageController,
@@ -453,7 +452,7 @@ export class WebSiteImpl implements WebSite {
     applyPageRenderInitializers(req: JopiRequest, pageController: PageController) {
         if (!this._pageRenderInitializers) return;
 
-        const modInit = new ModuleInitContext_UI(pageController.getMenuManager());
+        const modInit = new ModuleInitContext_UI(pageController.getMenuManager(), pageController.getUserInfos());
 
         this._pageRenderInitializers.forEach(i => i(modInit));
     }
