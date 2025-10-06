@@ -162,6 +162,8 @@ export class ReactRouterManager {
         // Windows doesn't allow ":" in file name. So we use $ instead.
         route = route.replaceAll("/$", "/:");
 
+        let routes: string[] = [];
+
         if (isServer) {
             let C: React.FunctionComponent<any>|undefined|null;
 
@@ -193,9 +195,9 @@ export class ReactRouterManager {
         else
         {
             let isSpecialRoute = false;
-            if (route==="/404") isSpecialRoute = true;
-            else if (route==="/500") isSpecialRoute = true;
-            else if (route==="/401") isSpecialRoute = true;
+            if (route==="/error404") isSpecialRoute = true;
+            else if (route==="/error500") isSpecialRoute = true;
+            else if (route==="/error401") isSpecialRoute = true;
 
             // Note: React Router doesn't support cath-all.
             //       The only catch mechanism is for 404 support.
@@ -208,41 +210,44 @@ export class ReactRouterManager {
             let Cpn = mustHydrate({filename: fileFullPath}, defaultValue);
 
             if (isSpecialRoute) {
-                if (route === "/404") {
+                if (route === "/error404") {
                     // Set the 404 template for the website.
                     setDefaultPage404Template(Cpn);
 
-                    // For React Router.
-                    route = "*";
-                } else if (route === "/500") {
+                    routes.push("/error404");
+                    routes.push("/not-found");
+                } else if (route === "/error500") {
                     setDefaultPage500Template(Cpn);
-                    route = "error";
-                } else if (route === "/401") {
+
+                    routes.push("/error500");
+                    routes.push("/error");
+                } else if (route === "/error401") {
                     setDefaultPage401Template(Cpn);
 
                     // Will allows the router to redirect
-                    // to this page if a user is not authorized.
-                    route = "not-authorized";
+                    // to one of these pages if a user is not authorized.
+                    //
+                    routes.push("/error401");
+                    routes.push("/not-authorized");
                 }
+            } else {
+                routes.push(route);
             }
-
-            // Avoid 404.
-            let needGetHandler = route !== "*";
 
             const defaultHandler = async (req: JopiRequest) => {
                 // The StaticRouter allows using Link in our components.
                 return req.reactResponse(<StaticRouter location={req.webSite.getWelcomeUrl()}><Cpn/></StaticRouter>)
             };
 
-            if (needGetHandler) {
-                this.webSite.onGET(route, defaultHandler);
-            }
+            for (const r of routes) {
+                this.webSite.onGET(r, defaultHandler);
 
-            this.routes[route] = {
-                componentKey: getBrowserComponentKey(fileFullPath),
-                componentPath: fileFullPath,
-                component: Cpn
-            };
+                this.routes[r] = {
+                    componentKey: getBrowserComponentKey(fileFullPath),
+                    componentPath: fileFullPath,
+                    component: Cpn
+                };
+            }
         }
     }
 }
