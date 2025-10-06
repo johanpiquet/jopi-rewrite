@@ -653,6 +653,9 @@ export class WebSiteImpl implements WebSite {
     private cacheFor_404_NotFound_ref?: any;
 
     return404(req: JopiRequest): Response|Promise<Response> {
+        const accept = req.headers.get("accept");
+        if (!accept || !accept.startsWith("text/html")) return new Response("", {status: 404});
+
         if (this._on404_NotFound) {
             return this._on404_NotFound(req);
         }
