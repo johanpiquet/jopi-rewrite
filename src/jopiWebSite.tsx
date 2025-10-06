@@ -12,7 +12,15 @@ import {PostMiddlewares} from "./middlewares/index.ts";
 import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
-import {Page, PageContext, PageController_ExposePrivate, setPageRenderer, type UiUserInfos} from "jopi-rewrite-ui";
+import {
+    MenuManager,
+    ModuleInitContext_UI,
+    Page,
+    PageContext, PageController,
+    PageController_ExposePrivate,
+    setPageRenderer,
+    type UiUserInfos
+} from "jopi-rewrite-ui";
 import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
@@ -125,6 +133,8 @@ export interface WebSite {
     getReactRouterManager(): ReactRouterManager;
 }
 
+type PageRenderInitializer = (uiInit: ModuleInitContext_UI) => void;
+
 export class WebSiteImpl implements WebSite {
     readonly port: number;
     readonly host: string;
@@ -140,6 +150,8 @@ export class WebSiteImpl implements WebSite {
 
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
+
+    private _pageRenderInitializers?: PageRenderInitializer[];
 
     public readonly data: any = {};
 
@@ -431,6 +443,19 @@ export class WebSiteImpl implements WebSite {
         }
 
         return this.reactRouterManager;
+    }
+
+    addPageRenderInitializer(initializer: (uiInit: ModuleInitContext_UI) => void) {
+        if (!this._pageRenderInitializers) this._pageRenderInitializers = [initializer];
+        else this._pageRenderInitializers.push(initializer);
+    }
+
+    applyPageRenderInitializers(req: JopiRequest, pageController: PageController) {
+        if (!this._pageRenderInitializers) return;
+
+        const modInit = new ModuleInitContext_UI(pageController.getMenuManager());
+
+        this._pageRenderInitializers.forEach(i => i(modInit));
     }
 
     //region Cache

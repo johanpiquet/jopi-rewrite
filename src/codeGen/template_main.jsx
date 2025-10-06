@@ -87,7 +87,7 @@ async function mod_initializeMod(exportDefault) {
 }
 
 async function mod_onAllModInitialized() {
-    await NodeSpace.events.sendEvent("app.init.ui", undefined);
+    await NodeSpace.events.sendEvent("app.init.ui");
 }
 
 let onInit = [

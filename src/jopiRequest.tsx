@@ -3,7 +3,7 @@
 import type {ServerInstance, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
-import {PageController, type PageOptions, renderPage} from "jopi-rewrite-ui";
+import {PageController_ExposePrivate, type PageOptions, renderPage} from "jopi-rewrite-ui";
 import {getBundleUrl, hasExternalCssBundled, hasHydrateComponents} from "./hydrate.ts";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
@@ -721,7 +721,10 @@ export class JopiRequest {
         // Add the CSS bundle to the head.
         // This will avoid content flicking.
         //
-        const hook = (controller: PageController<unknown>) => {
+        const hook = (controller: PageController_ExposePrivate) => {
+            // Allow bounding the controller to the request.
+            controller.setServerRequest(this);
+
             if (hasExternalCssBundled() || hasHydrateComponents()) {
                 const bundleUrl = getBundleUrl(this.webSite);
                 const hash = this.webSite.data["jopiLoaderHash"];
@@ -732,7 +735,7 @@ export class JopiRequest {
                 );
             }
 
-            controller.serverRequest = this;
+            (this.webSite as WebSiteImpl).applyPageRenderInitializers(this, controller);
         }
 
         return this.htmlResponse(ReactServer.renderToStaticMarkup(renderPage(element, hook, options)));

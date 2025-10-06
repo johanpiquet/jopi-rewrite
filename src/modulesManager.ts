@@ -1,8 +1,7 @@
 import path from "node:path";
 import NodeSpace, {EventPriority} from "jopi-node-space";
-import type {WebSite} from "./jopiWebSite.js";
+import {type WebSite, WebSiteImpl} from "./jopiWebSite.js";
 import React from "react";
-import {ModuleInitContext_UI} from "jopi-rewrite-ui";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
@@ -36,8 +35,7 @@ export class ModulesManager {
             await this.initModule(moduleDirPath);
         }
 
-        await nEvents.sendEvent("app.init.server", undefined);
-        await nEvents.sendEvent("app.init.ui", undefined);
+        nEvents.sendEvent("app.init.server");
     }
 
     addInitializer(priority: EventPriority, initializer: ()=>Promise<void>) {
@@ -66,17 +64,16 @@ export class ModulesManager {
         file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
 
         if (await nFS.isFile(file)) {
-            // Will allows an init inside the browser.
-            gUiInitFiles.push(file);
-
             // > Do the UI init on the server-side.
             //   Require because the server is also a UI generator.
 
             const exportDefault = (await import(file)).default;
 
             if (exportDefault && typeof exportDefault === "function") {
-                let res = exportDefault(new ModuleInitContext_UI());
-                if (res instanceof Promise) await res;
+                // Will allows an init inside the browser.
+                gUiInitFiles.push(file);
+
+                (this.webSite as WebSiteImpl).addPageRenderInitializer(exportDefault);
             }
         }
 
