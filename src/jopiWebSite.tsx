@@ -452,8 +452,7 @@ export class WebSiteImpl implements WebSite {
     applyPageRenderInitializers(req: JopiRequest, pageController: PageController) {
         if (!this._pageRenderInitializers) return;
 
-        const modInit = new ModuleInitContext_UI(pageController.getMenuManager(), pageController.getUserInfos());
-
+        const modInit = new ModuleInitContext_UI(pageController);
         this._pageRenderInitializers.forEach(i => i(modInit));
     }
 
