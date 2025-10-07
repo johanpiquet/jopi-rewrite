@@ -58,10 +58,6 @@ function hydrateAll() {
     }
 }
 
-function process() {
-    onInit.forEach(e => e());
-}
-
 window["_JOPI_COMPOSITE_RENDERER_"] = function(name) {
     let composite = jopiComposites[name];
     if (!composite) return undefined;
@@ -87,13 +83,13 @@ async function mod_initializeMod(exportDefault) {
 }
 
 async function mod_onAllModInitialized() {
+    hydrateAll();
     await NodeSpace.events.sendEvent("app.init.ui");
 }
 
-let onInit = [
-    () => hydrateAll(),
+async function process() {
 //[ON_INIT]
-];
+}
 
 //[PLUGINS]
 
