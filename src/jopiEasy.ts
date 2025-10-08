@@ -2,7 +2,7 @@
 
 import path from "node:path";
 import fsc from "node:fs";
-import NodeSpace from "jopi-node-space";
+import NodeSpace, {nTimer} from "jopi-node-space";
 
 import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
@@ -423,7 +423,7 @@ class JopiEasyWebSite {
             }
 
             myServer.addWebsite(this.webSite);
-            autoStartServer();
+            await autoStartServer();
         }
 
         if (this.internals.onHookWebSite) {
@@ -1055,13 +1055,12 @@ class WebSite_AutomaticCacheBuilder_UseMemoryCache {
 
 let gIsAutoStartDone = false;
 
-function autoStartServer(): void {
+async function autoStartServer() {
     if (gIsAutoStartDone) return;
     gIsAutoStartDone = true;
 
-    setTimeout(()=>{
-        myServer.startServer();
-    }, 5);
+    await nTimer.tick(5);
+    await myServer.startServer();
 }
 
 const myServer = getServer();

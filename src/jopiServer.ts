@@ -41,17 +41,9 @@ class JopiServer {
         await Promise.all(this.servers.map(server => server.stop(false)));
     }
 
-    startServer() {
+    async startServer() {
         if (this._isStarted) return;
         this._isStarted = true;
-
-        // In case we are using Jopi Loader (jopin).
-        //
-        // The load must not refresh the browser once this process is created but wait until we are ready.
-        // The main reason is that we create as JavaScript bundle that takes time to create, and the
-        // browser must not refresh too soon (event if it's only one second)
-        //
-        mustWaitServerReady();
 
         /**
          * Allow avoiding a bug where returning an array with only one certificate throws an error.
@@ -112,7 +104,7 @@ class JopiServer {
             let certificates: any[] = [];
 
             rebuildCertificates();
-
+            //
             Object.values(hostNameMap).forEach(webSite => (webSite as WebSiteImpl)._onRebuildCertificate = () => {
                 rebuildCertificates();
 
@@ -148,9 +140,11 @@ class JopiServer {
                 }
             };
 
+            await Promise.all(Object.values(hostNameMap).map(webSite => (webSite as WebSiteImpl).onBeforeServerStart()));
+
             const myServerInstance = serverImpl.startServer(myServerOptions);
 
-            Object.values(hostNameMap).forEach(webSite => (webSite as WebSiteImpl).onServerStarted());
+            await Promise.all(Object.values(hostNameMap).map(webSite => (webSite as WebSiteImpl).onServerStarted()));
             this.servers.push(myServerInstance);
         }
 
@@ -261,3 +255,11 @@ export interface ServerImpl {
 }
 
 const serverImpl: ServerImpl = NodeSpace.what.isBunJs ?  bunJsServer : nodeJsServer;
+
+// In case we are using Jopi Loader (jopin).
+//
+// The load must not refresh the browser once this process is created but wait until we are ready.
+// The main reason is that we create as JavaScript bundle that takes time to create, and the
+// browser must not refresh too soon (event if it's only one second)
+//
+mustWaitServerReady();

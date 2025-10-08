@@ -229,17 +229,19 @@ export class WebSiteImpl implements WebSite {
         return this.ifRouteNotFound(req);
     }
 
-    async onServerStarted() {
-        createBundle(this).then(() => {
-            // In case we use jopin with browser refresh,
-            // then we manually declare that the server is ok.
-            //
-            declareServerReady();
+    async onBeforeServerStart() {
+        await createBundle(this);
+    }
 
-            if (this._onWebSiteReady) {
-                this._onWebSiteReady.forEach(e => e());
-            }
-        });
+    async onServerStarted() {
+        if (this._onWebSiteReady) {
+            this._onWebSiteReady.forEach(e => e());
+        }
+
+        // In case we use jopin with browser refresh,
+        // then we manually declare that the server is ok.
+        //
+        declareServerReady();
 
         if (this.welcomeUrl) {
             console.log("Website started:", this.welcomeUrl);
