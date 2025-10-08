@@ -107,41 +107,43 @@ You can also use it to manually pre/post process GET call, for example, to enabl
 
 Here we use the same path logic, but instead of a file named `index.page.tsx` you will create a file named `index.server.tsx`.
 
-In this file, you will use a function named `getRouteServerContext` to bind listener to the server calls (GET/POST/...). 
+In this file, you will use an object of type `RouteServerContext` to bind listener to the server calls 
+(GET/POST/...). 
 
 **Sample index.server.tsx file**
 ```typescript
-import {getRouteServerContext} from "jopi-rewrite";
+import {RouteServerContext} from "jopi-rewrite";
 
-let ctx = getRouteServerContext();
 
-// Process POST call to the url corresponding the page route. 
-ctx.onPOST(async req => {
-    // Get the data send to the server.
-    const data = await req.getReqData();
-    // Return it as-is, in json format.
-    return req.jsonResponse(data);
-});
+export default function(ctx: RouteServerContext) {
+    // Process POST call to the url corresponding the page route. 
+    ctx.onPOST(async req => {
+        // Get the data send to the server.
+        const data = await req.getReqData();
+        // Return it as-is, in json format.
+        return req.jsonResponse(data);
+    });
 
-// Here we will enable a cache for our React page.
-ctx.onGET(async (req, next) => {
-    import {getRouteServerContext} from "jopi-rewrite";
-
-    let ctx = getRouteServerContext();
-
+    // Here we will enable a cache for our React page.
     ctx.onGET(async (req, next) => {
-        let res = await req.getFromCache();
+        import {getRouteServerContext} from "jopi-rewrite";
 
-        if (!res) {
-            // Here 'next' allows rendering the content of index.page.tsx.
-            res = await next(req);
-            await req.addToCache(res);
-        }
+        let ctx = getRouteServerContext();
 
+        ctx.onGET(async (req, next) => {
+            let res = await req.getFromCache();
+
+            if (!res) {
+                // Here 'next' allows rendering the content of index.page.tsx.
+                res = await next(req);
+                await req.addToCache(res);
+            }
+
+            return res;
+        });
+        // Here next allows to render the content of index.page.tsx.
+        const res = next(req);
         return res;
     });
-    // Here next allows to render the content of index.page.tsx.
-    const res = next(req);
-    return res;
-});
+}
 ```

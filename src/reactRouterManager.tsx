@@ -10,7 +10,7 @@ import {addGenerateScriptPlugin, getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {JopiRequest} from "./jopiRequest.ts";
 import NodeSpace from "jopi-node-space";
-import {RouteContext_ExposePrivate} from "./routeContext.ts";
+import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
 
 const nFS = NodeSpace.fs;
@@ -183,7 +183,7 @@ export class ReactRouterManager {
                 return req.reactResponse(<C />);
             };
 
-            const sc = new RouteContext_ExposePrivate(this.webSite, fileUrl, route, defaultHandler);
+            const sc = new RouteServerContext_ExposePrivate(this.webSite, fileUrl, route, defaultHandler);
 
             // Will call `await import(fileUrl)`
             //

@@ -4,11 +4,7 @@ import type {WebSite, WebSiteRoute} from "./jopiWebSite.tsx";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import {JopiRequest} from "./jopiRequest.js";
 
-export function getRouteServerContext(): RouteContext {
-    return gCurrentRouteContext!;
-}
-
-export class RouteContext {
+export class RouteServerContext {
     protected _hasGetHandler = false;
 
     constructor(protected readonly webSite: WebSite,
@@ -89,15 +85,16 @@ class RouteContext_NextStep {
     }
 }
 
-export class RouteContext_ExposePrivate extends RouteContext {
+export class RouteServerContext_ExposePrivate extends RouteServerContext {
     hasGetHandler() {
         return this._hasGetHandler;
     }
 
     async initialize() {
-        gCurrentRouteContext = this;
-        await import(this.serverFilePath);
+        const defaultExport = (await import(this.serverFilePath)).default;
+
+        if (defaultExport && (typeof defaultExport === 'function')) {
+            defaultExport(this);
+        }
     }
 }
-
-let gCurrentRouteContext: undefined|RouteContext;
