@@ -9,12 +9,13 @@ import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "@jopi-loader/client";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
+import {ZodObject, ZodError} from "zod";
 
 import {initCheerio} from "./jQuery.ts";
 import {type CacheEntry, type PageCache, WebSiteMirrorCache} from "./caches/cache.ts";
 import {
     type AuthResult,
-    type CookieOptions,
+    type CookieOptions, DirectSendThisResponseException,
     type HttpMethod, type JopiRouteHandler, type LoginPassword, NotAuthorizedException,
     type RequestBody,
     type ResponseModifier, type ServeFileOptions, type TestCookieValue, type TextModifier, type UserInfos,
@@ -143,10 +144,10 @@ export class JopiRequest {
      * - The search param (query string).
      * - The POST/PUT data if available.
      */
-    async getReqData<T>(ignoreUrl = false): Promise<T> {
+    async getReqData<T>(options?: {ignoreUrl?: boolean, zodSchema?: ZodObject}): Promise<T> {
         let res: any = {};
 
-        if (!ignoreUrl) {
+        if (!(options && options.ignoreUrl)) {
             const searchParams = this.urlInfos.searchParams;
 
             if (searchParams.size) {
@@ -179,6 +180,10 @@ export class JopiRequest {
             } catch {
                 // If FormData is invalid.
             }
+        }
+
+        if (options && options.zodSchema) {
+            this.validateZodSchema(res, options.zodSchema);
         }
 
         return res as T;
@@ -253,17 +258,33 @@ export class JopiRequest {
         return ct.startsWith("application/x-www-form-urlencoded");
     }
 
-    /**
-     * https://developer.mozilla.org/en-US/docs/Web/API/Request/text
-     */
     reqBodyAsText(): Promise<string> {
         return this.coreRequest.text();
     }
 
     /**
-     * https://developer.mozilla.org/en-US/docs/Web/API/Request/json
+     * Validate the Zod Schema.
+     * If invalid, throw a special exception allowing
+     * to directly send a response to the caller.
      */
-    reqBodyAsJson<T = any>(): Promise<T> {
+    validateZodSchema(data: any, schema: ZodObject) {
+        try {
+            schema.parse(data);
+        }
+        catch (error) {
+            if (error instanceof ZodError) {
+                throw new DirectSendThisResponseException(new Response("Invalid data", {status: 400}));
+            }
+        }
+    }
+
+    async reqBodyAsJson<T = any>(zodSchema?: ZodObject): Promise<T> {
+        if (zodSchema) {
+            const data = await this.reqBodyAsJson();
+            this.validateZodSchema(data, zodSchema);
+            return data;
+        }
+
         return this.coreRequest.json() as Promise<T>;
     }
 

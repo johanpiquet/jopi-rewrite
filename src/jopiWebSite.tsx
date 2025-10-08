@@ -207,8 +207,13 @@ export class WebSiteImpl implements WebSite {
             try {
                 return await matched.data.handler(req);
             } catch (e) {
-                if (e instanceof NotAuthorizedException) {
-                    return req.textResponse(e.message, 401);
+                if (e instanceof ServerByPassException) {
+                    if (e instanceof DirectSendThisResponseException) {
+                        return e.response;
+                    }
+                    else if (e instanceof NotAuthorizedException) {
+                        return req.textResponse(e.message, 401);
+                    }
                 }
 
                 console.error(e);
@@ -846,7 +851,16 @@ export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Pro
 export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
 export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
 
-export class NotAuthorizedException extends Error {
+export class ServerByPassException extends Error {
+}
+
+export class NotAuthorizedException extends ServerByPassException {
+}
+
+export class DirectSendThisResponseException extends ServerByPassException {
+    constructor(public readonly response: Response) {
+        super();
+    }
 }
 
 export class ServerAlreadyStartedError extends Error {
