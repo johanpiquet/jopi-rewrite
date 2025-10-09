@@ -6,12 +6,13 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import {pathToFileURL} from "node:url";
 import {mustHydrate} from "jopi-rewrite-ui";
-import {addGenerateScriptPlugin, getBrowserComponentKey} from "./hydrate.ts";
+import {getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {JopiRequest} from "./jopiRequest.ts";
 import NodeSpace from "jopi-node-space";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
+import {addGenerateScriptPlugin, loadCodeGenTemplate} from "./bundler/scripts.ts";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
@@ -111,10 +112,7 @@ export class ReactRouterManager {
     }
 
     private async scriptPlugin(script: string, _outDir: string) {
-        let resolvedPath = import.meta.resolve("./../src/codeGen/template_router.jsx");
-        resolvedPath = nFS.fileURLToPath(resolvedPath);
-        let template = await nFS.readTextFromFile(resolvedPath);
-
+        let template = await loadCodeGenTemplate("template_router.jsx");
         let reactRoutes: any[] = [];
 
         for (let route in this.routes) {

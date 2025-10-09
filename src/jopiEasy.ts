@@ -8,13 +8,7 @@ import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
 import {getLetsEncryptCertificate, type LetsEncryptParams, type OnTimeoutError} from "./letsEncrypt.ts";
 import {type UserInfos_WithLoginPassword, UserStore_WithLoginPassword} from "./userStores.ts";
-import {
-    type PostCssInitializer,
-    setConfig_disableTailwind,
-    setConfig_postCssPluginsInitializer,
-    setConfig_setTailwindConfig,
-    setConfig_setTailwindTemplate
-} from "./hydrate.ts";
+import {getBundlerConfig, type PostCssInitializer} from "./bundler/config.ts";
 import {serverInitChronos} from "./internalTools.ts";
 import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./caches/InMemoryCache.ts";
 import {SimpleFileCache} from "./caches/SimpleFileCache.ts";
@@ -1487,17 +1481,17 @@ class GlobalConfigBuilder {
     configure_tailwindProcessor() {
         return {
             disableTailwind: () => {
-                setConfig_disableTailwind();
+                getBundlerConfig().tailwind.disable = true;
                 return this.configure_tailwindProcessor();
             },
 
             setCssTemplate: (template: string) => {
-                setConfig_setTailwindTemplate(template);
+                getBundlerConfig().tailwind.template = template;
                 return this.configure_tailwindProcessor();
             },
 
             setConfig: (config: TailwindConfig) => {
-                setConfig_setTailwindConfig(config);
+                getBundlerConfig().tailwind.config = config;
                 return this.configure_tailwindProcessor();
             }
         }
@@ -1506,7 +1500,7 @@ class GlobalConfigBuilder {
     configure_postCss() {
         return {
             setPlugin: (handler: PostCssInitializer) => {
-                setConfig_postCssPluginsInitializer(handler);
+                getBundlerConfig().postCss.initializer = handler;
                 return this.configure_postCss()
             }
         }

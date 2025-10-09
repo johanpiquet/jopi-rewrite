@@ -4,7 +4,6 @@ import type {ServerInstance, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
 import {PageController_ExposePrivate, type PageOptions, renderPage} from "jopi-rewrite-ui";
-import {getBundleUrl, hasExternalCssBundled, hasHydrateComponents} from "./hydrate.ts";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "@jopi-loader/client";
@@ -26,6 +25,9 @@ import {
 
 import {parseCookies} from "./internalTools.ts";
 import NodeSpace from "jopi-node-space";
+import {hasExternalCssBundled} from "./bundler/bundler.ts";
+import {hasHydrateComponents} from "./hydrate.ts";
+import {getBundleUrl} from "./bundler/server.ts";
 
 const nFS = NodeSpace.fs;
 
@@ -285,7 +287,7 @@ export class JopiRequest {
             return data;
         }
 
-        return this.coreRequest.json() as Promise<T>;
+        return await this.coreRequest.json() as Promise<T>;
     }
 
     /**

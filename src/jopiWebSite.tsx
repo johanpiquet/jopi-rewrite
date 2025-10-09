@@ -5,7 +5,6 @@ import {ServerFetch} from "./serverFetch.ts";
 import {ReactRouterManager} from "./reactRouterManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
-import {createBundle, handleBundleRequest} from "./hydrate.ts";
 import type {ServerInstance, WebSocketConnectionInfos} from "./jopiServer.ts";
 import {declareServerReady} from "@jopi-loader/client";
 import {PostMiddlewares} from "./middlewares/index.ts";
@@ -30,6 +29,8 @@ import {ONE_DAY} from "./publicTools.ts";
 import NodeSpace from "jopi-node-space";
 import {getInMemoryCache} from "./caches/InMemoryCache.ts";
 import {ModulesManager} from "./modulesManager.ts";
+import {handleBundleRequest} from "./bundler/server.ts";
+import {createBundle} from "./bundler/bundler.ts";
 
 const nSocket = NodeSpace.webSocket;
 
