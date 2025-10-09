@@ -2,19 +2,12 @@ import path from "node:path";
 import NodeSpace, {nApp} from "jopi-node-space";
 
 import React from "react";
-import {
-    setHandler_bundleExternalCss,
-    setHandler_mustHydrate,
-    useCssModule
-} from "jopi-rewrite-ui";
+import {setHandler_bundleExternalCss, setHandler_mustHydrate, useCssModule} from "jopi-rewrite-ui";
 import {fileURLToPath, pathToFileURL} from "node:url";
-import {type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
-import {addCssToBundle} from "./bundler/bundler.ts";
+import {addExtraCssToBundle} from "./bundler/extraContent.ts";
 
 const nFS = NodeSpace.fs;
 const nCrypto = NodeSpace.crypto;
-
-//region UI
 
 export function hasHydrateComponents() {
     return gHasComponents;
@@ -117,7 +110,7 @@ async function handler_bundleExternalCss(importMeta: {filename: string}, cssFile
         return;
     }
 
-    addCssToBundle(cssFilePath);
+    addExtraCssToBundle(cssFilePath);
 }
 
 const gHydrateComponents: {[key: string]: string} = {};
@@ -127,5 +120,3 @@ let gHasComponents = false;
 
 setHandler_mustHydrate(onNewHydrate);
 setHandler_bundleExternalCss(handler_bundleExternalCss);
-
-//endregion

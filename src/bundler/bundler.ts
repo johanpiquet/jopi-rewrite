@@ -12,6 +12,7 @@ import {getHydrateComponents} from "../hydrate.ts";
 import {generateScript} from "./scripts.ts";
 import {getBundlerConfig} from "./config.ts";
 import {calculateWebSiteTempDir} from "./common.ts";
+import {getExtraCssToBundle} from "./extraContent.js";
 
 export async function createBundle(webSite: WebSite): Promise<void> {
     serverInitChronos.start("createBrowserBundle", "Time for building browser bundler")
@@ -111,7 +112,9 @@ async function postProcessCreateBundle(webSite: WebSite, outputDir: string, sour
     let postCss = await applyPostCss(sourceFiles);
     if (postCss) await fs.appendFile(outFilePath, postCss, "utf-8");
 
-    for (const cssFilePath of gAllCssFiles) {
+    const extraCSS = getExtraCssToBundle();
+
+    for (const cssFilePath of extraCSS) {
         let css: string;
 
         if (cssFilePath.endsWith(".scss")) {
@@ -221,21 +224,3 @@ async function getTailwindTemplateFromShadCnConfig() {
         return undefined;
     }
 }
-
-export function addCssToBundle(cssFilePath: string) {
-    gHasManuallyIncludedCss = true;
-    if (gAllCssFiles.includes(cssFilePath)) return;
-    gAllCssFiles.push(cssFilePath);
-}
-
-export function hasExternalCssBundled() {
-    return gHasManuallyIncludedCss;
-}
-
-// @ts-ignore Is called by jopi-loader when found a CSS/SCSS file which isn't a module.
-global.jopiOnCssImported = function(cssFilePath: string) {
-    addCssToBundle(cssFilePath);
-}
-
-let gHasManuallyIncludedCss = false;
-const gAllCssFiles: string[] = [];

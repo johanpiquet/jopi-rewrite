@@ -25,7 +25,7 @@ import {
 
 import {parseCookies} from "./internalTools.ts";
 import NodeSpace from "jopi-node-space";
-import {hasExternalCssBundled} from "./bundler/bundler.ts";
+import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
 import {getBundleUrl} from "./bundler/server.ts";
 
@@ -748,7 +748,7 @@ export class JopiRequest {
             // Allow bounding the controller to the request.
             controller.setServerRequest(this);
 
-            if (hasExternalCssBundled() || hasHydrateComponents()) {
+            if (hasExternalCssToBundle() || hasHydrateComponents()) {
                 const bundleUrl = getBundleUrl(this.webSite);
                 const hash = this.webSite.data["jopiLoaderHash"];
 
@@ -794,7 +794,7 @@ export class JopiRequest {
             html += getBrowserRefreshHtmlSnippet();
         }
 
-        if (hasExternalCssBundled() || this.isUsingReact && hasHydrateComponents()) {
+        if (hasExternalCssToBundle() || this.isUsingReact && hasHydrateComponents()) {
             const bundleUrl = getBundleUrl(this.webSite);
             const hash = this.webSite.data["jopiLoaderHash"];
 
