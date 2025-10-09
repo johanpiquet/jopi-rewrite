@@ -26,7 +26,7 @@ import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
 import {ONE_DAY} from "./publicTools.ts";
-import NodeSpace from "jopi-node-space";
+import NodeSpace, {nEvents} from "jopi-node-space";
 import {getInMemoryCache} from "./caches/InMemoryCache.ts";
 import {ModulesManager} from "./modulesManager.ts";
 import {handleBundleRequest} from "./bundler/server.ts";
