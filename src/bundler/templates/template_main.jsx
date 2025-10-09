@@ -29,7 +29,9 @@ function patchRoutes(routes) {
                 const routePath = route.Component;
                 const C = jopiHydrate.components[routePath];
 
-                route.Component = () =><Page><C/></Page>;
+                route.Component = () => {
+                    return <Page><C/></Page>;
+                }
             }
 
             if (route.children) {

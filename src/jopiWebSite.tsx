@@ -188,7 +188,7 @@ export class WebSiteImpl implements WebSite {
         this.wsRouter = createRouter<JopiWsRouteHandler>();
 
         this._onWebSiteReady = options.onWebSiteReady;
-        this.addRoute("GET", "/_bundle/*", handleBundleRequest);
+        this.addRoute("GET", "/_bundle/**", handleBundleRequest);
     }
 
     getWelcomeUrl(): string {

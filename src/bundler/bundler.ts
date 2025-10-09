@@ -3,9 +3,10 @@ import {serverInitChronos} from "../internalTools.js";
 import {nEvents} from "jopi-node-space";
 import {getHydrateComponents} from "../hydrate.ts";
 import {generateScript} from "./scripts.ts";
-import {calculateWebSiteTempDir} from "./common.ts";
+import {getBundleDirPath} from "./common.ts";
 import {type BundlerConfig, getBundlerConfig} from "./config.js";
 import {getExtraCssToBundle} from "./extraContent.js";
+import {configureServer} from "./server.js";
 
 export interface CreateBundleEvent {
     entryPoint: string;
@@ -17,6 +18,9 @@ export interface CreateBundleEvent {
     extraCssToBundle: string[];
 
     promise?: Promise<void>;
+
+    out_dirToServe?: string;
+    out_entryPoint?: string;
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
@@ -25,7 +29,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     const reactComponentFiles = getHydrateComponents();
 
     // Note: outputDir is deleted at startup by jopi-loader.
-    const outputDir = calculateWebSiteTempDir(webSite);
+    const outputDir = getBundleDirPath(webSite);
 
     const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
     const entryPoint = await generateScript(outputDir, reactComponentFiles);
@@ -34,7 +38,11 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         entryPoint, outputDir, publicUrl, webSite,
         reactComponentFiles: Object.values(reactComponentFiles),
         config: getBundlerConfig(),
-        extraCssToBundle: getExtraCssToBundle()
+        extraCssToBundle: getExtraCssToBundle(),
+
+        //Default value
+        out_dirToServe: outputDir,
+        out_entryPoint: "loader.js"
     };
 
     // Set a default hash. Must be replaced by bundler.
@@ -42,6 +50,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
     await execute(data);
 
+    configureServer(data.out_dirToServe!, data.out_entryPoint!);
     serverInitChronos.end();
 }
 

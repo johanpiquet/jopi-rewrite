@@ -133,7 +133,7 @@ export class ReactRouterManager {
             });
         }
 
-        template = template.replace("//[ROUTES]", JSON.stringify(reactRoutes));
+        template = template.replace("//[ROUTES]", JSON.stringify(reactRoutes, null, 4));
 
         script += template;
         return script;

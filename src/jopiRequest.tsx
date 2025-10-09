@@ -27,7 +27,7 @@ import {parseCookies} from "./internalTools.ts";
 import NodeSpace from "jopi-node-space";
 import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
-import {getBundleUrl} from "./bundler/server.ts";
+import {getBundleUrl, getBundleEntryPointUrl} from "./bundler/server.ts";
 
 const nFS = NodeSpace.fs;
 
@@ -795,7 +795,7 @@ export class JopiRequest {
         }
 
         if (hasExternalCssToBundle() || this.isUsingReact && hasHydrateComponents()) {
-            const bundleUrl = getBundleUrl(this.webSite);
+            const bundleUrl = getBundleEntryPointUrl(this.webSite);
             const hash = this.webSite.data["jopiLoaderHash"];
 
             // If using a page, then this page already includes the CSS.
@@ -806,7 +806,7 @@ export class JopiRequest {
             }
 
             if (hasHydrateComponents()) {
-                html += `<script type="module" src="${bundleUrl}/loader.js?${hash.js}"></script>`;
+                html += `<script type="module" src="${bundleUrl}?${hash.js}"></script>`;
             }
         }
 
