@@ -37,6 +37,9 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         extraCssToBundle: getExtraCssToBundle()
     };
 
+    // Set a default hash. Must be replaced by bundler.
+    webSite.data["jopiLoaderHash"] = {css: "", js: ""};
+
     await execute(data);
 
     serverInitChronos.end();
@@ -55,7 +58,7 @@ async function execute(data: CreateBundleEvent, useFallback = true) {
     } else if (useFallback) {
         // Note: don't directly use a string here
         // otherwise it will trigger a bugged optimization
-        // inside TypeScript compiler.
+        // inside the TypeScript compiler.
         //
         await import(FALLBACK_PACKAGE);
         await execute(data, false);
