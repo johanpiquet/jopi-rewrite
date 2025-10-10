@@ -69,13 +69,18 @@ class JopiApp {
 }
 
 class JopiEasy {
+    private getDefaultUrl(): string {
+        let config = getImportTransformConfig();
+
+        if (config.webSiteListeningUrl) return config.webSiteListeningUrl;
+        if (config.webSiteUrl) return config.webSiteUrl;
+
+        throw new Error("Invalid package.json configuration. 'jopi.webSiteUrl' or 'jopi.webSiteListeningUrl' must be set");
+    }
+
     new_webSite(url?: string, ref?: RefFor_WebSite): JopiEasyWebSite {
         if (!url) {
-            let config = getImportTransformConfig();
-
-            if (config.webSiteListeningUrl) url = config.webSiteListeningUrl;
-            else if (config.webSiteUrl) url = config.webSiteUrl;
-            else throw new Error("Invalid package.json configuration. 'jopi.webSiteUrl' or 'jopi.webSiteListeningUrl' must be set");
+            url = this.getDefaultUrl();
         }
 
         const res = new JopiEasyWebSite_ExposePrivate(url);
@@ -83,15 +88,27 @@ class JopiEasy {
         return res;
     }
 
-    new_reverseProxy(url: string, ref?: RefFor_WebSite): ReverseProxyBuilder {
+    new_reverseProxy(url?: string|undefined, ref?: RefFor_WebSite): ReverseProxyBuilder {
+        if (!url) {
+            url = this.getDefaultUrl();
+        }
+
         return new ReverseProxyBuilder(url, ref);
     }
 
-    new_fileServer(url: string, ref?: RefFor_WebSite): FileServerBuilder {
+    new_fileServer(url?: string|undefined, ref?: RefFor_WebSite): FileServerBuilder {
+        if (!url) {
+            url = this.getDefaultUrl();
+        }
+
         return new FileServerBuilder(url, ref);
     }
 
-    new_downloader(urlOrigin: string): CrawlerDownloader {
+    new_downloader(urlOrigin?: string|undefined): CrawlerDownloader {
+        if (!urlOrigin) {
+            urlOrigin = this.getDefaultUrl();
+        }
+        
         return new CrawlerDownloader(urlOrigin);
     }
 }

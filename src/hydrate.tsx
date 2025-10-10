@@ -72,10 +72,9 @@ function onNewHydrate(importMeta: {filename: string}, f: React.FunctionComponent
     // Register the component.
     const id = useHydrateComponent(importMeta);
 
-    useCssModule(cssModules);
-
     // Wrap our component.
     let cpn = (p: any) => {
+        useCssModule(cssModules);
         return <JopiHydrate id={id} args={p} asSpan={isSpan} Child={f as React.FunctionComponent}/>;
     }
 

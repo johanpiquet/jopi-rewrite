@@ -5,8 +5,9 @@ import {getHydrateComponents} from "../hydrate.tsx";
 import {generateScript} from "./scripts.ts";
 import {getBundleDirPath} from "./common.ts";
 import {type BundlerConfig, getBundlerConfig} from "./config.ts";
-import {getExtraCssToBundle, getVirtualUrlMap, type VirtualUrlEntry} from "./extraContent.ts";
+import {getExtraCssToBundle} from "./extraContent.ts";
 import {configureServer} from "./server.ts";
+import {getVirtualUrlMap, type VirtualUrlEntry} from "@jopi-loader/tools";
 
 export interface CreateBundleEvent {
     entryPoint: string;
@@ -39,7 +40,8 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     await nFS.mkDir(genDir);
 
     const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
-    const requireTailwind: boolean = getBundlerConfig().tailwind.disable !== true;
+    // noinspection PointlessBooleanExpressionJS
+    const requireTailwind: boolean = (getBundlerConfig().tailwind.disable) !== true;
 
     const cssToImport = [...getExtraCssToBundle()];
     if (requireTailwind) cssToImport.push("./tailwind.css");
