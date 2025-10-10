@@ -26,10 +26,10 @@ import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
 import {ONE_DAY} from "./publicTools.ts";
-import NodeSpace, {nEvents} from "jopi-node-space";
+import NodeSpace from "jopi-node-space";
 import {getInMemoryCache} from "./caches/InMemoryCache.ts";
 import {ModulesManager} from "./modulesManager.ts";
-import {handleBundleRequest} from "./bundler/server.ts";
+import {installBundleServer} from "./bundler/server.ts";
 import {createBundle} from "./bundler/bundler.ts";
 
 const nSocket = NodeSpace.webSocket;
@@ -188,7 +188,6 @@ export class WebSiteImpl implements WebSite {
         this.wsRouter = createRouter<JopiWsRouteHandler>();
 
         this._onWebSiteReady = options.onWebSiteReady;
-        this.addRoute("GET", "/_bundle/**", handleBundleRequest);
     }
 
     getWelcomeUrl(): string {
@@ -243,6 +242,8 @@ export class WebSiteImpl implements WebSite {
         // then we manually declare that the server is ok.
         //
         declareServerReady();
+
+        installBundleServer(this);
 
         if (this.welcomeUrl) {
             console.log("Website started:", this.welcomeUrl);

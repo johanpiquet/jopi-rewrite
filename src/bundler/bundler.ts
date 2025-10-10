@@ -1,12 +1,12 @@
-import {type WebSite, WebSiteImpl} from "../jopiWebSite.js";
-import {serverInitChronos} from "../internalTools.js";
+import {type WebSite, WebSiteImpl} from "../jopiWebSite.tsx";
+import {serverInitChronos} from "../internalTools.ts";
 import {nEvents, nFS} from "jopi-node-space";
-import {getHydrateComponents} from "../hydrate.ts";
+import {getHydrateComponents} from "../hydrate.tsx";
 import {generateScript} from "./scripts.ts";
 import {getBundleDirPath} from "./common.ts";
-import {type BundlerConfig, getBundlerConfig} from "./config.js";
-import {getExtraCssToBundle} from "./extraContent.js";
-import {configureServer} from "./server.js";
+import {type BundlerConfig, getBundlerConfig} from "./config.ts";
+import {getExtraCssToBundle, getVirtualUrlMap, type VirtualUrlEntry} from "./extraContent.ts";
+import {configureServer} from "./server.ts";
 
 export interface CreateBundleEvent {
     entryPoint: string;
@@ -17,6 +17,7 @@ export interface CreateBundleEvent {
     reactComponentFiles: string[];
     config: BundlerConfig,
     requireTailwind: boolean;
+    virtualUrlMap: VirtualUrlEntry[];
 
     promise?: Promise<void>;
 
@@ -50,6 +51,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         reactComponentFiles: Object.values(reactComponentFiles),
         config: getBundlerConfig(),
         requireTailwind,
+        virtualUrlMap: getVirtualUrlMap(),
 
         //Default values
         out_dirToServe: outputDir,

@@ -1,10 +1,24 @@
-import {JopiRequest} from "../jopiRequest.ts";
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.js";
+import {getVirtualUrlMap, type VirtualUrlEntry} from "./extraContent.js";
 
-export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
-    req.urlInfos.pathname = req.urlInfos.pathname.substring("/_bundle".length);
+export function installBundleServer(webSite: WebSite) {
+    const virtualRoutes = getVirtualUrlMap();
 
-    return req.serverFromDir(gDirToServe!);
+    webSite.onGET("/_bundle/**", async (req) => {
+        req.urlInfos.pathname = req.urlInfos.pathname.substring("/_bundle".length);
+        return req.serverFromDir(gDirToServe!);
+    });
+
+    virtualRoutes.forEach(e => addVirtualUrl(webSite, e));
+}
+
+function addVirtualUrl(webSite: WebSite, entry: VirtualUrlEntry) {
+    if (!entry.bundleFile) return;
+
+    const toServe = entry.bundleFile;
+    webSite.onGET(entry.route, async req => {
+        return req.returnFile(toServe);
+    });
 }
 
 function getBundleUrl(webSite: WebSite): string {
