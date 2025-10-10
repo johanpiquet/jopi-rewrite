@@ -27,7 +27,7 @@ import {parseCookies} from "./internalTools.ts";
 import NodeSpace from "jopi-node-space";
 import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
-import {getBundleUrl, getBundleEntryPointUrl} from "./bundler/server.ts";
+import {getBundleEntryPointUrl_JS, getBundleEntryPointUrl_CSS} from "./bundler/server.ts";
 
 const nFS = NodeSpace.fs;
 
@@ -749,12 +749,12 @@ export class JopiRequest {
             controller.setServerRequest(this);
 
             if (hasExternalCssToBundle() || hasHydrateComponents()) {
-                const bundleUrl = getBundleUrl(this.webSite);
+                const cssEntryPointUrl = getBundleEntryPointUrl_CSS(this.webSite);
                 const hash = this.webSite.data["jopiLoaderHash"];
 
                 controller.addToHeader("jopi-bundle-style",
                     <link rel="stylesheet" key={hash.css}
-                          href={bundleUrl + "/loader.css?" + hash.css}/>
+                          href={cssEntryPointUrl + "?" + hash.css}/>
                 );
             }
 
@@ -795,18 +795,19 @@ export class JopiRequest {
         }
 
         if (hasExternalCssToBundle() || this.isUsingReact && hasHydrateComponents()) {
-            const bundleUrl = getBundleEntryPointUrl(this.webSite);
+            const jsEntryPointUrl = getBundleEntryPointUrl_JS(this.webSite);
+            const cssEntryPointUrl = getBundleEntryPointUrl_CSS(this.webSite);
             const hash = this.webSite.data["jopiLoaderHash"];
 
             // If using a page, then this page already includes the CSS.
             // This allows putting it in the head, which avoids content flicking.
             //
             if (!this.isUsingReactPage) {
-                html += `<link rel="stylesheet" href="${bundleUrl}/loader.css?${hash.css}" />`;
+                html += `<link rel="stylesheet" href="${cssEntryPointUrl}/?${hash.css}" />`;
             }
 
             if (hasHydrateComponents()) {
-                html += `<script type="module" src="${bundleUrl}?${hash.js}"></script>`;
+                html += `<script type="module" src="${jsEntryPointUrl}?${hash.js}"></script>`;
             }
         }
 

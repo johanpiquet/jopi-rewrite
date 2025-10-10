@@ -1,6 +1,6 @@
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.js";
 import {serverInitChronos} from "../internalTools.js";
-import {nEvents} from "jopi-node-space";
+import {nEvents, nFS} from "jopi-node-space";
 import {getHydrateComponents} from "../hydrate.ts";
 import {generateScript} from "./scripts.ts";
 import {getBundleDirPath} from "./common.ts";
@@ -11,16 +11,18 @@ import {configureServer} from "./server.js";
 export interface CreateBundleEvent {
     entryPoint: string;
     outputDir: string;
+    genDir: string;
     publicUrl: string;
     webSite: WebSite;
     reactComponentFiles: string[];
     config: BundlerConfig,
-    extraCssToBundle: string[];
+    requireTailwind: boolean;
 
     promise?: Promise<void>;
 
     out_dirToServe?: string;
-    out_entryPoint?: string;
+    out_jsEntryPoint?: string;
+    out_cssEntryPoint?: string;
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
@@ -28,21 +30,31 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
     const reactComponentFiles = getHydrateComponents();
 
-    // Note: outputDir is deleted at startup by jopi-loader.
-    const outputDir = getBundleDirPath(webSite);
+    const genDir = getBundleDirPath(webSite);
+    const outputDir = nFS.join(genDir, "out");
+
+    // Reset the dir.
+    await nFS.rmDir(genDir);
+    await nFS.mkDir(genDir);
 
     const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
-    const entryPoint = await generateScript(outputDir, reactComponentFiles);
+    const requireTailwind: boolean = getBundlerConfig().tailwind.disable !== true;
+
+    const cssToImport = [...getExtraCssToBundle()];
+    if (requireTailwind) cssToImport.push("./tailwind.css");
+
+    const entryPoint = await generateScript(genDir, reactComponentFiles, cssToImport);
 
     const data: CreateBundleEvent = {
-        entryPoint, outputDir, publicUrl, webSite,
+        entryPoint, outputDir, genDir, publicUrl, webSite,
         reactComponentFiles: Object.values(reactComponentFiles),
         config: getBundlerConfig(),
-        extraCssToBundle: getExtraCssToBundle(),
+        requireTailwind,
 
-        //Default value
+        //Default values
         out_dirToServe: outputDir,
-        out_entryPoint: "loader.js"
+        out_jsEntryPoint: "loader.js",
+        out_cssEntryPoint: "loader.css"
     };
 
     // Set a default hash. Must be replaced by bundler.
@@ -50,7 +62,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
     await execute(data);
 
-    configureServer(data.out_dirToServe!, data.out_entryPoint!);
+    configureServer(data.out_dirToServe!, data.out_jsEntryPoint!, data.out_cssEntryPoint!);
     serverInitChronos.end();
 }
 

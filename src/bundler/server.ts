@@ -1,5 +1,4 @@
 import {JopiRequest} from "../jopiRequest.ts";
-import {getBundleDirPath} from "./common.ts";
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.js";
 
 export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
@@ -8,18 +7,24 @@ export async function handleBundleRequest(req: JopiRequest): Promise<Response> {
     return req.serverFromDir(gDirToServe!);
 }
 
-export function getBundleUrl(webSite: WebSite): string {
+function getBundleUrl(webSite: WebSite): string {
     return (webSite as WebSiteImpl).welcomeUrl + "/_bundle";
 }
 
-export function configureServer(dirPath: string, entryPointFileName: string) {
-    gDirToServe = dirPath;
-    gEntryPointFileName = entryPointFileName;
+export function getBundleEntryPointUrl_JS(webSite: WebSite): string {
+    return getBundleUrl(webSite) + '/' + gJsEntryPointFileName;
 }
 
-export function getBundleEntryPointUrl(webSite: WebSite): string {
-    return getBundleUrl(webSite) + '/' + gEntryPointFileName;
+export function getBundleEntryPointUrl_CSS(webSite: WebSite): string {
+    return getBundleUrl(webSite) + '/' + gCssEntryPointFileName;
+}
+
+export function configureServer(dirPath: string, jsEntryPointFileName: string, cssEntryPointFileName?: string) {
+    gDirToServe = dirPath;
+    gJsEntryPointFileName = jsEntryPointFileName;
+    gCssEntryPointFileName = cssEntryPointFileName;
 }
 
 let gDirToServe: string|undefined;
-let gEntryPointFileName: string|undefined;
+let gJsEntryPointFileName: string|undefined;
+let gCssEntryPointFileName: string|undefined;

@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from "react-router";
 import {ModuleInitContext_UI, Page} from "jopi-rewrite-ui";
 import NodeSpace from "jopi-node-space";
+//[IMPORT]
 
 const jopiComposites = {};
 const jopiHydrate = { components: {} };

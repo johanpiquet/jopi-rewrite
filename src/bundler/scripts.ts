@@ -8,9 +8,22 @@ const isWin32 = process.platform == "win32";
 const gGenerateScriptPlugins: GeneratedScriptPlugin[] = [];
 type GeneratedScriptPlugin = (script: string, outDir: string) => Promise<string>;
 
-export async function generateScript(outputDir: string, components: {[key: string]: string}): Promise<string> {
+export async function generateScript(genDir: string, components: {[key: string]: string}, extraCssToBundle: string[]): Promise<string> {
     try {
-        let declarations = "";
+        let tplDeclarations = "";
+        let tplInit = "";
+        let tplPlugins = "";
+        let tplImport = "";
+
+        //region Import CSS
+
+        for (const cssPath of extraCssToBundle) {
+            tplImport += `import "${cssPath}";\n`;
+        }
+
+        //endregion
+
+        //region Adds key to components binding
 
         for (const componentKey in components) {
             let componentPath = NodeSpace.app.requireSourceOf(components[componentKey]);
@@ -18,35 +31,28 @@ export async function generateScript(outputDir: string, components: {[key: strin
             // Patch for windows. Require a linux-like path.
             if (isWin32) componentPath = pathToFileURL(componentPath).href.substring("file:///".length);
 
-            declarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
-        }
-
-        //region UiComposites
-
-        for (const compositeName in getAllUiComposites()) {
-            const items = getUiCompositeItems(compositeName);
-
-            declarations += `\n\njopiComposites["${compositeName}"] = [`
-
-            for (let item of items) {
-                declarations += `\n    lazy(() => import("${item.filePath}")),`;
-            }
-
-            declarations += `\n];`
+            tplDeclarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
         }
 
         //endregion
 
-        let template = await loadCodeGenTemplate("template_main.jsx");
+        //region Add composite components
 
-        let script = template.replace("//[DECLARE]", declarations);
-        let scriptPlugins = "";
+        for (const compositeName in getAllUiComposites()) {
+            const items = getUiCompositeItems(compositeName);
 
-        for (let plugin of gGenerateScriptPlugins) {
-            scriptPlugins = await plugin(scriptPlugins, outputDir);
+            tplDeclarations += `\n\njopiComposites["${compositeName}"] = [`
+
+            for (let item of items) {
+                tplDeclarations += `\n    lazy(() => import("${item.filePath}")),`;
+            }
+
+            tplDeclarations += `\n];`
         }
 
-        //region ON_INIT
+        //endregion
+
+        //region Add initialisation steps
 
         let toImport = "Promise.all([";
 
@@ -55,13 +61,25 @@ export async function generateScript(outputDir: string, components: {[key: strin
         }
         toImport += "\n]).then(mod_onAllModInitialized)";
 
-        script = script.replace("//[ON_INIT]", toImport);
+        tplInit += toImport;
 
         //endregion
 
-        script = script.replace("//[PLUGINS]", scriptPlugins);
+        //region Load plugins
 
-        const filePath = path.join(outputDir, "loader.jsx");
+        for (let plugin of gGenerateScriptPlugins) {
+            tplPlugins = await plugin(tplPlugins, genDir);
+        }
+
+        //endregion
+
+        let script = await loadCodeGenTemplate("template_main.jsx");
+        script = script.replace("//[IMPORT]", tplImport);
+        script = script.replace("//[DECLARE]", tplDeclarations);
+        script = script.replace("//[ON_INIT]", tplInit);
+        script = script.replace("//[PLUGINS]", tplPlugins);
+
+        const filePath = path.join(genDir, "loader.jsx");
         await NodeSpace.fs.writeTextToFile(filePath, script, true);
 
         return filePath;
