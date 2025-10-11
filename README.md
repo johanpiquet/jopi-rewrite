@@ -37,6 +37,11 @@ to process them, and in the same time the new version will process the new incom
     * Is fast, thanks to a blazing fast compiler!
     * Browser auto-refresh: save and the browser refresh instantly!
 
+# No natif Windows support
+
+**For performance reasons, this project is not compatible with Windows OS.**
+**Use WSL2 if you use Windows.**
+
 # Tutorials
 
 You can found articles and tutorials on my Dev.to page [link](https://dev.to/johanpiquet).
