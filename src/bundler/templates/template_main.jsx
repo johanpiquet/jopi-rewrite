@@ -29,9 +29,10 @@ function patchRoutes(routes) {
             if (route.Component) {
                 const routePath = route.Component;
                 const C = jopiHydrate.components[routePath];
+                const myKey = routePath;
 
                 route.Component = () => {
-                    return <Page><C/></Page>;
+                    return <Page key={myKey}><C/></Page>;
                 }
             }
 
