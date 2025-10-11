@@ -12,12 +12,12 @@ const impl: ServerImpl = {
 
                 websocket: {
                     async message(ws, message) {
-                        let listener = (ws.data as WebSocketData).onMessage;
+                        let listener = (ws.data as unknown as WebSocketData).onMessage;
                         if (listener) listener(message);
                     },
 
                     async open(ws) {
-                        const data = ws.data as WebSocketData;
+                        const data = ws.data as unknown as WebSocketData;
                         onWebSocketConnection(ws as unknown as WebSocket, data as WebSocketConnectionInfos);
 
                         // Clean-up.
@@ -26,7 +26,7 @@ const impl: ServerImpl = {
                     },
 
                     close(ws, code, reason) {
-                        let listener = (ws.data as WebSocketData).onClosed;
+                        let listener = (ws.data as unknown as WebSocketData).onClosed;
                         if (listener) listener(code, reason);
                     }
                 },
@@ -36,7 +36,8 @@ const impl: ServerImpl = {
                     if (req.headers.get("upgrade") === "websocket") {
                         // We will automatically have a call to websocket.open once ok.
                         const success = server.upgrade(req, {
-                            data: {url: req.url, headers: req.headers} as WebSocketData
+                            // @ts-ignore
+                            data: {url: req.url, headers: req.headers} as unknown as WebSocketData
                         });
 
                         if (success) return undefined;
@@ -55,7 +56,7 @@ const impl: ServerImpl = {
     },
 
     updateSslCertificate(server: ServerInstance, options: StartServerOptions, newSslCertificate: any|any[]|undefined): void {
-        const bunServer = server as Bun.Server
+        const bunServer = server as Bun.Server<unknown>
         options.tls = newSslCertificate;
 
         // Will reload without breaking the current connections.
