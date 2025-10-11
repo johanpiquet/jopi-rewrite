@@ -7,7 +7,7 @@ With Jopi Rewrite you will quickly be able to:
 
 ✓ Build a **high-performance** server application.  
 ✓ Do **React SSR** and **React Hydrate** (like NextJS).  
-✓ With file router, where a simple file declares a route and his content (also like NextJS).
+✓ With file router, where a simple file declares a route and his content (also like NextJS).  
 ✓ Tailwind and PostCSS support pre-configured in the engine.  
 ✓ Use **JWT Token** for authentification.  
 ✓ Use **LetsEncrypt** for HTTPS, with autorenew (without restart).  

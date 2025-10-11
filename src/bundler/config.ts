@@ -5,7 +5,7 @@ export type PostCssInitializer = (sources: string[], tailwindPlugin:  postcss.Ac
 
 export interface BundlerConfig {
     tailwind: {
-        template?: string;
+        globalCssContent?: string;
         disable?: boolean;
         config?: TailwindConfig;
         extraSourceFiles?: string[];

@@ -1502,8 +1502,8 @@ class GlobalConfigBuilder {
                 return this.configure_tailwindProcessor();
             },
 
-            setCssTemplate: (template: string) => {
-                getBundlerConfig().tailwind.template = template;
+            setGlobalCssContent: (template: string) => {
+                getBundlerConfig().tailwind.globalCssContent = template;
                 return this.configure_tailwindProcessor();
             },
 
@@ -1516,10 +1516,11 @@ class GlobalConfigBuilder {
              * Allows adding extra-sources files to scan.
              * Can also be motifs. Ex: "./myDir/*.{js,ts,jsx,tsx}"
              */
-            addExtraSourceFiles(...files: string[]) {
+            addExtraSourceFiles: (...files: string[]) => {
                 const config = getBundlerConfig().tailwind;
                 if (!config.extraSourceFiles) config.extraSourceFiles = [];
                 config.extraSourceFiles.push(...files);
+                return this.configure_tailwindProcessor();
             }
         }
     }
