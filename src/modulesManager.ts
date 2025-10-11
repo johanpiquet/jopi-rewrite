@@ -71,7 +71,7 @@ export class ModulesManager {
 
             if (exportDefault && typeof exportDefault === "function") {
                 // Will allows an init inside the browser.
-                gUiInitFiles.push(file);
+                gUiInitFiles.push(nApp.getSourcesCodePathFor(file));
 
                 (this.webSite as WebSiteImpl).addPageRenderInitializer(exportDefault);
             }

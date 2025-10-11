@@ -20,6 +20,8 @@ export interface CreateBundleEvent {
     requireTailwind: boolean;
     virtualUrlMap: VirtualUrlEntry[];
 
+    enableUiWatch?: boolean;
+
     promise?: Promise<void>;
 
     out_dirToServe?: string;
@@ -48,12 +50,17 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
     const entryPoint = await generateScript(genDir, reactComponentFiles, cssToImport);
 
+    const enableUiWatch = (process.env.JOPI_UI_WATCH === "1")
+        || process.argv.includes("--jopi-ui-watch");
+
     const data: CreateBundleEvent = {
         entryPoint, outputDir, genDir, publicUrl, webSite,
         reactComponentFiles: Object.values(reactComponentFiles),
         config: getBundlerConfig(),
         requireTailwind,
         virtualUrlMap: getVirtualUrlMap(),
+
+        enableUiWatch,
 
         //Default values
         out_dirToServe: outputDir,
