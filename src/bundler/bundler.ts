@@ -50,8 +50,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
     const entryPoint = await generateScript(genDir, reactComponentFiles, cssToImport);
 
-    const enableUiWatch = (process.env.JOPI_UI_WATCH === "1")
-        || process.argv.includes("--jopi-ui-watch");
+    const enableUiWatch = process.env.JOPI_DEV_UI === "1";
 
     const data: CreateBundleEvent = {
         entryPoint, outputDir, genDir, publicUrl, webSite,
