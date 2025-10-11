@@ -8,6 +8,7 @@ export interface BundlerConfig {
         template?: string;
         disable?: boolean;
         config?: TailwindConfig;
+        extraSourceFiles?: string[];
     },
 
     postCss: {
