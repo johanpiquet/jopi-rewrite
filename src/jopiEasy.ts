@@ -1521,6 +1521,12 @@ class GlobalConfigBuilder {
                 if (!config.extraSourceFiles) config.extraSourceFiles = [];
                 config.extraSourceFiles.push(...files);
                 return this.configure_tailwindProcessor();
+            },
+
+            setGlobalCssFilePath: (filePath: string) => {
+                const config = getBundlerConfig().tailwind;
+                config.globalCssFilePath = filePath;
+                return this.configure_tailwindProcessor();
             }
         }
     }
