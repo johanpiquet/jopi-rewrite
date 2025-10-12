@@ -1,0 +1,1 @@
+export type UiText = string | React.ReactNode;
