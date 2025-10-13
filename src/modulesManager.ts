@@ -1,11 +1,11 @@
 import path from "node:path";
-import NodeSpace, {EventPriority} from "jopi-node-space";
-import {type WebSite, WebSiteImpl} from "./jopiWebSite.js";
+import NodeSpace from "jopi-node-space";
+import ns_events, {EventPriority} from "jopi-node-space/ns_events";
+import {type WebSite, WebSiteImpl} from "./jopiWebSite.ts";
 import React from "react";
 
 const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
-const nEvents = NodeSpace.events;
 
 //region ModuleManager
 
@@ -35,11 +35,11 @@ export class ModulesManager {
             await this.initModule(moduleDirPath);
         }
 
-        nEvents.sendEvent("app.init.server");
+        ns_events.sendEvent("app.init.server");
     }
 
     addInitializer(priority: EventPriority, initializer: ()=>Promise<void>) {
-        nEvents.addListener("app.init.server", priority, initializer);
+        ns_events.addListener("app.init.server", priority, initializer);
     }
 
     private async initModule(moduleDirPath: string) {

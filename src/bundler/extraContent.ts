@@ -1,5 +1,5 @@
 import {addVirtualUrlEntry, type VirtualUrlEntry} from "@jopi-loader/tools";
-import {nEvents} from "jopi-node-space";
+import ns_events from "jopi-node-space/ns_events";
 
 /**
  * Add a CSS file which must be bundled with the page.
@@ -18,7 +18,7 @@ export function getExtraCssToBundle(): string[] {
     return gAllCssFiles;
 }
 
-nEvents.addListener<VirtualUrlEntry>("jopi.virtualUrl.added", (v) => {
+ns_events.addListener<VirtualUrlEntry>("jopi.virtualUrl.added", (v) => {
     if (!v.url) debugger;
 
     if (v.url && v.url.endsWith(".css") || v.url.endsWith(".scss")) {

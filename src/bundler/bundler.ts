@@ -1,6 +1,7 @@
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.tsx";
 import {serverInitChronos} from "../internalTools.ts";
-import {nEvents, nFS} from "jopi-node-space";
+import {nFS} from "jopi-node-space";
+import ns_events from "jopi-node-space/ns_events";
 import {getHydrateComponents} from "../hydrate.tsx";
 import {generateScript} from "./scripts.ts";
 import {getBundleDirPath} from "./common.ts";
@@ -81,7 +82,7 @@ async function execute(data: CreateBundleEvent, useFallback = true) {
     // through the use of event priority. The default
     // bundle has a very low priority.
     //
-    nEvents.sendEvent("jopi.server.bundle.createBundle", data);
+    ns_events.sendEvent("jopi.server.bundle.createBundle", data);
 
     if (data.promise) {
         // Mean it's handled.
