@@ -13,7 +13,6 @@
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
   "engines": {
-    "bun": "^1.2.18",
     "node": ">=22.18.0"
   },
   "main": "dist/index.js",
