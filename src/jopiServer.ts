@@ -17,9 +17,9 @@ import NodeSpace from "jopi-node-space";
 import bunJsServer from "./serverImpl/server_bunjs.js";
 import nodeJsServer from "./serverImpl/server_nodejs.js";
 import {getImportTransformConfig} from "@jopi-loader/tools";
+import * as ns_os from "jopi-node-space/ns_os";
 
 const nFS = NodeSpace.fs;
-const nOS = NodeSpace.os;
 
 class JopiServer {
     private readonly webSites: WebSiteMap = {};
@@ -165,11 +165,11 @@ class JopiServer {
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
 
         if (!await nFS.isFile(certFilePath)) {
-            let mkCertToolPath = NodeSpace.os.whichSync("mkcert");
+            let mkCertToolPath = ns_os.whichSync("mkcert");
 
             if (mkCertToolPath) {
                 await fs.mkdir(sslDirPath, {recursive: true});
-                await nOS.exec(`cd ${sslDirPath}; ${mkCertToolPath} -install; ${mkCertToolPath} --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
+                await ns_os.exec(`cd ${sslDirPath}; ${mkCertToolPath} -install; ${mkCertToolPath} --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
             } else {
                 throw "Can't generate certificate, mkcert tool not found. See here for installation: https://github.com/FiloSottile/mkcert";
             }

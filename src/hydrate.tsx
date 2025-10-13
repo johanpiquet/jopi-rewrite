@@ -5,9 +5,9 @@ import React from "react";
 import {setHandler_bundleExternalCss, setHandler_mustHydrate, useCssModule} from "jopi-rewrite-ui";
 import {fileURLToPath, pathToFileURL} from "node:url";
 import {addExtraCssToBundle} from "./bundler/extraContent.ts";
+import * as ns_crypto from "jopi-node-space/ns_crypto";
 
 const nFS = NodeSpace.fs;
-const nCrypto = NodeSpace.crypto;
 
 export function hasHydrateComponents() {
     return gHasComponents;
@@ -26,7 +26,7 @@ interface JopiHydrateProps {
 
 function useHydrateComponent(importMeta: { filename: string }): string {
     if (NodeSpace.what.isServerSide) {
-        const key = nCrypto.fastHash(importMeta.filename).toString();
+        const key = ns_crypto.fastHash(importMeta.filename).toString();
         const filePath = importMeta.filename;
 
         const currentFilePath = gHydrateComponents[key];
