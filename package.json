@@ -28,10 +28,22 @@
     "LICENSE"
   ],
   "scripts": {
-    "clean": "npm --prefix @core run child:clean && npm --prefix @ui run child:clean && npm --prefix @uikit run child:clean",
-    "build": "npm --prefix @core run child:build && npm --prefix @ui run child:build && npm --prefix @uikit run child:build",
+    "clean": "npx npm-run-all -l -s clean:*",
+    "build": "npx npm-run-all -l -s build:*",
     "bun-publish": "bun publish",
-    "untrack": "git rm -r --cached -- ./dist/**;"
+    "untrack": "git rm -r --cached -- ./dist/**;",
+
+    "build:@1_ui": "npm --prefix @ui run build",
+    "build:@2_core": "npm --prefix @core run build",
+    "build:@3_bundler": "npm --prefix @bundler run build",
+    "build:@4_crawler": "npm --prefix @crawler run build",
+    "build:@5_uikit": "npm --prefix @uikit run build",
+
+    "clean:@bundler": "npm --prefix @bundler run clean",
+    "clean:@core": "npm --prefix @core run clean",
+    "clean:@crawler": "npm --prefix @crawler run clean",
+    "clean:@ui": "npm --prefix @ui run clean",
+    "clean:@uikit": "npm --prefix @uikit run clean"
   },
 
   "devDependencies": {
@@ -68,6 +80,7 @@
     ".": "./@core/dist/index.js",
     "./ui": "./@ui/dist/index.js",
     "./uikit": "./@uikit/dist/index.js",
-    "./bundler": "./@bundler/dist/index.js"
+    "./bundler": "./@bundler/dist/index.js",
+    "./crawler": "./@crawler/dist/index.js"
   }
 }
