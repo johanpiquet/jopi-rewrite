@@ -22,46 +22,60 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "files": [
-    "@core/dist",
-    "@uikit/dist",
+    "@*/dist",
+    "@loader/loader.mjs",
+    "@loader-client/deps",
     "README.md",
     "LICENSE"
   ],
+
+  "bin": {
+    "jopin": "@tool-jopinb/bin/jopin.js",
+    "jopib": "@tool-jopinb/bin/jopib.js"
+  },
+
   "scripts": {
     "clean": "npx npm-run-all -l -s clean:*",
     "build": "npx npm-run-all -l -s build:*",
     "bun-publish": "bun publish",
     "untrack": "git rm -r --cached -- ./dist/**;",
 
-    "build:@1_ui": "npm --prefix @ui run build",
-    "build:@2_crawler": "npm --prefix @crawler run build",
-    "build:@3_core": "npm --prefix @core run build",
-    "build:@4_bundler": "npm --prefix @bundler run build",
-    "build:@5_uikit": "npm --prefix @uikit run build",
+    "build:@1a_ui": "npm --prefix @ui run build",
+    "build:@1b_crawler": "npm --prefix @crawler run build",
+    "build:@2a_loader-tools": "npm --prefix @loader-tools run build",
+    "build:@2b_loader-client": "npm --prefix @loader-client run build",
+    "build:@2c_loader": "npm --prefix @loader run build",
+    "build:@3a_core": "npm --prefix @core run build",
+    "build:@3b_bundler": "npm --prefix @bundler run build",
+    "build:@4a_uikit": "npm --prefix @uikit run build",
 
-    "clean:@bundler": "npm --prefix @bundler run clean",
-    "clean:@core": "npm --prefix @core run clean",
-    "clean:@crawler": "npm --prefix @crawler run clean",
+    "build:@tool-jopinb": "npm --prefix @tool-jopinb run build",
+
     "clean:@ui": "npm --prefix @ui run clean",
-    "clean:@uikit": "npm --prefix @uikit run clean"
+    "clean:@crawler": "npm --prefix @crawler run clean",
+    "clean:@loader-tools": "npm --prefix @uikit run clean",
+    "clean:@loader-clients": "npm --prefix @uikit run clean",
+    "clean:@loader": "npm --prefix @uikit run clean",
+    "clean:@core": "npm --prefix @core run clean",
+    "clean:@bundler": "npm --prefix @bundler run clean",
+    "clean:@uikit": "npm --prefix @uikit run clean",
+
+    "clean:@tool-jopinb": "npm --prefix @tool-jopinb run clean"
   },
 
   "devDependencies": {
     "@types/bun": "latest",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@jopi-loader/client": "*",
-    "@jopi-loader/tools": "*",
-    "@jopi-loader/types": "*",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/ws": "^8.18.1"
+    "@types/ws": "^8.18.1",
+    "@types/postcss-url": "^10.0.4"
   },
 
   "dependencies": {
     "acme-client": "^5.4.0",
     "cheerio": "^1.1.2",
     "css-url-parser": "^1.1.4",
-    "jopi-loader": "*",
     "jopi-node-space": "*",
     "jsonwebtoken": "^9.0.2",
     "postcss": "^8.5.6",
@@ -72,7 +86,13 @@
     "ws": "^8.18.3",
     "@tailwindcss/postcss": "^4.1.12",
     "tailwindcss": "^4.1.12",
-    "esbuild": "=0.25.9"
+    "esbuild": "=0.25.9",
+
+    "chokidar": "^4.0.3",
+    "postcss-modules": "^6.0.1",
+    "postcss-url": "^10.1.3",
+    "sass": "^1.90.0",
+    "strip-json-comments": "^5.0.3"
   },
 
   "exports": {
@@ -80,6 +100,14 @@
     "./ui": "./@ui/dist/index.js",
     "./uikit": "./@uikit/dist/index.js",
     "./bundler": "./@bundler/dist/index.js",
-    "./crawler": "./@crawler/dist/index.js"
+    "./crawler": "./@crawler/dist/index.js",
+
+    "./loader": "./@loader/dist/index.js",
+    "./loader/loader.mjs": "./@loader/loader.mjs",
+    "./loader-tools": "./@loader-tools/dist/index.js",
+    "./loader-client": "./@loader-client/dist/index.js",
+
+    "./types": "./@loader-types/extensions.d.ts",
+    "./tool-jopinb": "./@tool-jopinb/dist/index.js"
   }
 }

@@ -6,7 +6,7 @@ import {ReactRouterManager} from "./reactRouterManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
 import type {ServerInstance, WebSocketConnectionInfos} from "./jopiServer.ts";
-import {declareServerReady} from "@jopi-loader/client";
+import {declareServerReady} from "jopi-rewrite/loader-client";
 import {PostMiddlewares} from "./middlewares/index.ts";
 import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";

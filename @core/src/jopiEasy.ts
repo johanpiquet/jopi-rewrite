@@ -40,7 +40,7 @@ import {
 import type {PageCache} from "./caches/cache.js";
 import {getServer, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
-import {getImportTransformConfig} from "@jopi-loader/tools";
+import {getImportTransformConfig} from "jopi-rewrite/loader-tools";
 
 serverInitChronos.start("jopiEasy lib");
 

@@ -8,7 +8,7 @@ import {getBundleDirPath} from "./common.ts";
 import {type BundlerConfig, getBundlerConfig} from "./config.ts";
 import {getExtraCssToBundle} from "./extraContent.ts";
 import {configureServer} from "./server.ts";
-import {getVirtualUrlMap, type VirtualUrlEntry} from "@jopi-loader/tools";
+import {getVirtualUrlMap, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
 
 export interface CreateBundleEvent {
     entryPoint: string;

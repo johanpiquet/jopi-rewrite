@@ -6,7 +6,7 @@ import React, {type ReactNode} from "react";
 import {PageController_ExposePrivate, type PageOptions, renderPage} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
-import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "@jopi-loader/client";
+import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import {ZodObject, ZodError} from "zod";
 

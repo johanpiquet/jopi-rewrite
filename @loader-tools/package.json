@@ -1,0 +1,8 @@
+{
+  "type": "module",
+
+  "scripts": {
+    "build": "npx tsc",
+    "clean": "rm -rf ./dist .turbo tsconfig.tsbuildinfo"
+  }
+}

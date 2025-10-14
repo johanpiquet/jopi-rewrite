@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {declareApplicationStopping as jlOnAppStopping, mustWaitServerReady} from "@jopi-loader/client";
+import {declareApplicationStopping as jlOnAppStopping, mustWaitServerReady} from "jopi-rewrite/loader-client";
 import path from "node:path";
 
 import fs from "node:fs/promises";
@@ -20,7 +20,7 @@ import {isBunJS} from "jopi-node-space/ns_what";
 
 import bunJsServer from "./serverImpl/server_bunjs.js";
 import nodeJsServer from "./serverImpl/server_nodejs.js";
-import {getImportTransformConfig} from "@jopi-loader/tools";
+import {getImportTransformConfig} from "jopi-rewrite/loader-tools";
 
 
 class JopiServer {

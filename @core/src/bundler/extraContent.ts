@@ -1,4 +1,4 @@
-import {addVirtualUrlEntry, type VirtualUrlEntry} from "@jopi-loader/tools";
+import {addVirtualUrlEntry, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
 import * as ns_events from "jopi-node-space/ns_events";
 
 /**

@@ -1,9 +1,9 @@
 import esbuild, {type BuildResult, type Plugin} from "esbuild";
 import fs from "node:fs/promises";
-import {installEsBuildPlugins} from "@jopi-loader/tools";
+import {installEsBuildPlugins} from "jopi-rewrite/loader-tools";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import * as n_what from "jopi-node-space/ns_what";
-import {askRefreshingBrowser} from "@jopi-loader/client";
+import {askRefreshingBrowser} from "jopi-rewrite/loader-client";
 
 export interface EsBuildParams {
     entryPoint: string;

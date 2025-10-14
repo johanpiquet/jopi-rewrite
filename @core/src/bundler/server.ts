@@ -1,5 +1,5 @@
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.js";
-import {getVirtualUrlMap, type VirtualUrlEntry} from "@jopi-loader/tools";
+import {getVirtualUrlMap, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
 
 /**
  * Server the /_bundle and /_bundle_s directories.
