@@ -18,6 +18,7 @@ It will start at the time of the first request, then automatically shut down aft
 
 ```typescript
 import {jopiApp} from "jopi-rewrite";
+import * as ns_timer from "jopi-node-space/ns_timer";
 
 jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")
@@ -33,7 +34,7 @@ jopiApp.startApp(import.meta, jopiEasy => {
 
             // Allows stopping the server after 10 minutes
             // if not request are emitted for this server.
-            return NodeSpace.timer.ONE_MINUTE * 10;
+            return ns_timer.ONE_MINUTE * 10;
         })
 
         // Allow stopping the remote server.

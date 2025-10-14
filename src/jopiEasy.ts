@@ -2,7 +2,8 @@
 
 import path from "node:path";
 import fsc from "node:fs";
-import NodeSpace, {nTimer} from "jopi-node-space";
+import NodeSpace from "jopi-node-space";
+import * as ns_timer from "jopi-node-space/ns_timer";
 
 import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
@@ -1070,7 +1071,7 @@ async function autoStartServer() {
     if (gIsAutoStartDone) return;
     gIsAutoStartDone = true;
 
-    await nTimer.tick(5);
+    await ns_timer.tick(5);
     await myServer.startServer();
 }
 
@@ -1480,7 +1481,7 @@ class JwtTokenAuth_Builder {
     setTokenStore_useCookie(expirationDuration_hours: number = 3600) {
         this.internals.afterHook.push(async webSite => {
             webSite.setJwtTokenStore((token, cookieValue, req, res) => {
-                req.addCookie(res, "authorization", cookieValue, {maxAge: NodeSpace.timer.ONE_HOUR * expirationDuration_hours})
+                req.addCookie(res, "authorization", cookieValue, {maxAge: ns_timer.ONE_HOUR * expirationDuration_hours})
             });
         });
 

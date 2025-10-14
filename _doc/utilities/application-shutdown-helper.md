@@ -9,10 +9,12 @@ It's useful if you have resource to clean.
  
 ```typescript
 import {getServer, jopiApp} from "jopi-rewrite";
+import * as ns_timer from "jopi-node-space/ns_timer";
+import * as ns_app from "jopi-node-space/ns_app";
 
-NodeSpace.app.onAppExiting(async () => {
+ns_app.onAppExiting(async () => {
     console.log("App exiting...");
-    await NodeSpace.timer.tick(2000);
+    await ns_timer.tick(2000);
     console.log("App Exited!");
 });
 

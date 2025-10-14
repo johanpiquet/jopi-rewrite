@@ -345,7 +345,7 @@ jopiApp.startApp(import.meta, jopiEasy => {
                 req.extendTimeout_sec(5);
 
                 // Pause of 10 seconds.
-                await NodeSpace.timer.tick(10 * 1000);
+                await ns_timer.tick(10 * 1000);
 
                 return req.htmlResponse("I will be interupted before ...")
             })

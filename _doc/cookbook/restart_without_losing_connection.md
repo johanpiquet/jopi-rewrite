@@ -75,7 +75,7 @@ This function is similar to setInterval, but with three differences:
 ```typescript
 const myRandom = Math.trunc(Math.random() * 1000);
 
-NodeSpace.timer.newInterval(1000, () => {
+ns_timer.newInterval(1000, () => {
     console.log("Timer (newInterval)", myRandom);
     // returning false stop the timer.
     //return false;

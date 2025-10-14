@@ -1,10 +1,8 @@
 import * as acme from 'acme-client';
 import {type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 import path from "node:path";
-import NodeSpace from "jopi-node-space";
+import * as ns_timer from "jopi-node-space/ns_timer";
 import * as ns_fs from "jopi-node-space/ns_fs";
-
-const nTimer = NodeSpace.timer;
 
 export type OnTimeoutError = (webSite: WebSite, isRenew: boolean) => void;
 
@@ -231,7 +229,7 @@ function startCron() {
     if (gIsCronStarted) return;
     gIsCronStarted = true;
 
-    nTimer.newInterval(nTimer.ONE_DAY, () => {
+    ns_timer.newInterval(ns_timer.ONE_DAY, () => {
         gWebsiteToCheck.forEach(ce => checkWebSite(ce.webSite, ce.params, true));
     });
 }

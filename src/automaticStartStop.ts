@@ -1,7 +1,8 @@
 import NodeSpace from "jopi-node-space";
+import * as ns_timer from "jopi-node-space/ns_timer";
 
-const ONE_MINUTE = NodeSpace.timer.ONE_MINUTE;
-const newInterval = NodeSpace.timer.newInterval;
+const ONE_MINUTE = ns_timer.ONE_MINUTE;
+const newInterval = ns_timer.newInterval;
 
 export enum AutomaticStartStopState { Stopped, Starting, Started, Stopping }
 

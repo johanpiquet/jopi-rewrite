@@ -1,9 +1,9 @@
 import type {ServerFetch} from "./serverFetch.ts";
 import {type SendingBody} from "./jopiWebSite.tsx";
 import {JopiRequest} from "./jopiRequest.js";
-import NodeSpace from "jopi-node-space";
+import * as ns_timer from "jopi-node-space/ns_timer";
 
-const newInterval = NodeSpace.timer.newInterval;
+const newInterval = ns_timer.newInterval;
 
 export class LoadBalancer {
     private readonly servers: Server[] = [];
