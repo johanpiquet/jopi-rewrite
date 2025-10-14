@@ -3,8 +3,7 @@ import https from "node:https";
 import type {ServerImpl, ServerInstance, ServerSocketAddress, StartServerOptions} from "../jopiServer.ts";
 import {WebSocketServer} from "ws";
 import NodeSpace from "jopi-node-space";
-
-const nFS = NodeSpace.fs;
+import * as ns_fs from "jopi-node-space/ns_fs";
 
 class NodeServer implements ServerInstance {
     private readonly server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
@@ -14,7 +13,7 @@ class NodeServer implements ServerInstance {
             const headers = new Headers(req.headers as any);
 
             const method = req.method!;
-            const body = (method == "GET" || method === "HEAD") ? undefined : nFS.nodeStreamToWebStream(req);
+            const body = (method == "GET" || method === "HEAD") ? undefined : ns_fs.nodeStreamToWebStream(req);
 
             // req doesn't allow knowing if we are http or https.
             const webReq = new Request("https://" + req.headers.host! + req.url!, {
@@ -36,7 +35,7 @@ class NodeServer implements ServerInstance {
             res.writeHead(webRes.status, asJson);
 
             if (webRes.body) {
-                const asNodeStream = nFS.webStreamToNodeStream(webRes.body);
+                const asNodeStream = ns_fs.webStreamToNodeStream(webRes.body);
                 asNodeStream.pipe(res);
             }
         }

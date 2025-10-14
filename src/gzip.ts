@@ -5,7 +5,7 @@ import {createReadStream, createWriteStream} from "node:fs";
 import {createGunzip, createGzip} from "node:zlib";
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import NodeSpace from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 
 export async function gzipFile(inputPath: string, outputPath: string) {
     try {
@@ -29,5 +29,5 @@ export async function mkDirForFile(filePath: string): Promise<void> {
 }
 
 export async function saveReadableStreamToFile(filePath: string, stream: ReadableStream<Uint8Array>) {
-    await NodeSpace.fs.writeResponseToFile(new Response(stream), filePath);
+    await ns_fs.writeResponseToFile(new Response(stream), filePath);
 }

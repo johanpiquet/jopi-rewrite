@@ -25,11 +25,10 @@ import {
 
 import {parseCookies} from "./internalTools.ts";
 import NodeSpace from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
 import {getBundleEntryPointUrl_JS, getBundleEntryPointUrl_CSS} from "./bundler/server.ts";
-
-const nFS = NodeSpace.fs;
 
 export class JopiRequest {
     public cache: PageCache;
@@ -986,10 +985,10 @@ export class JopiRequest {
     }
 
     async tryReturnFile(filePath: string): Promise<Response|undefined> {
-        const stats = await nFS.getFileStat(filePath);
+        const stats = await ns_fs.getFileStat(filePath);
 
         if (stats && stats.isFile()) {
-            let contentType = nFS.getMimeTypeFromName(filePath);
+            let contentType = ns_fs.getMimeTypeFromName(filePath);
             const contentLength = stats.size;
 
             const headers: any = {
@@ -997,7 +996,7 @@ export class JopiRequest {
                 "content-length": contentLength.toString()
             };
 
-            return nFS.createResponseFromFile(filePath, 200, headers);
+            return ns_fs.createResponseFromFile(filePath, 200, headers);
         }
 
         return undefined;

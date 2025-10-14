@@ -2,8 +2,8 @@ import * as acme from 'acme-client';
 import {type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 import path from "node:path";
 import NodeSpace from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 
-const nFS = NodeSpace.fs;
 const nTimer = NodeSpace.timer;
 
 export type OnTimeoutError = (webSite: WebSite, isRenew: boolean) => void;
@@ -36,16 +36,16 @@ enum CertificateState {
 }
 
 async function getCertificateState(certPaths: SslCertificatePath, params: LetsEncryptParams): Promise<CertificateState> {
-    if (!await nFS.isFile(certPaths.cert)) return CertificateState.DontExist;
-    if (!await nFS.isFile(certPaths.key)) return CertificateState.DontExist;
+    if (!await ns_fs.isFile(certPaths.cert)) return CertificateState.DontExist;
+    if (!await ns_fs.isFile(certPaths.key)) return CertificateState.DontExist;
 
     let proofFile = path.join(path.dirname(certPaths.cert), "_updateDate.txt");
-    if (!await nFS.isFile(proofFile)) return CertificateState.DontExist;
+    if (!await ns_fs.isFile(proofFile)) return CertificateState.DontExist;
 
     // Using a file allows copying/paste the file or store it in GitHub.
     // It's better than checking his update date.
     //
-    const sDate = await nFS.readTextFromFile(proofFile);
+    const sDate = await ns_fs.readTextFromFile(proofFile);
     if (!sDate) return CertificateState.DontExist;
 
     const now = new Date();
@@ -69,12 +69,12 @@ function getCertificateDir(certDirPath: string, hostName: string): SslCertificat
 }
 
 async function saveCertificate(certPaths: SslCertificatePath, key: string, cert: string): Promise<void> {
-    await nFS.mkDir(path.dirname(certPaths.cert));
-    await nFS.writeTextToFile(certPaths.key, key);
-    await nFS.writeTextToFile(certPaths.cert, cert);
+    await ns_fs.mkDir(path.dirname(certPaths.cert));
+    await ns_fs.writeTextToFile(certPaths.key, key);
+    await ns_fs.writeTextToFile(certPaths.cert, cert);
 
     let proofFile = path.join(path.dirname(certPaths.cert), "_updateDate.txt");
-    await nFS.writeTextToFile(proofFile, Date.now().toString());
+    await ns_fs.writeTextToFile(proofFile, Date.now().toString());
 }
 
 /**

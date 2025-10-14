@@ -1,6 +1,6 @@
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.tsx";
 import {serverInitChronos} from "../internalTools.ts";
-import {nFS} from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 import ns_events from "jopi-node-space/ns_events";
 import {getHydrateComponents} from "../hydrate.tsx";
 import {generateScript} from "./scripts.ts";
@@ -36,11 +36,11 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     const reactComponentFiles = getHydrateComponents();
 
     const genDir = getBundleDirPath(webSite);
-    const outputDir = nFS.join(genDir, "out");
+    const outputDir = ns_fs.join(genDir, "out");
 
     // Reset the dir.
-    await nFS.rmDir(genDir);
-    await nFS.mkDir(genDir);
+    await ns_fs.rmDir(genDir);
+    await ns_fs.mkDir(genDir);
 
     const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
     // noinspection PointlessBooleanExpressionJS

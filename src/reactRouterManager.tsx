@@ -10,11 +10,11 @@ import {getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {JopiRequest} from "./jopiRequest.ts";
 import NodeSpace from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
 import {addGenerateScriptPlugin, loadCodeGenTemplate} from "./bundler/scripts.ts";
 
-const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
 
 interface RouteInfo {
@@ -62,7 +62,7 @@ export class ReactRouterManager {
                             let idx = dstEntryFullPath.lastIndexOf(".");
                             dstEntryFullPath = dstEntryFullPath.substring(0, idx) + ".js";
 
-                            if (!await nFS.isFile(dstEntryFullPath)) {
+                            if (!await ns_fs.isFile(dstEntryFullPath)) {
                                 throw new Error("No compiled file found for: " + srcDirToScan + "\nExpected: " + dstEntryFullPath);
                             }
                         }

@@ -1,12 +1,11 @@
 import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
 import NodeSpace from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 
 import * as path from "node:path";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {octetToMo, ONE_KILO_OCTET, ONE_MEGA_OCTET} from "../publicTools.ts";
 import {cacheEntryToResponse, makeIterable, readContentLength, responseToCacheEntry} from "../internalTools.ts";
-
-const nFS = NodeSpace.fs;
 
 const clearHotReloadKey = NodeSpace.app.clearHotReloadKey;
 const keepOnHotReload = NodeSpace.app.keepOnHotReload;
@@ -132,16 +131,16 @@ class InMemoryCache implements PageCache {
         await saveReadableStreamToFile(fileUncompressed, response.body as ReadableStream);
         await gzipFile(fileUncompressed, fileGzip);
 
-        const fileGZipSize = await nFS.getFileSize(fileGzip);
+        const fileGZipSize = await ns_fs.getFileSize(fileGzip);
 
         if (fileGZipSize<this.maxContentLength) {
-            let bytes = await nFS.readFileToBytes(fileGzip);
+            let bytes = await ns_fs.readFileToBytes(fileGzip);
             cacheEntry.gzipBinary = bytes.buffer as ArrayBuffer;
             cacheEntry.gzipBinarySize = cacheEntry.gzipBinary.byteLength;
         }
 
-        await nFS.unlink(fileUncompressed);
-        await nFS.unlink(fileGzip);
+        await ns_fs.unlink(fileUncompressed);
+        await ns_fs.unlink(fileGzip);
     }
 
     getCacheEntryIterator(subCacheName?: string): Iterable<CacheEntry> {

@@ -5,9 +5,9 @@ import fss from "node:fs";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {cacheEntryToResponse, makeIterable, responseToCacheEntry} from "../internalTools.ts";
 import NodeSpace from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 import * as ns_crypto from "jopi-node-space/ns_crypto";
 
-const nFS = NodeSpace.fs;
 const nCompress = NodeSpace.compress;
 
 export class SimpleFileCache implements PageCache {
@@ -46,19 +46,19 @@ export class SimpleFileCache implements PageCache {
         }
 
         const filePath = this.calcFilePath(url);
-        await nFS.writeResponseToFile(response, filePath);
+        await ns_fs.writeResponseToFile(response, filePath);
 
         if (!storeUncompressed) {
             await gzipFile(filePath, filePath + " gz");
-            await nFS.unlink(filePath);
+            await ns_fs.unlink(filePath);
         }
 
         if (storeUncompressed) {
-            const result = nFS.createResponseFromFile(filePath, response.status, response.headers);
+            const result = ns_fs.createResponseFromFile(filePath, response.status, response.headers);
             result.headers.delete("content-encoding");
             return result;
         } else {
-            const result = nFS.createResponseFromFile(filePath + " gz", response.status, response.headers);
+            const result = ns_fs.createResponseFromFile(filePath + " gz", response.status, response.headers);
             result.headers.set("content-encoding", "gzip");
             return result;
         }
@@ -67,9 +67,9 @@ export class SimpleFileCache implements PageCache {
     async removeFromCache(url: URL): Promise<void> {
         const filePath = this.calcFilePath(url);
 
-        await nFS.unlink(filePath);
-        await nFS.unlink(filePath + " gz");
-        await nFS.unlink(filePath + " info");
+        await ns_fs.unlink(filePath);
+        await ns_fs.unlink(filePath + " gz");
+        await ns_fs.unlink(filePath + " info");
 
         return Promise.resolve();
     }
@@ -101,8 +101,8 @@ export class SimpleFileCache implements PageCache {
             const baseFilePath = this.calcFilePath(url);
             const filePath = getGzippedVersion ? baseFilePath + " gz" : baseFilePath;
 
-            if (await nFS.isFile(filePath)) {
-                const fileBytes = await nFS.readFileToBytes(filePath);
+            if (await ns_fs.isFile(filePath)) {
+                const fileBytes = await ns_fs.readFileToBytes(filePath);
 
                 if (mustUnzip) {
                     const stream = nCompress.gunzipSync(fileBytes);
@@ -132,7 +132,7 @@ export class SimpleFileCache implements PageCache {
         const filePath = this.calcFilePath(url);
 
         try {
-            return JSON.parse(await nFS.readTextFromFile(filePath + " info"));
+            return JSON.parse(await ns_fs.readTextFromFile(filePath + " info"));
         }
         catch {
             // We are here if the file doesn't exist.
@@ -148,7 +148,7 @@ export class SimpleFileCache implements PageCache {
     private async saveCacheEntry(url: URL, cacheEntry: CacheEntry) {
         const filePath = this.calcFilePath(url) + " info";
         await fs.mkdir(path.dirname(filePath), {recursive: true});
-        await nFS.writeTextToFile(filePath, JSON.stringify(cacheEntry));
+        await ns_fs.writeTextToFile(filePath, JSON.stringify(cacheEntry));
     }
 
     createSubCache(name: string): PageCache {
@@ -159,7 +159,7 @@ export class SimpleFileCache implements PageCache {
     getCacheEntryIterator() {
         function getCacheEntryFrom(filePath: string): CacheEntry|undefined {
             try {
-                return JSON.parse(nFS.readTextSyncFromFile(filePath));
+                return JSON.parse(ns_fs.readTextSyncFromFile(filePath));
             }
             catch {
                 // We are here if the file doesn't exist.

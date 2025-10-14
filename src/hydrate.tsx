@@ -6,8 +6,7 @@ import {setHandler_bundleExternalCss, setHandler_mustHydrate, useCssModule} from
 import {fileURLToPath, pathToFileURL} from "node:url";
 import {addExtraCssToBundle} from "./bundler/extraContent.ts";
 import * as ns_crypto from "jopi-node-space/ns_crypto";
-
-const nFS = NodeSpace.fs;
+import * as ns_fs from "jopi-node-space/ns_fs";
 
 export function hasHydrateComponents() {
     return gHasComponents;
@@ -104,7 +103,7 @@ async function handler_bundleExternalCss(importMeta: {filename: string}, cssFile
     // If using a TypeScript compiler, then the CSS remain in the source folder.
     cssFilePath = nApp.requireSourceOf(cssFilePath);
 
-    if (!await nFS.isFile(cssFilePath)) {
+    if (!await ns_fs.isFile(cssFilePath)) {
         console.warn("JopiHydrate: CSS file not found:", cssFilePath);
         return;
     }

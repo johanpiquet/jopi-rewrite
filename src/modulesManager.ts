@@ -1,10 +1,10 @@
 import path from "node:path";
 import NodeSpace from "jopi-node-space";
 import ns_events, {EventPriority} from "jopi-node-space/ns_events";
+import * as ns_fs from "jopi-node-space/ns_fs";
 import {type WebSite, WebSiteImpl} from "./jopiWebSite.ts";
 import React from "react";
 
-const nFS = NodeSpace.fs;
 const nApp = NodeSpace.app;
 
 //region ModuleManager
@@ -45,12 +45,12 @@ export class ModulesManager {
     private async initModule(moduleDirPath: string) {
         let currentModuleInfo: ModuleInfoWithPath = {
             moduleDir: moduleDirPath,
-            moduleName: nFS.basename(moduleDirPath)
+            moduleName: ns_fs.basename(moduleDirPath)
         };
 
         let file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
 
-        if (await nFS.isFile(file)) {
+        if (await ns_fs.isFile(file)) {
             const exportDefault = (await import(file)).default;
 
             if (exportDefault && typeof exportDefault === "function") {
@@ -63,7 +63,7 @@ export class ModulesManager {
 
         file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
 
-        if (await nFS.isFile(file)) {
+        if (await ns_fs.isFile(file)) {
             // > Do the UI init on the server-side.
             //   Require because the server is also a UI generator.
 
@@ -79,26 +79,26 @@ export class ModulesManager {
 
         let dirPath = path.join(moduleDirPath, "routes");
 
-        if (await nFS.isDirectory(dirPath)) {
+        if (await ns_fs.isDirectory(dirPath)) {
             await this.webSite.getReactRouterManager().scanRoutesFrom(dirPath);
         }
 
         dirPath = path.join(moduleDirPath, "public");
 
-        if (await nFS.isDirectory(dirPath)) {
+        if (await ns_fs.isDirectory(dirPath)) {
             await this.processPublicDir(dirPath);
         }
 
         dirPath = path.join(moduleDirPath, "uiComposites");
 
-        if (await nFS.isDirectory(dirPath)) {
+        if (await ns_fs.isDirectory(dirPath)) {
             await this.processCompositesDir(dirPath, currentModuleInfo);
         }
     }
 
     private async processPublicDir(dirPath: string) {
         const addDir = async (dirPath: string, route: string) => {
-            const dirItems = await nFS.listDir(dirPath);
+            const dirItems = await ns_fs.listDir(dirPath);
 
             for (const dirItem of dirItems) {
                 if (dirItem.name[0]===".") continue;
@@ -118,7 +118,7 @@ export class ModulesManager {
     }
 
     private async processCompositesDir(dirPath: string, module: ModuleInfoWithPath) {
-        const dirItems = await nFS.listDir(dirPath);
+        const dirItems = await ns_fs.listDir(dirPath);
 
         for (let dirItem of dirItems) {
             if (!dirItem.isDirectory) continue;
@@ -126,7 +126,7 @@ export class ModulesManager {
 
             let compositeName = dirItem.name;
 
-            let subDirItems = await nFS.listDir(dirItem.fullPath);
+            let subDirItems = await ns_fs.listDir(dirItem.fullPath);
 
             for (let subDirItem of subDirItems) {
                 if (subDirItem.isDirectory) continue;

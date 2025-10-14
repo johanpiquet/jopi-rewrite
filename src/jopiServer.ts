@@ -14,12 +14,11 @@ import {
 } from "./jopiWebSite.tsx";
 
 import NodeSpace from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 import bunJsServer from "./serverImpl/server_bunjs.js";
 import nodeJsServer from "./serverImpl/server_nodejs.js";
 import {getImportTransformConfig} from "@jopi-loader/tools";
 import * as ns_os from "jopi-node-space/ns_os";
-
-const nFS = NodeSpace.fs;
 
 class JopiServer {
     private readonly webSites: WebSiteMap = {};
@@ -92,8 +91,8 @@ class JopiServer {
                         const certFile = path.resolve(webSite.certificate.cert);
 
                         certificates.push({
-                            key: nFS.readTextSyncFromFile(keyFile),
-                            cert: nFS.readTextSyncFromFile(certFile),
+                            key: ns_fs.readTextSyncFromFile(keyFile),
+                            cert: ns_fs.readTextSyncFromFile(certFile),
                             serverName: webSite.host
                         });
                     }
@@ -164,7 +163,7 @@ class JopiServer {
         const keyFilePath = path.join(sslDirPath, "certificate.key");
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
 
-        if (!await nFS.isFile(certFilePath)) {
+        if (!await ns_fs.isFile(certFilePath)) {
             let mkCertToolPath = ns_os.whichSync("mkcert");
 
             if (mkCertToolPath) {

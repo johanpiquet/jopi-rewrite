@@ -1,4 +1,5 @@
-import NodeSpace, {nFS} from "jopi-node-space";
+import NodeSpace from "jopi-node-space";
+import * as ns_fs from "jopi-node-space/ns_fs";
 import {pathToFileURL} from "node:url";
 import {getAllUiComposites, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
 import path from "node:path";
@@ -80,7 +81,7 @@ export async function generateScript(genDir: string, components: {[key: string]:
         script = script.replace("//[PLUGINS]", tplPlugins);
 
         const filePath = path.join(genDir, "loader.jsx");
-        await NodeSpace.fs.writeTextToFile(filePath, script, true);
+        await ns_fs.writeTextToFile(filePath, script, true);
 
         return filePath;
     }
@@ -99,5 +100,5 @@ export async function loadCodeGenTemplate(name: string): Promise<string> {
     let toSearch = path.join("dist", "bundler");
     if (resolvedPath.includes(toSearch)) resolvedPath = resolvedPath.replace(toSearch, path.join("src", "bundler"));
 
-    return await nFS.readTextFromFile(resolvedPath);
+    return await ns_fs.readTextFromFile(resolvedPath);
 }
