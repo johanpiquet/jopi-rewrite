@@ -1,8 +1,41 @@
 {
+  "name": "jopi-rewrite_core",
+  "version": "0.0.1",
+  "private": true,
   "type": "module",
 
   "scripts": {
     "child:build": "npx tsc",
     "child:clean": "rm -rf ./dist .turbo tsconfig.tsbuildinfo"
+  },
+
+  "devDependencies": {
+    "@types/bun": "^1.2.20",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@types/acme-client": "^3.3.4"
+  },
+
+  "dependencies": {
+    "jopi-rewrite/bundler": "*",
+    "@jopi-loader/client": "*",
+    "@jopi-loader/tools": "*",
+    "@jopi-loader/types": "*",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/ws": "^8.18.1",
+    "acme-client": "^5.4.0",
+    "cheerio": "^1.1.2",
+    "css-url-parser": "^1.1.4",
+    "jopi-crawler": "*",
+    "jopi-loader": "*",
+    "jopi-node-space": "*",
+    "jopi-rewrite-ui": "*",
+    "jsonwebtoken": "^9.0.2",
+    "postcss": "^8.5.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router": "^7.8.2",
+    "rou3": "^0.7.3",
+    "ws": "^8.18.3"
   }
 }

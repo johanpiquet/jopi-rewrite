@@ -97,4 +97,4 @@ async function execute(data: CreateBundleEvent, useFallback = true) {
     }
 }
 
-let FALLBACK_PACKAGE = "@jopi-rewrite/bundler-esbuild";
+let FALLBACK_PACKAGE = "jopi-rewrite/bundler";

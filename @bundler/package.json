@@ -1,0 +1,17 @@
+{
+  "name": "jopi-rewrite_bundler",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+
+  "scripts": {
+    "child:build": "npx tsc",
+    "child:clean": "rm -rf ./dist .turbo tsconfig.tsbuildinfo"
+  },
+
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
+    "tailwindcss": "^4.1.12",
+    "esbuild": "=0.25.9"
+  }
+}
