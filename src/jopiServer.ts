@@ -13,13 +13,15 @@ import {
     type WebSiteMap
 } from "./jopiWebSite.tsx";
 
-import NodeSpace from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_os from "jopi-node-space/ns_os";
+import {isBunJS} from "jopi-node-space/ns_what";
+
 import bunJsServer from "./serverImpl/server_bunjs.js";
 import nodeJsServer from "./serverImpl/server_nodejs.js";
 import {getImportTransformConfig} from "@jopi-loader/tools";
-import * as ns_os from "jopi-node-space/ns_os";
-import {isBunJS} from "jopi-node-space/ns_what";
+
 
 class JopiServer {
     private readonly webSites: WebSiteMap = {};
@@ -149,7 +151,7 @@ class JopiServer {
         }
 
         // Stop the server if the exit signal is received.
-        NodeSpace.app.onAppExiting(() => {
+        ns_app.onAppExiting(() => {
             this.stopServer().catch();
         });
     }

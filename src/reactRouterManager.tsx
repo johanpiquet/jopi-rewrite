@@ -9,14 +9,12 @@ import {mustHydrate} from "jopi-rewrite-ui";
 import {getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {JopiRequest} from "./jopiRequest.ts";
-import NodeSpace from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
 import {addGenerateScriptPlugin, loadCodeGenTemplate} from "./bundler/scripts.ts";
 import {isBunJS} from "jopi-node-space/ns_what";
-
-const nApp = NodeSpace.app;
 
 interface RouteInfo {
     componentKey: string;
@@ -38,7 +36,7 @@ export class ReactRouterManager {
 
     async initialize(routesDir: string = "routes") {
         await this.scanRoutesFrom(
-            path.join(nApp.getSourceCodeDir(), routesDir)
+            path.join(ns_app.getSourceCodeDir(), routesDir)
         );
     }
 
@@ -71,7 +69,7 @@ export class ReactRouterManager {
                         let finalPath = srcEntryFullPath;
 
                         if (dstDirToCheck) {
-                            finalPath = nApp.getCompiledFilePathFor(srcEntryFullPath);
+                            finalPath = ns_app.getCompiledFilePathFor(srcEntryFullPath);
                         }
 
                         // Calc the route of the page, something like "/product/listing".
@@ -97,12 +95,12 @@ export class ReactRouterManager {
         let srcDirToScan: string;
         let distDirToScan: string;
 
-        if (dirToScan.startsWith(nApp.getCompiledCodeDir())) {
+        if (dirToScan.startsWith(ns_app.getCompiledCodeDir())) {
             distDirToScan = dirToScan;
-            srcDirToScan = path.join(nApp.getSourceCodeDir(), dirToScan.substring(nApp.getCompiledCodeDir().length));
+            srcDirToScan = path.join(ns_app.getSourceCodeDir(), dirToScan.substring(ns_app.getCompiledCodeDir().length));
         } else {
             srcDirToScan = dirToScan;
-            distDirToScan = path.join(nApp.getCompiledCodeDir(), dirToScan.substring(nApp.getSourceCodeDir().length));
+            distDirToScan = path.join(ns_app.getCompiledCodeDir(), dirToScan.substring(ns_app.getSourceCodeDir().length));
         }
 
         await scanRoutesFromAux(srcDirToScan, pathToFileURL(srcDirToScan).href, isBunJS ? undefined : distDirToScan);

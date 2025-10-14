@@ -1,5 +1,5 @@
 import path from "node:path";
-import NodeSpace, {nApp} from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 import {isServerSide} from "jopi-node-space/ns_what";
 
 import React from "react";
@@ -92,7 +92,7 @@ async function handler_bundleExternalCss(importMeta: {filename: string}, cssFile
         cssFileUrl = cssFilePath;
     } else {
         if (!cssFilePath.startsWith("./")) {
-            console.error("* CSS file must starts with 'file:/' or './'\n|- See:", await NodeSpace.app.requireSourceOf(importMeta.filename));
+            console.error("* CSS file must starts with 'file:/' or './'\n|- See:", ns_app.requireSourceOf(importMeta.filename));
         }
 
         let dirPath = path.dirname(importMeta.filename);
@@ -102,7 +102,7 @@ async function handler_bundleExternalCss(importMeta: {filename: string}, cssFile
     cssFilePath = fileURLToPath(cssFileUrl);
 
     // If using a TypeScript compiler, then the CSS remain in the source folder.
-    cssFilePath = nApp.requireSourceOf(cssFilePath);
+    cssFilePath = ns_app.requireSourceOf(cssFilePath);
 
     if (!await ns_fs.isFile(cssFilePath)) {
         console.warn("JopiHydrate: CSS file not found:", cssFilePath);

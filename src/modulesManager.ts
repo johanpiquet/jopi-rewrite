@@ -1,11 +1,10 @@
 import path from "node:path";
-import NodeSpace from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_events from "jopi-node-space/ns_events";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import {type WebSite, WebSiteImpl} from "./jopiWebSite.ts";
 import React from "react";
-
-const nApp = NodeSpace.app;
+;
 
 //region ModuleManager
 
@@ -48,7 +47,7 @@ export class ModulesManager {
             moduleName: ns_fs.basename(moduleDirPath)
         };
 
-        let file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
+        let file = ns_app.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
 
         if (await ns_fs.isFile(file)) {
             const exportDefault = (await import(file)).default;
@@ -61,7 +60,7 @@ export class ModulesManager {
             this.allModuleInfo.push(currentModuleInfo);
         }
 
-        file = nApp.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
+        file = ns_app.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
 
         if (await ns_fs.isFile(file)) {
             // > Do the UI init on the server-side.
@@ -71,7 +70,7 @@ export class ModulesManager {
 
             if (exportDefault && typeof exportDefault === "function") {
                 // Will allows an init inside the browser.
-                gUiInitFiles.push(nApp.getSourcesCodePathFor(file));
+                gUiInitFiles.push(ns_app.getSourcesCodePathFor(file));
 
                 (this.webSite as WebSiteImpl).addPageRenderInitializer(exportDefault);
             }
@@ -192,7 +191,7 @@ interface UiCompositeItem {
 const gAllComposites: Record<string, UiCompositeItem[]> = {};
 
 async function addUiComposite(compositeName: string, extensionName: string, implFilePath: string) {
-    const distFilePath = nApp.getCompiledFilePathFor(implFilePath);
+    const distFilePath = ns_app.getCompiledFilePathFor(implFilePath);
 
     let composite = gAllComposites[compositeName];
     if (!composite) gAllComposites[compositeName] = composite = [];

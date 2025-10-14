@@ -1,4 +1,4 @@
-import NodeSpace from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import {pathToFileURL} from "node:url";
 import {getAllUiComposites, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
@@ -27,7 +27,7 @@ export async function generateScript(genDir: string, components: {[key: string]:
         //region Adds key to components binding
 
         for (const componentKey in components) {
-            let componentPath = NodeSpace.app.requireSourceOf(components[componentKey]);
+            let componentPath = ns_app.requireSourceOf(components[componentKey]);
 
             // Patch for windows. Require a linux-like path.
             if (isWin32) componentPath = pathToFileURL(componentPath).href.substring("file:///".length);

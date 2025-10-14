@@ -1,6 +1,6 @@
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.js";
 import path from "node:path";
-import {nApp} from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 
 export function getBundleDirPath(webSite: WebSite) {
     // To known: the loader uses jopi.webSiteUrl from "package.json".
@@ -15,4 +15,4 @@ export function getBundleDirPath(webSite: WebSite) {
 // This bug is doing that WebStorm doesn't resolve the file to his real location
 // but to the workspace node_modules (and not the project inside the workspace).
 //
-let gTempDirPath = path.resolve(nApp.getTempDir(), ".reactHydrateCache");
+let gTempDirPath = path.resolve(ns_app.getTempDir(), ".reactHydrateCache");

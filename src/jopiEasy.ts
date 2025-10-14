@@ -2,7 +2,7 @@
 
 import path from "node:path";
 import fsc from "node:fs";
-import NodeSpace from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_timer from "jopi-node-space/ns_timer";
 import * as ns_term from "jopi-node-space/ns_term";
 
@@ -54,8 +54,8 @@ class JopiApp {
 
     startApp(importMeta: any, f: (jopiEasy: JopiEasy) => void|Promise<void>): void {
         async function doStart() {
-            await NodeSpace.app.waitServerSideReady();
-            NodeSpace.app.declareAppStarted();
+            await ns_app.waitServerSideReady();
+            ns_app.declareAppStarted();
 
             let res = f(new JopiEasy());
             if (res instanceof Promise) await res;
@@ -64,7 +64,7 @@ class JopiApp {
         if (this._isStartAppSet) throw "App is already started";
         this._isStartAppSet = true;
 
-        NodeSpace.app.setApplicationMainFile(importMeta.filename);
+        ns_app.setApplicationMainFile(importMeta.filename);
 
         doStart().then();
     }
@@ -535,10 +535,10 @@ class WebSite_UserModules {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
         this.internals.afterHook.push(async webSite => {
             if (!this.moduleDir) {
-                this.moduleDir = path.join(NodeSpace.app.getSourceCodeDir(), "modules");
+                this.moduleDir = path.join(ns_app.getSourceCodeDir(), "modules");
             } else {
                 if (!path.isAbsolute(this.moduleDir)) {
-                    this.moduleDir = path.join(NodeSpace.app.getSourceCodeDir(), this.moduleDir);
+                    this.moduleDir = path.join(ns_app.getSourceCodeDir(), this.moduleDir);
                 }
             }
 
@@ -971,7 +971,7 @@ class WebSite_AutomaticCacheBuilder implements WebSite_AutomaticCacheBuilder_End
 }
 
 class WebSite_AutomaticCacheBuilder_UseFileCache {
-    private rootDir: string = path.join(NodeSpace.app.getTempDir(), "page-cache");
+    private rootDir: string = path.join(ns_app.getTempDir(), "page-cache");
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: AutoCacheBuilder_Internal) {
         this.internals.initCache = (webSite) => {

@@ -1,4 +1,4 @@
-import NodeSpace from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_timer from "jopi-node-space/ns_timer";
 
 const ONE_MINUTE = ns_timer.ONE_MINUTE;
@@ -26,7 +26,7 @@ export class AutomaticStartStop {
         this.onStop = params.onStop;
         this.onStart = params.onStart;
 
-        NodeSpace.app.onAppExiting(this.stop.bind(this));
+        ns_app.onAppExiting(this.stop.bind(this));
     }
 
     get state() {

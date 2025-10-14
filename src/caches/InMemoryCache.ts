@@ -1,5 +1,5 @@
 import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
-import NodeSpace from "jopi-node-space";
+import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_fs from "jopi-node-space/ns_fs";
 
 import * as path from "node:path";
@@ -7,8 +7,8 @@ import type {CacheEntry, PageCache} from "./cache.ts";
 import {octetToMo, ONE_KILO_OCTET, ONE_MEGA_OCTET} from "../publicTools.ts";
 import {cacheEntryToResponse, makeIterable, readContentLength, responseToCacheEntry} from "../internalTools.ts";
 
-const clearHotReloadKey = NodeSpace.app.clearHotReloadKey;
-const keepOnHotReload = NodeSpace.app.keepOnHotReload;
+const clearHotReloadKey = ns_app.clearHotReloadKey;
+const keepOnHotReload = ns_app.keepOnHotReload;
 const HOT_RELOAD_KEY = "jopi.rewrite.inMemoryCache.hotReloadKey";
 
 export interface InMemoryCacheOptions {
@@ -124,7 +124,7 @@ class InMemoryCache implements PageCache {
             return;
         }
 
-        const fileUncompressed = path.resolve(path.join(NodeSpace.app.getTempDir(), crypto.randomUUID()));
+        const fileUncompressed = path.resolve(path.join(ns_app.getTempDir(), crypto.randomUUID()));
         const fileGzip = fileUncompressed + ".gzip";
         await mkDirForFile(fileUncompressed);
 
