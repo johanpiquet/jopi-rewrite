@@ -134,7 +134,7 @@ export async function jopiLauncherTool(jsEngine: string) {
         let pckJson = ns_app.findPackageJson();
 
         if (pckJson) {
-            if (mustLog) console.log("Jopi - package.json file found at", pckJson);
+            if (mustLog) console.log("JopiN - package.json file found at", pckJson);
 
             res.packageJsonFilePath = pckJson;
 
@@ -167,7 +167,7 @@ export async function jopiLauncherTool(jsEngine: string) {
                 console.error(e);
             }
         } else if (process.env.NODE_ENV !== 'production') {
-            console.warn("Jopi - package.json not found, can't enable file watching");
+            console.warn("JopiN - package.json not found, can't enable file watching");
         }
 
         let watch = process.env.WATCH;
@@ -227,7 +227,7 @@ export async function jopiLauncherTool(jsEngine: string) {
     }
 
     let cmd = ns_os.whichSync(jsEngine, jsEngine)!;
-    if (mustLog) console.log("jopin - Using " + jsEngine + " from:", cmd);
+    if (mustLog) console.log("jopiN - Using " + jsEngine + " from:", cmd);
     let args = [...preloadArgs, ...argv];
 
     let config = await getConfiguration();
@@ -429,13 +429,13 @@ function onWebSocketConnection(ws: WebSocket) {
         let idx = gWebSockets.indexOf(e.target);
         gWebSockets.splice(idx, 1);
 
-        if (mustLog) ns_term.logBgRed("jopin - Client disconnected from web-socket");
+        if (mustLog) ns_term.logBgRed("jopiN - Client disconnected from web-socket");
         startWebSocket().catch();
     }
 
     ws.onmessage = (e) => {
         const msg = e.data;
-        if (mustLog) ns_term.logBlue("jopin - websocket message received: ", msg);
+        if (mustLog) ns_term.logBlue("jopiN - websocket message received: ", msg);
 
         switch (msg) {
             case "mustWaitServerReady":
