@@ -28,20 +28,45 @@
     "LICENSE"
   ],
   "scripts": {
-    "clean": "npm --prefix @core run child:clean && npm --prefix @uikit run child:clean",
-    "build": "npm --prefix @core run child:build && npm --prefix @uikit run child:build",
+    "clean": "npm --prefix @core run child:clean && npm --prefix @ui run child:clean && npm --prefix @uikit run child:clean",
+    "build": "npm --prefix @core run child:build && npm --prefix @ui run child:build && npm --prefix @uikit run child:build",
     "bun-publish": "bun publish",
     "untrack": "git rm -r --cached -- ./dist/**;"
   },
 
-  "workspaces": [
-    "./@core",
-    "./@bundler",
-    "./@uikit"
-  ],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@jopi-loader/client": "*",
+    "@jopi-loader/tools": "*",
+    "@jopi-loader/types": "*",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/ws": "^8.18.1"
+  },
+
+  "dependencies": {
+    "acme-client": "^5.4.0",
+    "cheerio": "^1.1.2",
+    "css-url-parser": "^1.1.4",
+    "jopi-crawler": "*",
+    "jopi-loader": "*",
+    "jopi-node-space": "*",
+    "jsonwebtoken": "^9.0.2",
+    "postcss": "^8.5.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router": "^7.8.2",
+    "rou3": "^0.7.3",
+    "ws": "^8.18.3",
+    "@tailwindcss/postcss": "^4.1.12",
+    "tailwindcss": "^4.1.12",
+    "esbuild": "=0.25.9"
+  },
 
   "exports": {
     ".": "./@core/dist/index.js",
+    "./ui": "./@ui/dist/index.js",
     "./uikit": "./@uikit/dist/index.js",
     "./bundler": "./@bundler/dist/index.js"
   }

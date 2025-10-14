@@ -4,10 +4,9 @@
     "clean": "rm -rf ./dist; rm -rf .turbo; rm tsconfig.tsbuildinfo"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.20",
+    "@types/bun": "latest",
     "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.1.7",
-    "@types/acme-client": "^3.3.4"
+    "@types/react-dom": "^19.1.7"
   },
   "dependencies": {
     "@jopi-rewrite": "*",
