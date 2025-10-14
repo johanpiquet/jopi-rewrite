@@ -14,6 +14,7 @@ import * as ns_fs from "jopi-node-space/ns_fs";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
 import {addGenerateScriptPlugin, loadCodeGenTemplate} from "./bundler/scripts.ts";
+import {isBunJS} from "jopi-node-space/ns_what";
 
 const nApp = NodeSpace.app;
 
@@ -104,7 +105,6 @@ export class ReactRouterManager {
             distDirToScan = path.join(nApp.getCompiledCodeDir(), dirToScan.substring(nApp.getSourceCodeDir().length));
         }
 
-        let isBunJS = NodeSpace.what.isBunJs;
         await scanRoutesFromAux(srcDirToScan, pathToFileURL(srcDirToScan).href, isBunJS ? undefined : distDirToScan);
 
         // Release memory.

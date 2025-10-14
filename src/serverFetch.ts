@@ -4,7 +4,7 @@ import {type SendingBody} from "./jopiWebSite.tsx";
 import type {LoadBalancer} from "./loadBalancing.ts";
 import {AutomaticStartStop} from "./automaticStartStop.js";
 import {JopiRequest} from "./jopiRequest.js";
-import NodeSpace from "jopi-node-space";
+import {isNodeJS} from "jopi-node-space/ns_what";
 
 export interface ServerDownResult<T> {
     newServer?: ServerFetch<T>,
@@ -440,6 +440,6 @@ export class ServerFetch<T> {
 
 // Allow disabling ssl certificate verification.
 //
-if (NodeSpace.what.isNodeJS) {
+if (isNodeJS) {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }

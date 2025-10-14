@@ -1,5 +1,5 @@
 import {addVirtualUrlEntry, type VirtualUrlEntry} from "@jopi-loader/tools";
-import ns_events from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-node-space/ns_events";
 
 /**
  * Add a CSS file which must be bundled with the page.

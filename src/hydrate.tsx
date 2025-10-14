@@ -1,5 +1,6 @@
 import path from "node:path";
 import NodeSpace, {nApp} from "jopi-node-space";
+import {isServerSide} from "jopi-node-space/ns_what";
 
 import React from "react";
 import {setHandler_bundleExternalCss, setHandler_mustHydrate, useCssModule} from "jopi-rewrite-ui";
@@ -24,7 +25,7 @@ interface JopiHydrateProps {
 }
 
 function useHydrateComponent(importMeta: { filename: string }): string {
-    if (NodeSpace.what.isServerSide) {
+    if (isServerSide) {
         const key = ns_crypto.fastHash(importMeta.filename).toString();
         const filePath = importMeta.filename;
 

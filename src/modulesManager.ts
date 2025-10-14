@@ -1,6 +1,6 @@
 import path from "node:path";
 import NodeSpace from "jopi-node-space";
-import ns_events, {EventPriority} from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-node-space/ns_events";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import {type WebSite, WebSiteImpl} from "./jopiWebSite.ts";
 import React from "react";
@@ -38,7 +38,7 @@ export class ModulesManager {
         ns_events.sendEvent("app.init.server");
     }
 
-    addInitializer(priority: EventPriority, initializer: ()=>Promise<void>) {
+    addInitializer(priority: ns_events.EventPriority, initializer: ()=>Promise<void>) {
         ns_events.addListener("app.init.server", priority, initializer);
     }
 
@@ -155,7 +155,7 @@ export class ModuleInitContext_Server {
         }
     }
 
-    addServerInitializer(priority: EventPriority, initializer: ()=>Promise<void>) {
+    addServerInitializer(priority: ns_events.EventPriority, initializer: ()=>Promise<void>) {
         this.modulesManager.addInitializer(priority, initializer);
     }
 }

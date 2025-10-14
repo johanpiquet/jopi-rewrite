@@ -19,6 +19,7 @@ import bunJsServer from "./serverImpl/server_bunjs.js";
 import nodeJsServer from "./serverImpl/server_nodejs.js";
 import {getImportTransformConfig} from "@jopi-loader/tools";
 import * as ns_os from "jopi-node-space/ns_os";
+import {isBunJS} from "jopi-node-space/ns_what";
 
 class JopiServer {
     private readonly webSites: WebSiteMap = {};
@@ -253,7 +254,7 @@ export interface ServerImpl {
     updateSslCertificate(server: ServerInstance, options: StartServerOptions, sslCertificate: any|any[]|undefined): void;
 }
 
-const serverImpl: ServerImpl = NodeSpace.what.isBunJs ?  bunJsServer : nodeJsServer;
+const serverImpl: ServerImpl = isBunJS ?  bunJsServer : nodeJsServer;
 
 // In case we are using Jopi Loader (jopin).
 //
