@@ -1,11 +1,11 @@
 import {JopiRequest} from "../jopiRequest.tsx";
 import type {JopiMiddleware} from "../jopiWebSite.tsx";
 import {getServerStartOptions} from "../jopiServer.ts";
-import NodeSpace from "jopi-node-space";
+import * as ns_tools from "jopi-node-space/ns_tools";
 import * as ns_timer from "jopi-node-space/ns_timer";
 
 const newInterval = ns_timer.newInterval;
-const applyDefaults = NodeSpace.applyDefaults;
+const applyDefaults = ns_tools.applyDefaults;
 
 // slowhttptest -c 1000 -H -i 10 -r 200 -t GET -u http://my-server -x 24 -p 3
 

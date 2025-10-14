@@ -1,5 +1,3 @@
-import NodeSpace from "jopi-node-space";
-
 export * from "./publicTools.ts";
 export * from "./searchParamFilter.ts";
 export * from "./serverFetch.ts";

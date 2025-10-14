@@ -4,7 +4,7 @@ import React from "react";
 import ReactDOM from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from "react-router";
 import {ModuleInitContext_UI, Page} from "jopi-rewrite-ui";
-import NodeSpace from "jopi-node-space";
+import * as ns_events from "jopi-node-space/ns_events";
 //[IMPORT]
 
 const jopiComposites = {};
@@ -88,7 +88,7 @@ async function mod_initializeMod(exportDefault) {
 
 async function mod_onAllModInitialized() {
     hydrateAll();
-    await NodeSpace.events.sendEvent("app.init.ui");
+    await ns_events.sendEvent("app.init.ui");
 }
 
 async function process() {

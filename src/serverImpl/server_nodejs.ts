@@ -2,7 +2,6 @@ import http from "node:http";
 import https from "node:https";
 import type {ServerImpl, ServerInstance, ServerSocketAddress, StartServerOptions} from "../jopiServer.ts";
 import {WebSocketServer} from "ws";
-import NodeSpace from "jopi-node-space";
 import * as ns_fs from "jopi-node-space/ns_fs";
 
 class NodeServer implements ServerInstance {

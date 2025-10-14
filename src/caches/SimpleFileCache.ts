@@ -4,11 +4,9 @@ import fs from "node:fs/promises";
 import fss from "node:fs";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {cacheEntryToResponse, makeIterable, responseToCacheEntry} from "../internalTools.ts";
-import NodeSpace from "jopi-node-space";
+import * as ns_compress from "jopi-node-space/ns_compress";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import * as ns_crypto from "jopi-node-space/ns_crypto";
-
-const nCompress = NodeSpace.compress;
 
 export class SimpleFileCache implements PageCache {
     public readonly rootDir: string;
@@ -105,7 +103,7 @@ export class SimpleFileCache implements PageCache {
                 const fileBytes = await ns_fs.readFileToBytes(filePath);
 
                 if (mustUnzip) {
-                    const stream = nCompress.gunzipSync(fileBytes);
+                    const stream = ns_compress.gunzipSync(fileBytes);
 
                     cacheEntry.binary = stream.buffer as ArrayBuffer;
                     cacheEntry.binarySize = stream.length;

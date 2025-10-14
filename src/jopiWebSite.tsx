@@ -26,13 +26,12 @@ import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
 import {ONE_DAY} from "./publicTools.ts";
-import NodeSpace from "jopi-node-space";
+
 import {getInMemoryCache} from "./caches/InMemoryCache.ts";
 import {ModulesManager} from "./modulesManager.ts";
 import {installBundleServer} from "./bundler/server.ts";
 import {createBundle} from "./bundler/bundler.ts";
-
-const nSocket = NodeSpace.webSocket;
+import * as ns_webSocket from "jopi-node-space/ns_webSocket";
 
 export interface WebSite {
     data: any;
@@ -461,7 +460,7 @@ export class WebSiteImpl implements WebSite {
         else this._pageRenderInitializers.push(initializer);
     }
 
-    applyPageRenderInitializers(req: JopiRequest, pageController: PageController) {
+    applyPageRenderInitializers(_req: JopiRequest, pageController: PageController) {
         if (!this._pageRenderInitializers) return;
 
         const modInit = new MICUI_ExposePrivate(pageController);
@@ -814,11 +813,11 @@ export class JopiWebSocket {
     }
 
     onMessage(listener: (msg: string|Buffer) => void): void {
-        nSocket.onMessage(this.webSocket, listener);
+        ns_webSocket.onMessage(this.webSocket, listener);
     }
 
     sendMessage(msg: string|Buffer|Uint8Array|ArrayBuffer) {
-        nSocket.sendMessage(this.webSocket, msg);
+        ns_webSocket.sendMessage(this.webSocket, msg);
     }
 }
 
