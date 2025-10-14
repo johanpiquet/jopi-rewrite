@@ -21,7 +21,7 @@ import {
     renderPage,
     setPageRenderer,
     type UiUserInfos
-} from "jopi-rewrite-ui";
+} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";

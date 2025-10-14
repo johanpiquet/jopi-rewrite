@@ -9,7 +9,7 @@ This hook allows getting a cookie.
 
 **Usage sample**
 ```typescript jsx
-import {deleteCookie, setCookie, useCookie} from "jopi-rewrite-ui";
+import {deleteCookie, setCookie, useCookie} from "jopi-rewrite/ui";
 import React from "react";
 
 export default function() {

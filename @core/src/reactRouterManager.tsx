@@ -5,7 +5,7 @@ import {
 import path from "node:path";
 import fs from "node:fs/promises";
 import {pathToFileURL} from "node:url";
-import {mustHydrate} from "jopi-rewrite-ui";
+import {mustHydrate} from "jopi-rewrite/ui";
 import {getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {JopiRequest} from "./jopiRequest.ts";

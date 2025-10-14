@@ -1,5 +1,5 @@
 import type {UiText} from "./publicTools.js";
-import {getVariantProvider, type WithVariant} from "jopi-rewrite-ui";
+import {getVariantProvider, type WithVariant} from "jopi-rewrite/ui";
 import React, {useContext, useEffect, useRef} from "react";
 import * as ns_schema from "jopi-node-space/ns_schema";
 

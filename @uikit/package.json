@@ -1,4 +1,6 @@
 {
+  "type": "module",
+
   "scripts": {
     "child:build": "npx tsc",
     "child:clean": "rm -rf ./dist .turbo tsconfig.tsbuildinfo"

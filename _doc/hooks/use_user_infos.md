@@ -8,7 +8,7 @@ This hook allows getting information about the user connected.
 
 **Usage sample**
 ```typescript jsx
-import {useLogOutUser, usePage} from "jopi-rewrite-ui";
+import {useLogOutUser, usePage} from "jopi-rewrite/ui";
 import React from "react";
 
 export default function() {

@@ -38,7 +38,7 @@ To do it, we only need to create a file named `index.page.tsx` in the directory 
 **File `src/products/listing/index.page.tsx`**
 
 ```typescript jsx
-import {usePage} from "jopi-rewrite-ui";
+import {usePage} from "jopi-rewrite/ui";
 import React from "react";
 
 export default function() {
@@ -66,7 +66,7 @@ This same file will allow to response to all url this type:
 
 **Sample page with a parametrized url**
 ```typescript jsx
-import {usePageParams} from "jopi-rewrite-ui";
+import {usePageParams} from "jopi-rewrite/ui";
 
 export default function() {
     let params = usePageParams();

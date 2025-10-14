@@ -6,7 +6,7 @@ This hook allows executing a function the first time the component is mounted is
 
 **Usage sample**
 ```typescript
-import {useExecuteOnce} from "jopi-rewrite-ui";
+import {useExecuteOnce} from "jopi-rewrite/ui";
 import React from "react";
 
 let counter = 0;

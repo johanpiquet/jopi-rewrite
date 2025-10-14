@@ -3,7 +3,7 @@ import * as ns_app from "jopi-node-space/ns_app";
 import {isServerSide} from "jopi-node-space/ns_what";
 
 import React from "react";
-import {setHandler_bundleExternalCss, setHandler_mustHydrate, useCssModule} from "jopi-rewrite-ui";
+import {setHandler_bundleExternalCss, setHandler_mustHydrate, useCssModule} from "jopi-rewrite/ui";
 import {fileURLToPath, pathToFileURL} from "node:url";
 import {addExtraCssToBundle} from "./bundler/extraContent.ts";
 import * as ns_crypto from "jopi-node-space/ns_crypto";

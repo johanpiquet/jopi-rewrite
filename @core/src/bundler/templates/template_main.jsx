@@ -3,7 +3,7 @@ import { lazy } from 'react';
 import React from "react";
 import ReactDOM from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from "react-router";
-import {ModuleInitContext_UI, Page} from "jopi-rewrite-ui";
+import {ModuleInitContext_UI, Page} from "jopi-rewrite/ui";
 import * as ns_events from "jopi-node-space/ns_events";
 //[IMPORT]
 

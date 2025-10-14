@@ -1,5 +1,5 @@
 import React from "react";
-import {setCompositeRenderer} from "jopi-rewrite-ui";
+import {setCompositeRenderer} from "jopi-rewrite/ui";
 import {getUiCompositeItems} from "./modulesManager.js";
 
 setCompositeRenderer((name) => {

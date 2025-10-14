@@ -8,7 +8,7 @@ This hook allows forcing refreshing the current component and redraw it.
 
 ```typescript jsx
 import React from "react";
-import {useLogOutUser, useRefresh, useUserInfos} from "jopi-rewrite-ui";
+import {useLogOutUser, useRefresh, useUserInfos} from "jopi-rewrite/ui";
 
 export default function () {
     const doLogOut = () => {

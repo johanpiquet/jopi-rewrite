@@ -8,7 +8,7 @@ on the same URL (GET: returns the page visual. POST: process the form submitted)
 **Usage sample**
 ```typescript jsx
 import React from "react";
-import {useFormSubmit} from "jopi-rewrite-ui";
+import {useFormSubmit} from "jopi-rewrite/ui";
 
 export default function() {
     // A function which will be called once the webservice returns.

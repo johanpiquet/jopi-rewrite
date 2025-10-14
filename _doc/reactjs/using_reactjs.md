@@ -82,7 +82,7 @@ jopiApp.startApp(import.meta, jopiEasy => {
 
 ```typescript jsx
 import React from "react";
-import {mustHydrate, isServerSide} from "jopi-rewrite-ui";
+import {mustHydrate, isServerSide} from "jopi-rewrite/ui";
 
 // Will automatically be added to the HTML page.
 import "./global-style.css";

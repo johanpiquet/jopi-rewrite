@@ -6,7 +6,7 @@ This hook allows getting the Page object, which allows setting the page title an
 
 **Usage sample**
 ```typescript jsx
-import {usePage} from "jopi-rewrite-ui";
+import {usePage} from "jopi-rewrite/ui";
 import React from "react";
 
 export default function() {
