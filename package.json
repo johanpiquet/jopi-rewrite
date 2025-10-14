@@ -34,9 +34,9 @@
     "untrack": "git rm -r --cached -- ./dist/**;",
 
     "build:@1_ui": "npm --prefix @ui run build",
-    "build:@2_core": "npm --prefix @core run build",
-    "build:@3_bundler": "npm --prefix @bundler run build",
-    "build:@4_crawler": "npm --prefix @crawler run build",
+    "build:@2_crawler": "npm --prefix @crawler run build",
+    "build:@3_core": "npm --prefix @core run build",
+    "build:@4_bundler": "npm --prefix @bundler run build",
     "build:@5_uikit": "npm --prefix @uikit run build",
 
     "clean:@bundler": "npm --prefix @bundler run clean",
@@ -61,7 +61,6 @@
     "acme-client": "^5.4.0",
     "cheerio": "^1.1.2",
     "css-url-parser": "^1.1.4",
-    "jopi-crawler": "*",
     "jopi-loader": "*",
     "jopi-node-space": "*",
     "jsonwebtoken": "^9.0.2",

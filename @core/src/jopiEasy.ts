@@ -23,7 +23,7 @@ import {
     type UrlProcessedInfos,
     WebSiteCrawler,
     type WebSiteCrawlerOptions
-} from "jopi-crawler";
+} from "jopi-rewrite/crawler";
 import {JopiRequest} from "./jopiRequest.ts";
 import {
     type AuthHandler,
