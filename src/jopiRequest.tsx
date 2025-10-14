@@ -24,7 +24,7 @@ import {
 } from "./jopiWebSite.tsx";
 
 import {parseCookies} from "./internalTools.ts";
-import NodeSpace from "jopi-node-space";
+import * as ns_term from "jopi-node-space/ns_term";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
@@ -622,9 +622,8 @@ export class JopiRequest {
     }
 
     async printSpyRequestData(data: JopiRequestSpyData) {
-        const term = NodeSpace.term;
-        const headerColor = term.buildWriter(term.C_RED);
-        const titleColor = term.buildWriter(term.C_ORANGE);
+        const headerColor = ns_term.buildWriter(ns_term.C_RED);
+        const titleColor = ns_term.buildWriter(ns_term.C_ORANGE);
 
         let resAsText = "";
         //

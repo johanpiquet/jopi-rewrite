@@ -4,6 +4,7 @@ import path from "node:path";
 import fsc from "node:fs";
 import NodeSpace from "jopi-node-space";
 import * as ns_timer from "jopi-node-space/ns_timer";
+import * as ns_term from "jopi-node-space/ns_term";
 
 import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
@@ -421,13 +422,13 @@ class JopiEasyWebSite {
                 }
                 catch (e: any) {
                     if (e instanceof Error) {
-                        NodeSpace.term.logBgRed("Error when initializing website", this.origin);
-                        NodeSpace.term.logRed(e.message);
+                        ns_term.logBgRed("Error when initializing website", this.origin);
+                        ns_term.logRed(e.message);
                         console.log(e.stack);
                     }
                     else {
                         console.error("Error when initializing website", this.origin);
-                        NodeSpace.term.logRed("|-", e.message);
+                        ns_term.logRed("|-", e.message);
                     }
 
                     process.exit(1);
