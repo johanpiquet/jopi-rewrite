@@ -97,8 +97,9 @@ export function addGenerateScriptPlugin(plugin: GeneratedScriptPlugin) {
 
 export async function loadCodeGenTemplate(name: string): Promise<string> {
     let resolvedPath = path.join(import.meta.dirname, "templates", name);
-    let toSearch = path.join("dist", "bundler");
-    if (resolvedPath.includes(toSearch)) resolvedPath = resolvedPath.replace(toSearch, path.join("src", "bundler"));
+    let toSearch = path.join("dist", "@core", "bundler");
+    let replaceBy = path.join("src", "@core", "bundler");
+    if (resolvedPath.includes(toSearch)) resolvedPath = resolvedPath.replace(toSearch, replaceBy);
 
     return await ns_fs.readTextFromFile(resolvedPath);
 }

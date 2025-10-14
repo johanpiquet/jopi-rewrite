@@ -15,12 +15,13 @@
   ],
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
+
   "engines": {
     "node": ">=22.18.0"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+
   "type": "module",
+
   "files": [
     "@*/dist",
     "@loader/loader.mjs",
@@ -30,13 +31,16 @@
   ],
 
   "bin": {
-    "jopin": "@tool-jopinb/bin/jopin.js",
-    "jopib": "@tool-jopinb/bin/jopib.js"
+    "jopin": "bin/jopin.js",
+    "jopib": "bin/jopib.js"
   },
 
   "scripts": {
-    "clean": "npx npm-run-all -l -s clean:*",
-    "build": "npx npm-run-all -l -s build:*",
+    "clean": "rm -rf ./dist .turbo tsconfig.tsbuildinfo",
+    "build:priority:2": "npx tsc",
+
+    "_clean": "npx npm-run-all -l -s clean:*",
+    "_build": "npx npm-run-all -l -s build:*",
     "bun-publish": "bun publish",
     "untrack": "git rm -r --cached -- ./dist/**;",
 
@@ -96,18 +100,18 @@
   },
 
   "exports": {
-    ".": "./@core/dist/index.js",
-    "./ui": "./@ui/dist/index.js",
-    "./uikit": "./@uikit/dist/index.js",
-    "./bundler": "./@bundler/dist/index.js",
-    "./crawler": "./@crawler/dist/index.js",
+    ".": "./dist/@core/index.js",
+    "./ui": "./dist/@ui/index.js",
+    "./uikit": "./dist//@uikit/index.js",
+    "./bundler": "./dist/@bundler/index.js",
+    "./crawler": "./dist/@crawler/index.js",
 
-    "./loader": "./@loader/dist/index.js",
-    "./loader/loader.mjs": "./@loader/loader.mjs",
-    "./loader-tools": "./@loader-tools/dist/index.js",
-    "./loader-client": "./@loader-client/dist/index.js",
+    "./loader": "./dist/@loader/index.js",
+    "./loader/loader.mjs": "./src/@loader/loader.mjs",
+    "./loader-tools": "./dist/@loader-tools/index.js",
+    "./loader-client": "./dist/@loader-client/index.js",
 
-    "./types": "./@loader-types/extensions.d.ts",
-    "./tool-jopinb": "./@tool-jopinb/dist/index.js"
+    "./types": "./src/@loader-types/extensions.d.ts",
+    "./tool-jopinb": "./dist/@tool-jopinb/index.js"
   }
 }

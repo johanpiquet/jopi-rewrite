@@ -9,9 +9,10 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
     "jsx": "react-jsx",
-    "target": "ES2020",
+    "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+
     "rewriteRelativeImportExtensions": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -19,7 +20,9 @@
     "skipLibCheck": true,
     "noEmitOnError": false,
     "verbatimModuleSyntax": true,
-    "allowJs": false
+    "allowJs": false,
+
+    "allowSyntheticDefaultImports": true
   },
 
   "include": [
@@ -30,11 +33,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/.turbo",
-    "**/.cache"
+    "**/.turbo"
   ]
 }

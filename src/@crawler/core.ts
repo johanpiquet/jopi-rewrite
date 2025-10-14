@@ -1,3 +1,5 @@
+/// <reference path="../@core/cheerio.d.ts" />
+
 import {DirectFileCache} from "./directFileCache.ts";
 import {UrlMapping} from "./urlMapping.ts";
 import * as cheerio from 'cheerio';
@@ -6,6 +8,7 @@ import {getErrorMessage} from "jopi-node-space/ns_tools";
 // @ts-ignore no ts definition
 import parseCssUrls from "css-url-parser";
 import {applyDefaults, tick} from "./utils.ts";
+
 import {
     type CrawlerCache, type CrawlerFetchResponse,
     type OnCrawlingFinishedInfos, ProcessUrlResult, UrlSortTools, type WebSiteCrawlerOptions
@@ -515,7 +518,9 @@ export class WebSiteCrawler {
 
             if (url) {
                 url = this.pushUrl(url);
-                if (url.length) node.attribs["href"] = this.transformFoundUrl(url);
+                if (url.length) {
+                    node.attribs["href"] = this.transformFoundUrl(url);
+                }
             }
         });
 

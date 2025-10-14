@@ -20,6 +20,7 @@ declare namespace cheerio {
         data?: string | undefined;
         startIndex?: number | undefined;
         endIndex?: number | undefined;
+        attribs: { [attr: string]: string };
     }
 
     interface TagElement {
@@ -53,6 +54,7 @@ declare namespace cheerio {
         data?: string | undefined;
         startIndex?: number | undefined;
         endIndex?: number | undefined;
+        attribs: { [attr: string]: string };
     }
 
     type AttrFunction = (el: Element, i: number, currentValue: string) => any;
