@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "build": "npx tsc",
+    "clean": "rm -rf ./dist; rm -rf .turbo; rm tsconfig.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.20",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@types/acme-client": "^3.3.4"
+  },
+  "dependencies": {
+    "@jopi-rewrite": "*",
+    "@jopi-rewrite/ui": "*"
+  }
+}

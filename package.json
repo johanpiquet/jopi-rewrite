@@ -1,6 +1,9 @@
 {
   "name": "jopi-rewrite",
   "version": "2.0.29",
+  "publishedDate": "9/29/2025",
+  "publicPublishedDate": "9/25/2025",
+
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": [
@@ -19,18 +22,18 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "files": [
-    "dist",
+    "@core/dist",
+    "@uikit/dist",
     "README.md",
-    "LICENSE",
-    "src"
+    "LICENSE"
   ],
   "scripts": {
-    "build": "npx tsc",
-    "tsc": "npx tsc",
-    "bun-publish": "npx tsc && bun publish",
-    "untrack": "git rm -r --cached -- ./dist/**;",
-    "clean": "rm -rf ./dist; rm -rf .turbo; rm tsconfig.tsbuildinfo"
+    "clean": "npm --prefix @core run child:clean && npm --prefix @uikit run child:clean",
+    "build": "npm --prefix @core run child:build && npm --prefix @uikit run child:build",
+    "bun-publish": "bun publish",
+    "untrack": "git rm -r --cached -- ./dist/**;"
   },
+
   "devDependencies": {
     "@types/bun": "^1.2.20",
     "@types/react": "^19.1.10",
@@ -59,12 +62,9 @@
     "rou3": "^0.7.3",
     "ws": "^8.18.3"
   },
-  "nodeSwitch": true,
-  "nodeSwitch-default": "node",
-  "publishedDate": "9/29/2025",
-  "publicPublishedDate": "9/25/2025",
+
   "exports": {
-    ".": "./dist/index.js",
-    "./uikit": "./dist/@uikit/index.js"
+    ".": "./@core/dist/index.js",
+    "./uikit": "./@uikit/dist/index.js"
   }
 }
