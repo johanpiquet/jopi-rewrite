@@ -55,25 +55,24 @@ export async function generateScript(genDir: string, components: {[key: string]:
 
         //region Add global UI init
 
+        for (const globalScript of getGlobalUiInitFiles()) {
+            tplImport += `\nimport "${globalScript}";`;
+        }
+
         //endregion
 
         //region Add initialisation steps
 
-        let toImport = "Promise.all([";
-
-        // Global scripts.
-        for (const globalScript of getGlobalUiInitFiles()) {
-            toImport += `\nawait import("${globalScript}"),`;
-        }
+        let tplModulesInit = "Promise.all([";
 
         // Module init scripts.
         for (const uiInit of getUiInitFiles()) {
-            toImport += `\nmod_initializeMod((await import("${uiInit}")).default),`;
+            tplModulesInit += `\nmod_initializeMod((await import("${uiInit}")).default),`;
         }
 
-        toImport += "\n]).then(mod_onAllModInitialized)";
+        tplModulesInit += "\n]).then(mod_onAllModInitialized)";
 
-        tplInit += toImport;
+        tplInit += tplModulesInit;
 
         //endregion
 
