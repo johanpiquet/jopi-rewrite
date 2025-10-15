@@ -1,0 +1,1 @@
+The core of jopi-rewrite. Here it's mainly the server-side parts.
