@@ -1,7 +1,7 @@
 // noinspection JSUnusedGlobalSymbols
 
 import React, {useRef} from "react";
-import {getVariantProvider, type WithVariant} from "jopi-rewrite/ui";
+import {getVariantProvider, type WithVariant} from "../variants.ts";
 import {type JFieldProps, type JFormComponentProps, type JFormController} from "./interfaces.ts";
 import {FormContext, JFormControllerImpl} from "./private.ts";
 import {useJForm} from "./hooks.ts";

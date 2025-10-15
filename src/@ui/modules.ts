@@ -1,9 +1,8 @@
 // noinspection JSUnusedGlobalSymbols
 
 import * as ns_events from "jopi-node-space/ns_events";
-import {decodeUserInfosFromCookie, type UiUserInfos} from "./shared.ts";
+import {type UiUserInfos} from "./tools.ts";
 import React from "react";
-import {gComponentAlias} from "./internal.ts";
 import {isServerSide} from "jopi-node-space/ns_what";
 import {type IsObjectRegistry} from "./objectRegistry.ts";
 import {getDefaultPageController} from "./internal.ts";

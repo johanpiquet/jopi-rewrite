@@ -2,7 +2,7 @@
 
 import React, {useState} from "react";
 import {type ServerRequestInstance} from "./hooks.tsx";
-import {decodeJwtToken, decodeUserInfosFromCookie, isUserInfoCookieUpdated, deleteCookie, type UiUserInfos} from "./shared.ts";
+import {decodeJwtToken, decodeUserInfosFromCookie, isUserInfoCookieUpdated, deleteCookie, type UiUserInfos} from "./tools.ts";
 import * as ns_events from "jopi-node-space/ns_events";
 import type {ComponentAliasDef, ModuleInitContext_Host} from "./modules.ts";
 import {gComponentAlias} from "./internal.ts";

@@ -1,67 +1,9 @@
 // noinspection JSUnusedGlobalSymbols
 
-import React, {useEffect, useState} from "react";
-import {type SetURLSearchParams, useLocation, useNavigate, useParams as rrUserParams, useSearchParams} from "react-router";
+import React, {useEffect} from "react";
 import {PageContext, PageController, PageController_ExposePrivate} from "./page.tsx";
 import {CssModule, type UseCssModuleContextProps} from "./cssModules.tsx";
-
 import * as ns_events from "jopi-node-space/ns_events";
-import {isBrowser, isServerSide} from "jopi-node-space/ns_what";
-import * as n_what from "jopi-node-space/ns_what";
-
-//region React Router
-
-/**
- * Wrap the hook 'useNavigate' of ReactRouter
- * but make it server-side safe.
- */
-export function useNavigateSafe() {
-    if (isServerSide) return () => {};
-    return useNavigate();
-}
-
-/**
- * Wrap the hook 'useSearchParams' of ReactRouter
- * but make it server-side safe.
- */
-export function useSearchParamsSafe(): [URLSearchParams, SetURLSearchParams] {
-    if (isServerSide) return gServerSideFake_useSearchParams as [URLSearchParams, SetURLSearchParams];
-    return useSearchParams();
-}
-
-/**
- * Listen routes changes.
- * It sends an 'app.router.locationUpdated' event with the React Router new location.
- */
-export function useRouteChangeListener() {
-    if (isBrowser) {
-        const location = useLocation();
-
-        useEffect(() => {
-            ns_events.sendEvent("app.router.locationUpdated", location);
-        }, [location]);
-    }
-}
-
-const gServerSideFake_useSearchParams = [
-    {
-        size: 0,
-        get() { return null },
-        has() { return false },
-        forEach() { },
-        append() {},
-        delete() {},
-        set() {},
-        keys() { return [] },
-        values() { return [] },
-        entries() { return [] },
-        toString() { return "" },
-    },
-
-    function() {}
-]
-
-//endregion
 
 /**
  * Allows getting the page object and alter it.
@@ -89,25 +31,6 @@ export function usePage<T = any>(): PageController<T> {
     }
 
     return res;
-}
-
-/**
- * Returns parameters for the page.
- * This is the part of the url.
- *
- * This function works server side and browser side.
- *
- * If the url is https://mywebsite/product-name/list
- * and the route is http://mywebsite/$product/list
- * then urlParts contains {product: "product-name"}
- */
-export function usePageParams(): any {
-    if (n_what.isServerSide) {
-        let req = useServerRequest();
-        return req.urlParts;
-    } else {
-        return rrUserParams();
-    }
 }
 
 export function useCssModule(cssModule: undefined | Record<string, string>) {

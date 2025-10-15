@@ -1,5 +1,6 @@
-import {useNavigateSafe, usePage, type UiUserInfos} from "jopi-rewrite/ui";
-import {useEffect} from "react";
+import {usePage, type UiUserInfos} from "jopi-rewrite/ui";
+import React, {useEffect} from "react";
+import {useNavigateSafe} from "../reactRouter/index.ts";
 
 export function useLogOutUser(): ()=>void {
     const page = usePage();
