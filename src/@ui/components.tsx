@@ -69,12 +69,4 @@ export function ComponentAlias({name, children}: {name: string, children?: React
     return <C>{children}</C>;
 }
 
-/**
- * It's a common alias for the admin layout.
- * @constructor
- */
-export function AdminPageLayout({children}: {children?: React.ReactNode}) {
-    return <ComponentAlias name="page.layout.admin">{children}</ComponentAlias>
-}
-
 //endregion
