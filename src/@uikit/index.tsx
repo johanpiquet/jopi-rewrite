@@ -1,5 +1,7 @@
 import {isBrowser} from "jopi-node-space/ns_what";
 
+export * from "jopi-rewrite/ui";
+
 export * from "./uiKitCore.ts";
 export * from "./jopi-node-space-server.ts";
 
