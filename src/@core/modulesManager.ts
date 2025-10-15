@@ -72,7 +72,7 @@ export class ModulesManager {
                 // Will allows an init inside the browser.
                 gUiInitFiles.push(ns_app.getSourcesCodePathFor(file));
 
-                (this.webSite as WebSiteImpl).addPageRenderInitializer(exportDefault);
+                (this.webSite as WebSiteImpl).addUiModule(exportDefault);
             }
         }
 

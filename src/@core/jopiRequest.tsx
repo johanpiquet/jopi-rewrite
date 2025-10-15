@@ -735,18 +735,24 @@ export class JopiRequest {
     private isUsingReactPage = false;
     private isUsingReact = false;
 
+    /**
+     * Allow rendering a document fully formed from a React component.
+     * This component will be automatically wrapped inside a <Page /> component.
+     */
     reactResponse(element: ReactNode, options?: PageOptions) {
         this.isUsingReact = true;
         this.isUsingReactPage = true;
 
-        // Add the CSS bundle to the head.
-        // This will avoid content flicking.
+        // Will be called by the page renderer once the page controller initialized.
         //
         const hook = (controller: PageController_ExposePrivate) => {
-            // Allow bounding the controller to the request.
+            // Allow bounding the controller to this http request.
             controller.setServerRequest(this);
 
+            // Require injecting a CSS?
+            //
             if (hasExternalCssToBundle() || hasHydrateComponents()) {
+                // Will inject the CSS.
                 const cssEntryPointUrl = getBundleEntryPointUrl_CSS(this.webSite);
                 const hash = this.webSite.data["jopiLoaderHash"];
 
@@ -756,7 +762,10 @@ export class JopiRequest {
                 );
             }
 
-            (this.webSite as WebSiteImpl).applyPageRenderInitializers(this, controller);
+            // The module list is already created.
+            // But each module must be called when a page renders
+            // because the module is depending on things like the user identity.
+            (this.webSite as WebSiteImpl).initializeUiModules(this, controller);
         }
 
         return this.htmlResponse(ReactServer.renderToStaticMarkup(renderPage(element, hook, options)));

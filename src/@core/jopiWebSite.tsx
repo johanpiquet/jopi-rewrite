@@ -12,8 +12,8 @@ import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
 import {
-    _MICUI_ExposePrivate,
     ModuleInitContext_UI,
+    type ModuleInitContext_Host,
     Page,
     PageContext,
     PageController,
@@ -32,6 +32,7 @@ import {ModulesManager} from "./modulesManager.ts";
 import {installBundleServer} from "./bundler/server.ts";
 import {createBundle} from "./bundler/bundler.ts";
 import * as ns_webSocket from "jopi-node-space/ns_webSocket";
+import * as ns_events from "jopi-node-space/ns_events";
 
 export interface WebSite {
     data: any;
@@ -153,7 +154,7 @@ export class WebSiteImpl implements WebSite {
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
 
-    private _pageRenderInitializers?: PageRenderInitializer[];
+    private _uiModules?: PageRenderInitializer[];
 
     public readonly data: any = {};
 
@@ -187,6 +188,9 @@ export class WebSiteImpl implements WebSite {
         this.wsRouter = createRouter<JopiWsRouteHandler>();
 
         this._onWebSiteReady = options.onWebSiteReady;
+
+        // Allow hooking the newly created websites.
+        ns_events.sendEvent("jopi.webSite.created", this);
     }
 
     getWelcomeUrl(): string {
@@ -455,18 +459,40 @@ export class WebSiteImpl implements WebSite {
         return this.reactRouterManager;
     }
 
-    addPageRenderInitializer(initializer: (uiInit: ModuleInitContext_UI) => void) {
-        if (!this._pageRenderInitializers) this._pageRenderInitializers = [initializer];
-        else this._pageRenderInitializers.push(initializer);
+    //region UI Modules
+
+    /**
+     * Register a UI module
+     */
+    addUiModule(initializer: (uiInit: ModuleInitContext_UI) => void) {
+        if (!this._uiModules) this._uiModules = [initializer];
+        else this._uiModules.push(initializer);
     }
 
-    applyPageRenderInitializers(_req: JopiRequest, pageController: PageController) {
-        if (!this._pageRenderInitializers) return;
+    initializeUiModules(_req: JopiRequest, pageController: PageController) {
+        if (!this._uiModules) return;
 
-        const modInit = new _MICUI_ExposePrivate(pageController);
-        this._pageRenderInitializers.forEach(i => i(modInit));
-        modInit.onInitializationDone();
+        // Initialize all the ui-modules.
+        const modInit = this._instancierFor_uiInit(pageController);
+        this._uiModules.forEach(i => i(modInit));
+
+        // Declare the init done.
+        modInit.events.sendEvent("app.init.ui");
     }
+
+    /**
+     * Allow overriding the instance used by modules 'uiInit.tsx' files.
+     * @param instancier
+     */
+    setUiInitInstancier(instancier: (host: ModuleInitContext_Host) =>  ModuleInitContext_UI) {
+        this._instancierFor_uiInit = instancier;
+    }
+
+    private _instancierFor_uiInit:
+        (pageController: ModuleInitContext_Host) =>  ModuleInitContext_UI
+        = p => new  ModuleInitContext_UI(p);
+
+    //endregion
 
     //region Cache
 

@@ -26,7 +26,7 @@ export class PageController<T = any> {
     protected serverRequest?: ServerRequestInstance;
     protected userInfos?: UiUserInfos;
     private readonly componentAlias: Record<string, ComponentAliasDef> = {};
-    private readonly eventListeners = isServerSide() ? ns_events.newEventGroup() : ns_events;
+    private readonly eventListeners = isServerSide() ? ns_events.newEventGroup() : ns_events.defaultEventGroup;
 
     constructor(public readonly isDetached = false, options?: PageOptions) {
         options = options || {};
@@ -48,12 +48,8 @@ export class PageController<T = any> {
         return true;
     }
 
-    public addEventListener(eventName: string, priority: ns_events.EventPriority, listener: ns_events.EventListener<unknown>): void {
-        this.eventListeners.addListener(eventName, priority, listener);
-    }
-
-    public sendEvent(eventName: string, data?: unknown) {
-        this.eventListeners.sendEvent(eventName, data);
+    public get events(): ns_events.EventGroup {
+        return this.eventListeners;
     }
 
     public setComponentAlias(aliasDef: ComponentAliasDef) {

@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import * as ns_events from "jopi-node-space/ns_events";
 import {getDefaultMenuManager, MenuManager} from "./menuManager.ts";
 import {isServerSide} from "./shared.ts";
@@ -5,20 +7,21 @@ import {decodeUserInfosFromCookie, type UiUserInfos} from "./users.ts";
 import React from "react";
 import {gComponentAlias} from "./internal.ts";
 
-interface ModuleInitContext_Host {
+export interface ModuleInitContext_Host {
     getMenuManager(): MenuManager;
     getUserInfos(): UiUserInfos|undefined;
     setComponentAlias(alias: ComponentAliasDef): void;
     getComponentAlias(alias: string): ComponentAliasDef|undefined;
 
-    addEventListener(eventName: string, priority: ns_events.EventPriority, listener: ns_events.EventListener<unknown>): void;
-    sendEvent(eventName: string, value?: any): void;
+    events: ns_events.EventGroup;
 }
 
 export interface ComponentAliasDef {
     alias: string;
     component: React.ComponentType<any>;
 }
+
+type UiInitializer = () => void;
 
 /**
  * This class is what is sent as the default export function
@@ -29,7 +32,7 @@ export interface ComponentAliasDef {
  * * On browser side, it's executed for each browser refresh.
  */
 export class ModuleInitContext_UI {
-    constructor(protected readonly host?: ModuleInitContext_Host){
+    constructor(protected readonly host?: ModuleInitContext_Host) {
     }
 
     getMenuManager() {
@@ -37,12 +40,8 @@ export class ModuleInitContext_UI {
         return getDefaultMenuManager();
     }
 
-    addUiInitializer(priority: ns_events.EventPriority, initializer: ()=>void) {
-        if (this.host) {
-            this.host.addEventListener("app.init.ui", priority, initializer);
-        } else {
-            ns_events.addListener("app.init.ui", priority, initializer);
-        }
+    addUiInitializer(priority: UiInitializer|ns_events.EventPriority, initializer?: UiInitializer|undefined) {
+        this.events.addListener("app.init.ui", priority, initializer);
     }
 
     getUserInfos(): UiUserInfos|undefined {
@@ -96,19 +95,9 @@ export class ModuleInitContext_UI {
         if (this.host) this.host.setComponentAlias(aliasDef);
         else gComponentAlias[aliasDef.alias] = aliasDef;
     }
-}
 
-/**
- * -- Don't use --
- *
- * For internal usage.
- * Extend ModuleInitContext_UI by exposing some internal things.
- */
-export class _MICUI_ExposePrivate extends ModuleInitContext_UI {
-    onInitializationDone() {
-        // Host is server side only.
-        if (this.host) {
-            this.host.sendEvent("app.init.ui");
-        }
+    get events(): ns_events.EventGroup {
+        if (this.host) return this.host.events;
+        return ns_events.defaultEventGroup;
     }
 }
