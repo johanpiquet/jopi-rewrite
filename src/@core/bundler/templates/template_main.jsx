@@ -2,8 +2,7 @@
 import { lazy } from 'react';
 import React from "react";
 import ReactDOM from 'react-dom/client';
-import {createBrowserRouter, RouterProvider} from "react-router";
-import {ModuleInitContext_UI, Page} from "jopi-rewrite/ui";
+import {ModuleInitContext_UI} from "jopi-rewrite/ui";
 import * as ns_events from "jopi-node-space/ns_events";
 //[IMPORT]
 
@@ -23,41 +22,13 @@ function getJopiHydrateItems() {
     return result;
 }
 
-function patchRoutes(routes) {
-    function doPatch(routes) {
-        for (let route of routes) {
-            if (route.Component) {
-                const routePath = route.Component;
-                const C = jopiHydrate.components[routePath];
-                const myKey = routePath;
-
-                route.Component = () => {
-                    return <Page key={myKey}><C/></Page>;
-                }
-            }
-
-            if (route.children) {
-                doPatch(route.children);
-            }
-        }
-    }
-
-    doPatch(routes);
-    return routes;
-}
-
 function hydrateAll() {
-    if (gHydrateAllHook) {
-        gHydrateAllHook();
-        return;
-    }
-
+    if (gHydrateAllHook) { gHydrateAllHook(); return; }
     const components = getJopiHydrateItems();
 
     for (const c of components) {
         const id = c.data.id;
         const ReactComponent = jopiHydrate.components[id];
-
         ReactDOM.createRoot(c.node).render(<ReactComponent {...c.data.args} />);
     }
 }
@@ -65,10 +36,7 @@ function hydrateAll() {
 window["_JOPI_COMPOSITE_RENDERER_"] = function(name) {
     let composite = jopiComposites[name];
     if (!composite) return undefined;
-
-    return <>
-        {composite.map(C => <C/>)}
-    </>;
+    return <>{composite.map(C => <C/>)}</>;
 }
 
 let gHydrateAllHook;

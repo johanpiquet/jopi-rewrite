@@ -15,6 +15,7 @@ import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
 import {addGenerateScriptPlugin, loadCodeGenTemplate} from "./bundler/scripts.ts";
 import {isBunJS} from "jopi-node-space/ns_what";
+import {getBundlerConfig} from "./bundler/config.ts";
 
 interface RouteInfo {
     componentKey: string;
@@ -110,6 +111,10 @@ export class ReactRouterManager {
     }
 
     private async scriptPlugin(script: string, _outDir: string) {
+        const config = getBundlerConfig();
+        let enableReactRouter = config.reactRouter.disable!==true;
+        if (!enableReactRouter) return "";
+
         let template = await loadCodeGenTemplate("template_router.jsx");
         let reactRoutes: any[] = [];
 
@@ -133,7 +138,10 @@ export class ReactRouterManager {
 
         template = template.replace("//[ROUTES]", JSON.stringify(reactRoutes, null, 4));
 
+        // Should have been already imported.
+        script += `enableReactRouter();\n`;
         script += template;
+
         return script;
     }
 

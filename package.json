@@ -86,6 +86,8 @@
     "./loader-tools": "./dist/@loader-tools/index.js",
     "./loader-client": "./dist/@loader-client/index.js",
 
+    "./reactRouter": "./src/@reactRouter/index.js",
+
     "./types": "./src/@loader-types/extensions.d.ts",
     "./tool-jopinb": "./dist/@tool-jopinb/index.js"
   }

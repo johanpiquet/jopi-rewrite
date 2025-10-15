@@ -55,7 +55,7 @@ class JopiApp {
     startApp(importMeta: any, f: (jopiEasy: JopiEasy) => void|Promise<void>): void {
         async function doStart() {
             await ns_app.waitServerSideReady();
-            ns_app.declareAppStarted();
+            await ns_app.declareAppStarted();
 
             let res = f(new JopiEasy());
             if (res instanceof Promise) await res;
@@ -1543,7 +1543,6 @@ class GlobalConfigBuilder {
     }
 
     configure_bundler() {
-
         const me = {
             dontEmbed_ReactJS: () => {
                 me.dontEmbedThis("react", "react-dom");
@@ -1559,6 +1558,17 @@ class GlobalConfigBuilder {
                 let config = getBundlerConfig();
                 if (!config.embed.dontEmbedThis) config.embed.dontEmbedThis = [];
                 config.embed.dontEmbedThis.push(...packages);
+                return me;
+            }
+        }
+
+        return me;
+    }
+
+    configure_reactRouter() {
+        const me = {
+            disableReactRouter: () => {
+                getBundlerConfig().reactRouter.disable = true;
                 return me;
             }
         }

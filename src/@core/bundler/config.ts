@@ -21,17 +21,17 @@ export interface BundlerConfig {
     embed: {
         dontEmbedThis?: string[];
     }
+
+    reactRouter: {
+        disable?: boolean;
+    }
 }
 
 const gBundlerConfig: BundlerConfig = {
-    tailwind: {
-    },
-
-    postCss: {
-    },
-
-    embed: {
-    }
+    tailwind: {},
+    postCss: {},
+    embed: {},
+    reactRouter: {}
 }
 
 export function getBundlerConfig(): BundlerConfig {

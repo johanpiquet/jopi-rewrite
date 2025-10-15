@@ -10,6 +10,9 @@ const gGenerateScriptPlugins: GeneratedScriptPlugin[] = [];
 type GeneratedScriptPlugin = (script: string, outDir: string) => Promise<string>;
 
 export async function generateScript(genDir: string, components: {[key: string]: string}, extraCssToBundle: string[]): Promise<string> {
+    const config = getBundlerConfig();
+    let enableReactRouter = config.reactRouter.disable!==true;
+
     try {
         let tplDeclarations = "";
         let tplInit = "";
@@ -17,6 +20,12 @@ export async function generateScript(genDir: string, components: {[key: string]:
         let tplImport = "";
 
         //region Import CSS
+
+        if (enableReactRouter) {
+            tplImport += `import {Page} from "jopi-rewrite/ui";\n`;
+            tplImport += `import {createBrowserRouter, RouterProvider} from "react-router";\n`;
+            tplImport += `import {enableReactRouter} from "jopi-rewrite/reactRouter";\n`;
+        }
 
         for (const cssPath of extraCssToBundle) {
             tplImport += `import "${cssPath}";\n`;
