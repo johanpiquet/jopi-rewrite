@@ -1,5 +1,5 @@
 import type {UiText} from "../helpers/tools";
-import * as ns_schema from "jopi-node-space/ns_schema";
+import {type Schema} from "jopi-node-space/ns_schema";
 
 export interface JFieldProps {
     name: string,
@@ -8,7 +8,7 @@ export interface JFieldProps {
 }
 
 export interface JFormComponentProps {
-    schema: ns_schema.Schema;
+    schema: Schema;
     action?: string;
 }
 
