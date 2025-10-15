@@ -24,7 +24,6 @@ export async function generateScript(genDir: string, components: {[key: string]:
         if (enableReactRouter) {
             tplImport += `import {Page} from "jopi-rewrite/ui";\n`;
             tplImport += `import {createBrowserRouter, RouterProvider} from "react-router";\n`;
-            tplImport += `import {enableReactRouter} from "jopi-rewrite/reactRouter";\n`;
         }
 
         for (const cssPath of extraCssToBundle) {

@@ -138,11 +138,7 @@ export class ReactRouterManager {
 
         template = template.replace("//[ROUTES]", JSON.stringify(reactRoutes, null, 4));
 
-        // Should have been already imported.
-        script += `enableReactRouter();\n`;
-        script += template;
-
-        return script;
+        return script + template;
     }
 
     private async registerRoute(isServer: boolean, fileFullPath: string, fileUrl: string, route: string) {

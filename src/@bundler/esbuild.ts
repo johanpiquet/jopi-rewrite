@@ -14,6 +14,7 @@ export interface EsBuildParams {
     metaDataFilePath: string;
     useWatchMode?: boolean;
     dontEmbed?: string[]
+    replaceRules: Record<string, string>;
 }
 
 export async function esBuildBundle(params: EsBuildParams) {
@@ -44,7 +45,7 @@ export async function esBuildBundle(params: EsBuildParams) {
             // SCSS is natively managed.
 
             jopiLoaderPlugin,
-            jopiReplaceServerPlugin,
+            jopiReplaceServerPlugin(params.replaceRules),
             jopiDetectRebuild
         ],
 
@@ -139,19 +140,26 @@ export async function esBuildBundle(params: EsBuildParams) {
 // Allow replacing jopi-node-space-server by jopi-node-space-browser.
 // Is required by jopi-node-space.
 //
-const jopiReplaceServerPlugin: Plugin = {
-    name: "jopi-replace-server",
+function jopiReplaceServerPlugin(replaceRules: Record<string, string>|undefined): Plugin {
+    return {
+        name: "jopi-replace-server",
 
-    setup(build) {
-        build.onLoad({ filter: /\.(ts|js)x?$/ }, async (args) => {
-            let contents = await fs.readFile(args.path, 'utf8');
-            const newContents = contents.replace("jopi-node-space-server", "jopi-node-space-browser");
+        setup(build) {
+            build.onLoad({ filter: /\.(ts|js)x?$/ }, async (args) => {
+                let contents = await fs.readFile(args.path, 'utf8');
+                const oldContent = contents;
 
-            if (newContents === contents) return null;
-            return {contents: newContents, loader: 'ts'};
-        });
-    }
-};
+                for (let toReplace in replaceRules) {
+                    let replaceWith = replaceRules[toReplace];
+                    contents = contents.replaceAll(toReplace, replaceWith);
+                }
+
+                if (oldContent === contents) return null;
+                return {contents: contents, loader: 'ts'};
+            });
+        }
+    };
+}
 
 /**
  * Allows managing custom import:

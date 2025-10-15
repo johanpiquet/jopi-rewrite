@@ -1,17 +1,48 @@
-import {useEffect} from "react";
-import {type SetURLSearchParams, useLocation, useNavigate, useSearchParams} from "react-router";
-import {useParams as rrUserParams} from "react-router";
-import * as ns_events from "jopi-node-space/ns_events";
-import {isBrowser, isServerSide} from "jopi-node-space/ns_what";
 import {useServerRequest} from "jopi-rewrite/ui";
+
+//region Emulate ReactRouter api
+
+type ParamKeyValuePair = [string, string];
+type URLSearchParamsInit = string | ParamKeyValuePair[] | Record<string, string | string[]> | URLSearchParams;
+type SetURLSearchParams = (nextInit?: URLSearchParamsInit | ((prev: URLSearchParams) => URLSearchParamsInit), navigateOpts?: NavigateOptions) => void;
+
+interface NavigateOptions {
+    replace?: boolean;
+    state?: any;
+    preventScrollReset?: boolean;
+    relative?:  "route" | "path";
+    flushSync?: boolean;
+    viewTransition?: boolean;
+}
+
+interface Path {
+    /**
+     * A URL pathname, beginning with a /.
+     */
+    pathname: string;
+    /**
+     * A URL search string, beginning with a ?.
+     */
+    search: string;
+    /**
+     * A URL fragment identifier, beginning with a #.
+     */
+    hash: string;
+}
+
+export interface NavigateFunction {
+    (to: string | Partial<Path>, options?: NavigateOptions): void | Promise<void>;
+    (delta: number): void | Promise<void>;
+}
+
+//endregion
 
 /**
  * Wrap the hook 'useNavigate' of ReactRouter
  * but make it server-side safe.
  */
 export function useNavigateSafe() {
-    if (isServerSide) return () => {};
-    return useNavigate();
+    return () => {};
 }
 
 /**
@@ -19,8 +50,7 @@ export function useNavigateSafe() {
  * but make it server-side safe.
  */
 export function useSearchParamsSafe(): [URLSearchParams, SetURLSearchParams] {
-    if (isServerSide) return gServerSideFake_useSearchParams as [URLSearchParams, SetURLSearchParams];
-    return useSearchParams();
+    return gFake_useSearchParams as [URLSearchParams, SetURLSearchParams];
 }
 
 /**
@@ -28,13 +58,6 @@ export function useSearchParamsSafe(): [URLSearchParams, SetURLSearchParams] {
  * It sends an 'app.router.locationUpdated' event with the React Router new location.
  */
 export function useRouteChangeListener() {
-    if (isBrowser) {
-        const location = useLocation();
-
-        useEffect(() => {
-            ns_events.sendEvent("app.router.locationUpdated", location);
-        }, [location]);
-    }
 }
 
 /**
@@ -48,15 +71,11 @@ export function useRouteChangeListener() {
  * then urlParts contains {product: "product-name"}
  */
 export function usePageParams(): any {
-    if (isServerSide) {
-        let req = useServerRequest();
-        return req.urlParts;
-    } else {
-        return rrUserParams();
-    }
+    let req = useServerRequest();
+    return req.urlParts;
 }
 
-const gServerSideFake_useSearchParams = [
+const gFake_useSearchParams = [
     {
         size: 0,
         get() { return null },

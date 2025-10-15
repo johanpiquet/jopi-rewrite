@@ -1,2 +1,2 @@
 export * from "./UiKitModule.ts";
-export * from "./jopi-node-space-server.ts";
+export * from "./jBundler_ifServer.ts";

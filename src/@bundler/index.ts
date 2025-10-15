@@ -10,6 +10,17 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
     const cssToAdd = [];
     const config = params.config;
 
+    let replaceRules: Record<string, string> = {
+        "jopi-node-space-server": "jopi-node-space-browser",
+        "jBundler_ifServer": "jBundler_ifBrowser"
+    };
+
+    if (config.reactRouter.disable!==true) {
+        replaceRules["jBundler_isServer_noBrowser_noReactRouter"] = "jBundler_noServer_isBrowser_isReactRouter";
+    } else {
+        replaceRules["jBundler_isServer_noBrowser_noReactRouter"] = "jBundler_noServer_isBrowser_noReactRouter";
+    }
+
     // Build file tailwind.css
     if (params.requireTailwind) {
         let cssFilePath = await applyTailwindProcessor(params);
@@ -30,7 +41,8 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
         publicPath: params.publicUrl,
         metaDataFilePath,
         useWatchMode: params.enableUiWatch,
-        dontEmbed: config.embed.dontEmbedThis
+        dontEmbed: config.embed.dontEmbedThis,
+        replaceRules
     });
 
     // Calc some hash that will allow bypassing the browser cache.
