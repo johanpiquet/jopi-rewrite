@@ -1,3 +1,5 @@
+import {isBrowser} from "jopi-node-space/ns_what";
+
 export * from "./uiKitCore.ts";
 export * from "./jopi-node-space-server/index.ts";
 
@@ -8,3 +10,6 @@ export * from "./components/index.ts";
 export * from "./users.tsx";
 export * from "./otherHooks.tsx";
 export * from "./menuManager.ts";
+
+export const isBrowserSide = isBrowser;
+export const isServerSide = !isBrowser;

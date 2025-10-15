@@ -101,7 +101,7 @@ const Component = function({name}: {name: string}) {
     }
 
     let text = name;
-    if (isServerSide()) text += " (server side)";
+    if (isServerSide) text += " (server side)";
     else text += " (browser side)";
 
     return <div style={styles} className="ComponentA" onClick={doClick}>{text}</div>;
