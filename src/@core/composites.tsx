@@ -1,8 +1,8 @@
 import React from "react";
-import {setCompositeRenderer} from "jopi-rewrite/ui";
+import {_setCompositeRenderer} from "jopi-rewrite/ui";
 import {getUiCompositeItems} from "./modulesManager.js";
 
-setCompositeRenderer((name) => {
+_setCompositeRenderer((name) => {
     return <div composite-name={name}>
         {
             getUiCompositeItems(name).map((e, i) => {
