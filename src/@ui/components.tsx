@@ -1,5 +1,5 @@
 import React from "react";
-import {usePage} from "./otherHooks.tsx";
+import {usePage} from "./hooks.tsx";
 
 //region Composite
 

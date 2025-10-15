@@ -469,7 +469,7 @@ export class WebSiteImpl implements WebSite {
         else this._uiModules.push(initializer);
     }
 
-    initializeUiModules(_req: JopiRequest, pageController: PageController) {
+    initializeUiModules(req: JopiRequest, pageController: PageController) {
         if (!this._uiModules) return;
 
         // Initialize all the ui-modules.
@@ -488,9 +488,9 @@ export class WebSiteImpl implements WebSite {
         this._instancierFor_uiInit = instancier;
     }
 
-    private _instancierFor_uiInit:
-        (pageController: ModuleInitContext_Host) =>  ModuleInitContext_UI
-        = p => new  ModuleInitContext_UI(p);
+    private _instancierFor_uiInit(pageController: ModuleInitContext_Host): ModuleInitContext_UI {
+        return new ModuleInitContext_UI(pageController);
+    }
 
     //endregion
 

@@ -38,32 +38,8 @@
     "clean": "rm -rf ./dist .turbo tsconfig.tsbuildinfo",
     "build:priority:2": "npx tsc",
 
-    "_clean": "npx npm-run-all -l -s clean:*",
-    "_build": "npx npm-run-all -l -s build:*",
     "bun-publish": "bun publish",
-    "untrack": "git rm -r --cached -- ./dist/**;",
-
-    "build:@1a_ui": "npm --prefix @ui run build",
-    "build:@1b_crawler": "npm --prefix @crawler run build",
-    "build:@2a_loader-tools": "npm --prefix @loader-tools run build",
-    "build:@2b_loader-client": "npm --prefix @loader-client run build",
-    "build:@2c_loader": "npm --prefix @loader run build",
-    "build:@3a_core": "npm --prefix @core run build",
-    "build:@3b_bundler": "npm --prefix @bundler run build",
-    "build:@4a_uikit": "npm --prefix @uikit run build",
-
-    "build:@tool-jopinb": "npm --prefix @tool-jopinb run build",
-
-    "clean:@ui": "npm --prefix @ui run clean",
-    "clean:@crawler": "npm --prefix @crawler run clean",
-    "clean:@loader-tools": "npm --prefix @uikit run clean",
-    "clean:@loader-clients": "npm --prefix @uikit run clean",
-    "clean:@loader": "npm --prefix @uikit run clean",
-    "clean:@core": "npm --prefix @core run clean",
-    "clean:@bundler": "npm --prefix @bundler run clean",
-    "clean:@uikit": "npm --prefix @uikit run clean",
-
-    "clean:@tool-jopinb": "npm --prefix @tool-jopinb run clean"
+    "untrack": "git rm -r --cached -- ./dist/**;"
   },
 
   "devDependencies": {

@@ -1,14 +1,17 @@
 // noinspection JSUnusedGlobalSymbols
 
 import * as ns_events from "jopi-node-space/ns_events";
-import {getDefaultMenuManager, MenuManager} from "./menuManager.ts";
-import {isServerSide} from "./shared.ts";
-import {decodeUserInfosFromCookie, type UiUserInfos} from "./users.ts";
+import {decodeUserInfosFromCookie, type UiUserInfos} from "./shared.ts";
 import React from "react";
 import {gComponentAlias} from "./internal.ts";
+import {isServerSide} from "jopi-node-space/ns_what";
+import {type IsObjectRegistry} from "./objectRegistry.ts";
+import {getDefaultPageController} from "./internal.ts";
 
 export interface ModuleInitContext_Host {
-    getMenuManager(): MenuManager;
+    objectRegistry: IsObjectRegistry;
+
+    getCurrentURL(): URL;
     getUserInfos(): UiUserInfos|undefined;
     setComponentAlias(alias: ComponentAliasDef): void;
     getComponentAlias(alias: string): ComponentAliasDef|undefined;
@@ -32,12 +35,27 @@ type UiInitializer = () => void;
  * * On browser side, it's executed for each browser refresh.
  */
 export class ModuleInitContext_UI {
-    constructor(protected readonly host?: ModuleInitContext_Host) {
+    public readonly objectRegistry: IsObjectRegistry;
+    public readonly events: ns_events.EventGroup;
+    public readonly isBrowserSide: boolean = !isServerSide;
+    protected readonly host: ModuleInitContext_Host;
+
+    constructor(host?: ModuleInitContext_Host) {
+        if (!host) host = getDefaultPageController();
+        this.host = host;
+
+        this.objectRegistry = host.objectRegistry;
+        this.events = host.events;
+
+        this.initialize();
     }
 
-    getMenuManager() {
-        if (this.host) return this.host.getMenuManager();
-        return getDefaultMenuManager();
+    protected initialize() {
+        // Will be overridden.
+    }
+
+    getCurrentURL(): URL {
+        return this.host.getCurrentURL();
     }
 
     addUiInitializer(priority: UiInitializer|ns_events.EventPriority, initializer?: UiInitializer|undefined) {
@@ -45,8 +63,7 @@ export class ModuleInitContext_UI {
     }
 
     getUserInfos(): UiUserInfos|undefined {
-        if (this.host) return this.host.getUserInfos();
-        return decodeUserInfosFromCookie();
+        return this.host.getUserInfos();
     }
 
     userHasRoles(roles: string[]): boolean {
@@ -68,8 +85,6 @@ export class ModuleInitContext_UI {
     }
 
     ifUserLoggedIn(f: () => Promise<void>) {
-        if (isServerSide()) return Promise.resolve();
-
         // On the browser-side, using it outside a React function is safe.
         let userInfos = this.getUserInfos();
         if (!userInfos) return Promise.resolve();
@@ -80,8 +95,6 @@ export class ModuleInitContext_UI {
     }
 
     ifNotUserLoggedIn(f: () => Promise<void>) {
-        if (isServerSide()) return Promise.resolve();
-
         // On the browser-side, using it outside a React function is safe.
         let userInfos = this.getUserInfos();
         if (!userInfos) return Promise.resolve();
@@ -92,12 +105,6 @@ export class ModuleInitContext_UI {
     }
 
     setComponentAlias(aliasDef: ComponentAliasDef) {
-        if (this.host) this.host.setComponentAlias(aliasDef);
-        else gComponentAlias[aliasDef.alias] = aliasDef;
-    }
-
-    get events(): ns_events.EventGroup {
-        if (this.host) return this.host.events;
-        return ns_events.defaultEventGroup;
+        this.host.setComponentAlias(aliasDef);
     }
 }

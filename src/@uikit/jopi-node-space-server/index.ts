@@ -7,9 +7,8 @@ export function registerUiKit() {
     // with our own implementation, which extend the core functionalities.
     //
     ns_event.addListener<WebSite>("jopi.webSite.created", (webSite) => {
-        (webSite as WebSiteImpl).setUiInitInstancier((host) =>  {
-            return new UiKitModule(host);
-        });
+        // @ts-ignore It doesn't correctly cast references.
+        (webSite as WebSiteImpl).setUiInitInstancier(host => new UiKitModule(host));
     })
 }
 

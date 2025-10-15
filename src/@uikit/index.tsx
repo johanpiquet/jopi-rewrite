@@ -5,3 +5,6 @@ export * from "./formHelpers.tsx";
 export * from "./publicTools.ts";
 
 export * from "./components/index.ts";
+export * from "./users.tsx";
+export * from "./otherHooks.tsx";
+export * from "./menuManager.ts";

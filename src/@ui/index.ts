@@ -3,9 +3,8 @@ export * from "./page.tsx";
 export * from "./mustHydrate.ts";
 export * from "./cssModules.tsx";
 
-export * from "./menuManager.ts";
-export * from "./users.tsx";
 export * from "./components.tsx";
-export * from "./otherHooks.tsx";
+export * from "./hooks.tsx";
 export * from "./modules.ts";
 export * from "./variants.ts";
+export * from "./objectRegistry.ts";

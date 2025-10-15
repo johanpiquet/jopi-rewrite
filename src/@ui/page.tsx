@@ -1,11 +1,13 @@
+// noinspection JSUnusedGlobalSymbols
+
 import React, {useState} from "react";
-import {deleteCookie, type ServerRequestInstance} from "./otherHooks.tsx";
-import {isBrowserSide, isServerSide} from "./shared.ts";
-import {getDefaultMenuManager, MenuManager} from "./menuManager.ts";
-import {decodeJwtToken, decodeUserInfosFromCookie, isUserInfoCookieUpdated, type UiUserInfos} from "./users.tsx";
+import {type ServerRequestInstance} from "./hooks.tsx";
+import {decodeJwtToken, decodeUserInfosFromCookie, isUserInfoCookieUpdated, deleteCookie, type UiUserInfos} from "./shared.ts";
 import * as ns_events from "jopi-node-space/ns_events";
-import type {ComponentAliasDef} from "./modules.ts";
+import type {ComponentAliasDef, ModuleInitContext_Host} from "./modules.ts";
 import {gComponentAlias} from "./internal.ts";
+import {isServerSide} from "jopi-node-space/ns_what";
+import {getDefaultObjectRegistry, type IsObjectRegistry, ObjectRegistry} from "./objectRegistry.ts";
 
 export interface PageOptions {
     pageTitle?: string;
@@ -18,20 +20,20 @@ export interface PageOptions {
     headProps?: Record<string, any>;
 }
 
-export class PageController<T = any> {
-    private readonly isServerSide: boolean;
+export class PageController<T = any> implements ModuleInitContext_Host {
+    private readonly isServerSide: boolean = isServerSide;
     private readonly usedKeys = new Set<String>();
     protected state: PageOptions;
-    protected menuManager?: MenuManager;
     protected serverRequest?: ServerRequestInstance;
     protected userInfos?: UiUserInfos;
     private readonly componentAlias: Record<string, ComponentAliasDef> = {};
-    private readonly eventListeners = isServerSide() ? ns_events.newEventGroup() : ns_events.defaultEventGroup;
+
+    public readonly events = isServerSide ? ns_events.newEventGroup() : ns_events.defaultEventGroup;
+    public readonly objectRegistry: IsObjectRegistry = isServerSide ? new ObjectRegistry() : getDefaultObjectRegistry();
 
     constructor(public readonly isDetached = false, options?: PageOptions) {
         options = options || {};
 
-        this.isServerSide = isServerSide();
         this.state = {...options};
     }
 
@@ -48,12 +50,8 @@ export class PageController<T = any> {
         return true;
     }
 
-    public get events(): ns_events.EventGroup {
-        return this.eventListeners;
-    }
-
     public setComponentAlias(aliasDef: ComponentAliasDef) {
-        if (isServerSide()) {
+        if (isServerSide) {
             this.componentAlias[aliasDef.alias] = aliasDef;
         } else {
             gComponentAlias[aliasDef.alias] = aliasDef;
@@ -61,7 +59,7 @@ export class PageController<T = any> {
     }
 
     public getComponentAlias(name: string): ComponentAliasDef|undefined {
-        if (isServerSide()) {
+        if (isServerSide) {
             return this.componentAlias[name];
         } else {
             return gComponentAlias[name];
@@ -81,12 +79,9 @@ export class PageController<T = any> {
         return new URL(window.location.href);
     }
 
-    public getMenuManager(): MenuManager {
-        if (!this.menuManager) return getDefaultMenuManager();
-        return this.menuManager;
-    }
-
     public getUserInfos(): UiUserInfos|undefined {
+        if (isServerSide) return this.userInfos;
+
         if (!this.userInfos) {
             this.userInfos = decodeUserInfosFromCookie();
         }
@@ -95,14 +90,14 @@ export class PageController<T = any> {
     }
 
     public refreshUserInfos() {
-        if (isBrowserSide() && isUserInfoCookieUpdated()) {
+        if (!isServerSide && isUserInfoCookieUpdated()) {
             this.userInfos = decodeUserInfosFromCookie();
             ns_events.sendEvent("user.infosUpdated")
         }
     }
 
     public logOutUser() {
-        if (isBrowserSide()) {
+        if (!isServerSide) {
             deleteCookie("authorization");
         }
 
@@ -199,9 +194,12 @@ export class PageController_ExposePrivate<T = any> extends PageController<T> {
         return this.state;
     }
 
+    public readonly objectRegistry = new ObjectRegistry();
+
     setServerRequest(serverRequest: ServerRequestInstance) {
+        this.objectRegistry.registerObject("jopi.serverRequest", serverRequest);
+
         this.serverRequest = serverRequest;
-        this.menuManager = new MenuManager(serverRequest.urlInfos);
         this.userInfos = decodeJwtToken(serverRequest.getJwtToken());
     }
 
@@ -237,7 +235,7 @@ export const Page: React.FC<{
     // On the browser side, we can't only render the body content
     //      since React doesn't allow a full page replace.
     //
-    if (isServerSide()) {
+    if (isServerSide) {
         const state = controller.exportState();
 
         return <PageContext.Provider value={controller}>

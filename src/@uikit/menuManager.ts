@@ -1,12 +1,9 @@
 import {HierarchyBuilder, ucFirst} from "./internal.ts";
 import * as ns_events from "jopi-node-space/ns_events";
 import React from "react";
-import {useEventValue, usePage} from "./otherHooks.tsx";
-import {isServerSide} from "./shared.ts";
-
-export function getDefaultMenuManager(): MenuManager {
-    return gMenuManager;
-}
+import {useEventValue} from "./otherHooks.tsx";
+import {isServerSide} from "jopi-node-space/ns_what";
+import {usePage} from "jopi-rewrite/ui";
 
 type MenuBuilder = (menu: AppMenu) => void;
 
@@ -230,9 +227,13 @@ function menuNormalizer(item: MenuItem) {
 
 //region Hooks
 
+export function useMenuManager(): MenuManager {
+    return usePage().objectRegistry.getObject<MenuManager>("uikit.menuManager")!
+}
+
 export function useMatchingMenuItem(): MenuItem|undefined {
-    if (isServerSide()) {
-        return usePage().getMenuManager().getMatchingMenuItem();
+    if (isServerSide) {
+        return useMenuManager().getMatchingMenuItem();
     }
 
     let v = useEventValue("app.menu.activeItemChanged");
@@ -244,4 +245,3 @@ export function useMatchingMenuItem(): MenuItem|undefined {
 
 let gReactKey = 0;
 let gMenuActiveItem: MenuItem|undefined;
-let gMenuManager = new MenuManager();
