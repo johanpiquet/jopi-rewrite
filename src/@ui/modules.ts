@@ -20,6 +20,14 @@ export interface ComponentAliasDef {
     component: React.ComponentType<any>;
 }
 
+/**
+ * This class is what is sent as the default export function
+ * of your module `uiInit.tsx`. It allows configuring things
+ * allowing your plugin to initialize your UI.
+ * 
+ * * On server side, it's executed for each page.
+ * * On browser side, it's executed for each browser refresh.
+ */
 export class ModuleInitContext_UI {
     constructor(protected readonly host?: ModuleInitContext_Host){
     }
@@ -90,7 +98,13 @@ export class ModuleInitContext_UI {
     }
 }
 
-export class MICUI_ExposePrivate extends ModuleInitContext_UI {
+/**
+ * -- Don't use --
+ *
+ * For internal usage.
+ * Extend ModuleInitContext_UI by exposing some internal things.
+ */
+export class _MICUI_ExposePrivate extends ModuleInitContext_UI {
     onInitializationDone() {
         // Host is server side only.
         if (this.host) {

@@ -1,20 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import React, {useEffect, useState} from "react";
-import {
-    type SetURLSearchParams,
-    useLocation,
-    useNavigate,
-    useParams as rrUserParams,
-    useSearchParams
-} from "react-router";
-import {
-    CssModule,
-    PageContext,
-    PageController,
-    PageController_ExposePrivate,
-    type UseCssModuleContextProps
-} from "./hydrate.tsx";
+import {type SetURLSearchParams, useLocation, useNavigate, useParams as rrUserParams, useSearchParams} from "react-router";
+import {PageContext, PageController, PageController_ExposePrivate} from "./page.tsx";
+import {CssModule, type UseCssModuleContextProps} from "./cssModules.tsx";
+
 import * as ns_events from "jopi-node-space/ns_events";
 import {isBrowserSide, isServerSide} from "./shared.ts";
 import {type MenuItem} from "./menuManager.ts";

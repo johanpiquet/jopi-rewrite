@@ -12,7 +12,7 @@ import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
 import {
-    MICUI_ExposePrivate,
+    _MICUI_ExposePrivate,
     ModuleInitContext_UI,
     Page,
     PageContext,
@@ -463,7 +463,7 @@ export class WebSiteImpl implements WebSite {
     applyPageRenderInitializers(_req: JopiRequest, pageController: PageController) {
         if (!this._pageRenderInitializers) return;
 
-        const modInit = new MICUI_ExposePrivate(pageController);
+        const modInit = new _MICUI_ExposePrivate(pageController);
         this._pageRenderInitializers.forEach(i => i(modInit));
         modInit.onInitializationDone();
     }

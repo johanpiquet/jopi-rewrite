@@ -1,5 +1,3 @@
-// noinspection JSUnusedGlobalSymbols
-
 import React, {useState} from "react";
 import {deleteCookie, type ServerRequestInstance} from "./otherHooks.tsx";
 import {isBrowserSide, isServerSide} from "./shared.ts";
@@ -8,8 +6,6 @@ import {decodeJwtToken, decodeUserInfosFromCookie, isUserInfoCookieUpdated, type
 import * as ns_events from "jopi-node-space/ns_events";
 import type {ComponentAliasDef} from "./modules.ts";
 import {gComponentAlias} from "./internal.ts";
-
-//region Page
 
 export interface PageOptions {
     pageTitle?: string;
@@ -250,15 +246,15 @@ export const Page: React.FC<{
 
         return <PageContext.Provider value={controller}>
             <html {...state.htmlProps}>
-                <head {...state.headProps}>
-                    {state.head}
-                    <title>{state.pageTitle}</title>
-                </head>
-                <body {...state.bodyProps}>
-                    {state.bodyBegin}
-                    {children}
-                    {state.bodyEnd}
-                </body>
+            <head {...state.headProps}>
+                {state.head}
+                <title>{state.pageTitle}</title>
+            </head>
+            <body {...state.bodyProps}>
+            {state.bodyBegin}
+            {children}
+            {state.bodyEnd}
+            </body>
             </html>
         </PageContext.Provider>;
     } else {
@@ -287,57 +283,3 @@ export const Page: React.FC<{
 export const PageContext = React.createContext<PageController<unknown>|undefined>(undefined);
 
 let gPageRender: PageRenderer|undefined;
-
-//endregion
-
-//region mustHydrate
-
-export type HandlerMustHydrate = (importMeta: any, f: React.FunctionComponent, isSpan: boolean, cssModule?: Record<string, string>) => React.FunctionComponent;
-
-export function setHandler_mustHydrate(listener: HandlerMustHydrate) {
-    gHandler_hydrateListener = listener;
-}
-
-export function mustHydrate<T>(importMeta: any, f: React.FunctionComponent<T>, cssModule?: Record<string, string>): React.FunctionComponent<T> {
-    return gHandler_hydrateListener(importMeta, f as React.FunctionComponent, false, cssModule) as  React.FunctionComponent<T>;
-}
-
-export function mustHydrateSpan<T>(f: React.FunctionComponent<T>, importMeta: any): React.FunctionComponent<T> {
-    return gHandler_hydrateListener(importMeta, f as React.FunctionComponent, true) as  React.FunctionComponent<T>;
-}
-
-function onNewHydrate(_importMeta: any, F: React.FunctionComponent, _isSpan: boolean): React.FunctionComponent {
-    return F;
-}
-
-let gHandler_hydrateListener: HandlerMustHydrate = onNewHydrate;
-
-//endregion
-
-//region CSS Modules
-
-export type HandlerBundleExternalCss = (importMeta: any, cssFilePath: string) => void;
-
-export function setHandler_bundleExternalCss(listener: HandlerBundleExternalCss) {
-    gHandler_bundleExternalCss = listener;
-}
-
-export const CssModule: React.FC<{module: any}> = ({module}) => {
-    return <style>{module.__CSS__}</style>;
-};
-
-export interface UseCssModuleContextProps {
-    jopiUseCssModule?: Record<string, any>;
-}
-
-export function getCssModuleStyle(cssModule: undefined | Record<string, string>): string {
-    return cssModule ? cssModule.__CSS__ : "";
-}
-
-export function mustBundleExternalCss(importMeta: any, cssFilePath: string) {
-    gHandler_bundleExternalCss(importMeta, cssFilePath);
-}
-
-let gHandler_bundleExternalCss: HandlerBundleExternalCss = () => {};
-
-//endregion

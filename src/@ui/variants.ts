@@ -50,6 +50,3 @@ export function setDefaultVariant<T>(uid: string, variant: React.FC<T>) {
 const gVariantProviders: Record<string, VariantProvider> = {}
 
 export type WithVariant<T> = T & { variant?: string; };
-
-
-//const VariantContext = React.createContext<VariantProvider>(undefined);

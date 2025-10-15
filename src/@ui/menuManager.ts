@@ -1,4 +1,4 @@
-import {HierarchyBuilder, ucFirst} from "./internalTools.ts";
+import {HierarchyBuilder, ucFirst} from "./internal.ts";
 import * as ns_events from "jopi-node-space/ns_events";
 import React from "react";
 import {useEventValue, usePage} from "./otherHooks.tsx";
@@ -10,11 +10,11 @@ export function getDefaultMenuManager(): MenuManager {
 
 type MenuBuilder = (menu: AppMenu) => void;
 
-export const MenuName = {
-    LEFT_MENU: "layout.left",
-    RIGHT_MENU: "layout.right",
-    TOP_MENU: "layout.top",
-};
+export enum MenuName {
+    LEFT_MENU = "layout.left",
+    RIGHT_MENU = "layout.right",
+    TOP_MENU = "layout.top"
+}
 
 export class MenuManager {
     private isInvalid = true;
@@ -198,19 +198,6 @@ export class MenuManager {
     }
 }
 
-let gReactKey = 0;
-let gMenuActiveItem: MenuItem|undefined;
-
-export function useMatchingMenuItem(): MenuItem|undefined {
-    if (isServerSide()) {
-        return usePage().getMenuManager().getMatchingMenuItem();
-    }
-
-    let v = useEventValue("app.menu.activeItemChanged");
-    if (!v) return undefined;
-    return v.menuItem as MenuItem;
-}
-
 export interface MenuItem {
     key: string;
     items?: MenuItem[];
@@ -233,7 +220,7 @@ export interface MenuItem {
 class AppMenu extends HierarchyBuilder<MenuItem> {
 }
 
-export function menuNormalizer(item: MenuItem) {
+function menuNormalizer(item: MenuItem) {
     if (!item.title) {
         if (item.key) {
             item.title = ucFirst(item.key);
@@ -241,4 +228,20 @@ export function menuNormalizer(item: MenuItem) {
     }
 }
 
+//region Hooks
+
+export function useMatchingMenuItem(): MenuItem|undefined {
+    if (isServerSide()) {
+        return usePage().getMenuManager().getMatchingMenuItem();
+    }
+
+    let v = useEventValue("app.menu.activeItemChanged");
+    if (!v) return undefined;
+    return v.menuItem as MenuItem;
+}
+
+//endregion
+
+let gReactKey = 0;
+let gMenuActiveItem: MenuItem|undefined;
 let gMenuManager = new MenuManager();
