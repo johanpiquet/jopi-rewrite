@@ -1,6 +1,6 @@
 import {ModuleInitContext_UI} from "jopi-rewrite/ui";
-import {MenuManager} from "./menuManager.ts";
-import {getDefaultMenuManager} from "./internal.ts";
+import {MenuManager} from "../menu/index.ts";
+import {getDefaultMenuManager} from "../menu/internal.ts";
 
 export class UiKitModule extends ModuleInitContext_UI {
     protected override initialize() {

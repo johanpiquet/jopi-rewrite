@@ -1,5 +1,4 @@
-import {isServerSide} from "jopi-node-space/ns_what";
-import {decodeNavigatorCookie, useNavigateSafe, usePage, type UiUserInfos} from "jopi-rewrite/ui";
+import {useNavigateSafe, usePage, type UiUserInfos} from "jopi-rewrite/ui";
 import {useEffect} from "react";
 
 export function useLogOutUser(): ()=>void {

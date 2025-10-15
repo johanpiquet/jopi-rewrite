@@ -1,6 +1,6 @@
 import * as ns_event from "jopi-node-space/ns_events";
 import type {WebSite, WebSiteImpl} from "jopi-rewrite";
-import {UiKitModule} from "./uiKitCore.ts";
+import {UiKitModule} from "./UiKitModule.ts";
 import {addGlobalUiInitFile} from "jopi-rewrite";
 import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_fs from "jopi-node-space/ns_fs";
@@ -14,5 +14,5 @@ export function registerUiKit() {
         (webSite as WebSiteImpl).setUiInitInstancier(host => new UiKitModule(host));
     })
 
-    addGlobalUiInitFile(ns_fs.join(ns_app.findPackageJsonDir(import.meta.dirname), "src", "@uikit", "initBrowser.ts"));
+    addGlobalUiInitFile(ns_fs.join(ns_app.findPackageJsonDir(import.meta.dirname), "src", "@uikit", "core", "initBrowser.ts"));
 }

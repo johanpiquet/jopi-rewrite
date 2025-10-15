@@ -1,42 +1,8 @@
-import type {UiText} from "./publicTools.js";
-import {getVariantProvider, type WithVariant} from "jopi-rewrite/ui";
 import React, {useContext, useEffect, useRef} from "react";
 import * as ns_schema from "jopi-node-space/ns_schema";
+import type {JFieldController, JFormComponentProps, JFormController} from "./interfaces.ts";
 
-export interface FieldProps {
-    name: string,
-    title?: UiText,
-    description?: UiText
-}
-
-//region Engine
-
-export interface JFormComponentProps {
-    schema: ns_schema.Schema;
-    action?: string;
-}
-
-export interface JFieldController {
-    name: string;
-    error: boolean;
-    errorMessage?: string;
-
-    title?: string;
-    description?: string;
-
-    value: any;
-    oldValue: any;
-
-    onChange: (value: any) => void;
-}
-
-export interface JFormController {
-    error: boolean;
-    submitted: boolean;
-
-    validate(): string | undefined;
-    check(): boolean;
-}
+type Listener = () => void;
 
 interface JFieldController_Private extends JFieldController {
     onStateChange?: () => void;
@@ -53,9 +19,7 @@ interface JsonFieldDef {
     default?: any;
 }
 
-type Listener = () => void;
-
-class JFormControllerImpl implements JFormController {
+export class JFormControllerImpl implements JFormController {
     private readonly fields: Record<string, JFieldController_Private> = {};
     private readonly allFieldDef: Record<string, JsonFieldDef>;
     private readonly onStateChange: Listener[] = [];
@@ -180,107 +144,5 @@ function calcDefault(fieldDef: JsonFieldDef|undefined): any {
     return undefined;
 }
 
-const FormContext = React.createContext<JFormController>(undefined as unknown as JFormController);
+export const FormContext = React.createContext<JFormController>(undefined as unknown as JFormController);
 
-export function useJForm(): JFormController {
-    const theForm = useContext(FormContext) as JFormControllerImpl;
-    if (!theForm) throw new Error("useJForm must be used within a JForm component.");
-
-    const [_, setCounter] = React.useState(0);
-
-    useEffect(() => {
-        function eventHandler() {
-            // Here use prevCount to always have the update counter value.
-            setCounter(prevCount => prevCount+1);
-        }
-
-        theForm.addStateChangeListener(eventHandler);
-        return () => { theForm.removeStateChangeListener(eventHandler) };
-    }, []);
-
-    return theForm;
-}
-
-export function useJFormField(name: string): JFieldController {
-    const [_, setCounter] = React.useState(0);
-
-    const form = useJForm() as JFormControllerImpl;
-    let thisField = form.getField(name);
-    thisField.onStateChange = () => { setCounter(prev => prev + 1) };
-
-    return thisField;
-}
-
-export function JForm({children, className, ...p}: { children: React.ReactNode, className?: string } & JFormComponentProps)
-{
-    const ref = useRef<JFormControllerImpl>(new JFormControllerImpl(p));
-
-    const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        let toSubmit = ref.current.validate();
-        if (toSubmit === undefined) setMessage("Form is not valid.");
-        else setMessage("Submitting form to " + toSubmit);
-    };
-
-    const [message, setMessage] = React.useState<string>("");
-
-    return <FormContext.Provider value={ref.current}>
-        <form className={className} onSubmit={onSubmit}>{message}{children}</form>
-    </FormContext.Provider>
-}
-
-export function JFormStateListener(
-    {custom, ifSubmitted, ifNotSubmitted}: {
-        ifSubmitted?: React.ReactNode,
-        ifNotSubmitted?: React.ReactNode,
-        custom?: (form: JFormController) => React.ReactNode
-    }) {
-    const form = useJForm();
-
-    if (form.submitted) {
-        if (ifSubmitted) return ifSubmitted;
-    } else {
-        if (ifNotSubmitted) return ifNotSubmitted;
-    }
-
-    return custom?.(form);
-}
-
-//endregion
-
-//region InputFormField
-
-export const VariantId_InputFormField = "d3ff0685-5398-47be-8f5f-8b9ef3121ffd";
-const V_InputFormField = getVariantProvider(VariantId_InputFormField);
-
-export interface InputFormFieldProps extends FieldProps {
-    id?: string,
-    className?: string,
-    placeholder?: string
-}
-
-export function InputFormField({variant, ...p}: WithVariant<InputFormFieldProps>) {
-    const C = V_InputFormField.get(variant);
-    return <C {...p}/>;
-}
-
-//endregion
-
-//region CheckboxFormField
-
-export const VariantId_CheckboxFormField = "90c93770-4dac-49f2-a7dd-20cfe10b1b87";
-const V_CheckboxFormField = getVariantProvider(VariantId_CheckboxFormField);
-
-export interface CheckboxFormFieldProps extends FieldProps {
-    id?: string,
-    className?: string,
-    defaultChecked?: boolean,
-}
-
-export function CheckboxFormField({variant, ...p}: WithVariant<CheckboxFormFieldProps>) {
-    const C = V_CheckboxFormField.get(variant);
-    return <C {...p}/>;
-}
-
-//endregion

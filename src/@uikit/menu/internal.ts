@@ -1,4 +1,4 @@
-import {MenuManager} from "./menuManager.ts";
+import {MenuManager} from "./core.ts";
 
 //region HierarchyBuilder
 
@@ -205,10 +205,6 @@ export class HierarchyBuilder<T extends WithKeyAndItems<T>> {
 const gDetachedHierarchyBuilder = new HierarchyBuilder({key: ""});
 
 //endregion
-
-export function ucFirst(text: string): string {
-    return text.charAt(0).toUpperCase() + text.slice(1);
-}
 
 export function getDefaultMenuManager(): MenuManager {
     if (!gMenuManager) {
