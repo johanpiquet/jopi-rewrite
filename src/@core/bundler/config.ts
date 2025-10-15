@@ -16,6 +16,10 @@ export interface BundlerConfig {
 
     postCss: {
         initializer?: PostCssInitializer;
+    },
+
+    embed: {
+        dontEmbedThis?: string[];
     }
 }
 
@@ -24,6 +28,9 @@ const gBundlerConfig: BundlerConfig = {
     },
 
     postCss: {
+    },
+
+    embed: {
     }
 }
 

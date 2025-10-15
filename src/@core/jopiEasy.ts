@@ -1541,6 +1541,30 @@ class GlobalConfigBuilder {
             }
         }
     }
+
+    configure_bundler() {
+
+        const me = {
+            dontEmbed_ReactJS: () => {
+                me.dontEmbedThis("react", "react-dom");
+                return me;
+            },
+
+            dontEmbed_ReactRouter: () => {
+                me.dontEmbedThis("react-router");
+                return me;
+            },
+
+            dontEmbedThis: (...packages: string[]) => {
+                let config = getBundlerConfig();
+                if (!config.embed.dontEmbedThis) config.embed.dontEmbedThis = [];
+                config.embed.dontEmbedThis.push(...packages);
+                return me;
+            }
+        }
+
+        return me;
+    }
 }
 
 //endregion

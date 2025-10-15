@@ -13,6 +13,7 @@ export interface EsBuildParams {
     publicPath?: string;
     metaDataFilePath: string;
     useWatchMode?: boolean;
+    dontEmbed?: string[]
 }
 
 export async function esBuildBundle(params: EsBuildParams) {
@@ -25,6 +26,8 @@ export async function esBuildBundle(params: EsBuildParams) {
 
         bundle: true,
         outdir: params.outputDir,
+
+        external:  params.dontEmbed,
 
         // Allows generating relative url
         // without the full website name.

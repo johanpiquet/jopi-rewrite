@@ -2,7 +2,7 @@ import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import {pathToFileURL} from "node:url";
 import {getAllUiComposites, getGlobalUiInitFiles, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
-import path from "node:path";
+import {getBundlerConfig} from "./config.ts";
 
 const isWin32 = process.platform == "win32";
 
@@ -90,7 +90,7 @@ export async function generateScript(genDir: string, components: {[key: string]:
         script = script.replace("//[ON_INIT]", tplInit);
         script = script.replace("//[PLUGINS]", tplPlugins);
 
-        const filePath = path.join(genDir, "loader.jsx");
+        const filePath = ns_fs.join(genDir, "loader.jsx");
         await ns_fs.writeTextToFile(filePath, script, true);
 
         return filePath;
@@ -106,9 +106,9 @@ export function addGenerateScriptPlugin(plugin: GeneratedScriptPlugin) {
 }
 
 export async function loadCodeGenTemplate(name: string): Promise<string> {
-    let resolvedPath = path.join(import.meta.dirname, "templates", name);
-    let toSearch = path.join("dist", "@core", "bundler");
-    let replaceBy = path.join("src", "@core", "bundler");
+    let resolvedPath = ns_fs.join(import.meta.dirname, "templates", name);
+    let toSearch = ns_fs.join("dist", "@core", "bundler");
+    let replaceBy = ns_fs.join("src", "@core", "bundler");
     if (resolvedPath.includes(toSearch)) resolvedPath = resolvedPath.replace(toSearch, replaceBy);
 
     return await ns_fs.readTextFromFile(resolvedPath);

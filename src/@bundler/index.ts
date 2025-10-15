@@ -8,6 +8,7 @@ import path from "node:path";
 
 async function createBundle(params: CreateBundleEvent): Promise<void> {
     const cssToAdd = [];
+    const config = params.config;
 
     // Build file tailwind.css
     if (params.requireTailwind) {
@@ -28,7 +29,8 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
         genDir: params.genDir,
         publicPath: params.publicUrl,
         metaDataFilePath,
-        useWatchMode: params.enableUiWatch
+        useWatchMode: params.enableUiWatch,
+        dontEmbed: config.embed.dontEmbedThis
     });
 
     // Calc some hash that will allow bypassing the browser cache.
