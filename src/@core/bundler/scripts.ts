@@ -1,7 +1,7 @@
 import * as ns_app from "jopi-node-space/ns_app";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import {pathToFileURL} from "node:url";
-import {getAllUiComposites, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
+import {getAllUiComposites, getGlobalUiInitFiles, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
 import path from "node:path";
 
 const isWin32 = process.platform == "win32";
@@ -53,13 +53,24 @@ export async function generateScript(genDir: string, components: {[key: string]:
 
         //endregion
 
+        //region Add global UI init
+
+        //endregion
+
         //region Add initialisation steps
 
         let toImport = "Promise.all([";
 
+        // Global scripts.
+        for (const globalScript of getGlobalUiInitFiles()) {
+            toImport += `\nawait import("${globalScript}"),`;
+        }
+
+        // Module init scripts.
         for (const uiInit of getUiInitFiles()) {
             toImport += `\nmod_initializeMod((await import("${uiInit}")).default),`;
         }
+
         toImport += "\n]).then(mod_onAllModInitialized)";
 
         tplInit += toImport;

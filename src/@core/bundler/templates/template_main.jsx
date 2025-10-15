@@ -73,10 +73,18 @@ window["_JOPI_COMPOSITE_RENDERER_"] = function(name) {
 
 let gHydrateAllHook;
 
+function createModuleInitContext() {
+    if (window["_JOPI_CREATE_MODULE_INIT_CONTEXT_"]) {
+        return window["_JOPI_CREATE_MODULE_INIT_CONTEXT_"]();
+    }
+
+    return new ModuleInitContext_UI();
+}
+
 async function mod_initializeMod(exportDefault) {
     try {
         if (exportDefault && typeof exportDefault === "function") {
-            let res = exportDefault(new ModuleInitContext_UI());
+            let res = exportDefault(createModuleInitContext());
             if (res instanceof Promise) await res;
         }
     }

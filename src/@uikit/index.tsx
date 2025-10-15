@@ -1,7 +1,7 @@
 import {isBrowser} from "jopi-node-space/ns_what";
 
 export * from "./uiKitCore.ts";
-export * from "./jopi-node-space-server/index.ts";
+export * from "./jopi-node-space-server.ts";
 
 export * from "./formHelpers.tsx";
 export * from "./publicTools.ts";

@@ -4,7 +4,6 @@ import * as ns_events from "jopi-node-space/ns_events";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import {type WebSite, WebSiteImpl} from "./jopiWebSite.ts";
 import React from "react";
-;
 
 //region ModuleManager
 
@@ -177,6 +176,21 @@ const gUiInitFiles: string[] = [];
 export function getUiInitFiles(): string[] {
     return gUiInitFiles;
 }
+
+/**
+ * Add a script which will be loaded once the UI start.
+ * Warning: this file is not executed on the server side.
+ * It's mainly used to hook the default behaviors.
+ */
+export function addGlobalUiInitFile(filePath: string) {
+    gGlobalUiInitFiles.push(filePath);
+}
+
+export function getGlobalUiInitFiles(): string[] {
+    return gGlobalUiInitFiles;
+}
+
+const gGlobalUiInitFiles: string[] = [];
 
 //endregion
 

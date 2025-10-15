@@ -40,7 +40,11 @@ export class ObjectRegistry implements IsObjectRegistry {
 }
 
 export function getDefaultObjectRegistry(): IsObjectRegistry {
+    if (!gObjectRegistry) {
+        return gObjectRegistry = new ObjectRegistry();
+    }
+
     return gObjectRegistry;
 }
 
-const gObjectRegistry = new ObjectRegistry();
+let gObjectRegistry: ObjectRegistry|undefined;

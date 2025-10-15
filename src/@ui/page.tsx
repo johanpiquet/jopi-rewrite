@@ -194,8 +194,6 @@ export class PageController_ExposePrivate<T = any> extends PageController<T> {
         return this.state;
     }
 
-    public readonly objectRegistry = new ObjectRegistry();
-
     setServerRequest(serverRequest: ServerRequestInstance) {
         this.objectRegistry.registerObject("jopi.serverRequest", serverRequest);
 
