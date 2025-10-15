@@ -1,1 +1,1 @@
-export * from "./hooks/jBundler_isServer_noBrowser_noReactRouter.ts";
+export * from "./hooks/jBundler_isServer_noBrowser_noReactRouter.tsx";

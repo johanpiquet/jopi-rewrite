@@ -1,4 +1,9 @@
+// noinspection JSUnusedGlobalSymbols
+
 import {useServerRequest} from "jopi-rewrite/ui";
+import {getBundlerConfig} from "../../../@core/bundler/config.ts";
+import {Link} from "react-router";
+import React from "react";
 
 //region Emulate ReactRouter api
 
@@ -41,7 +46,7 @@ export interface NavigateFunction {
  * Wrap the hook 'useNavigate' of ReactRouter
  * but make it server-side safe.
  */
-export function useNavigateSafe() {
+export function useNavigateSafe(): NavigateFunction {
     return () => {};
 }
 
@@ -92,3 +97,15 @@ const gFake_useSearchParams = [
 
     function() {}
 ];
+
+export function RouterLink({to, onClick, children, ...p}: React.ComponentProps<"a"> & {
+    to: string, onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void,
+    children?: React.ReactNode
+})
+{
+    if (getBundlerConfig().reactRouter.disable) {
+        return <a href={to} onClick={onClick} {...p}>{children}</a>;
+    } else {
+        return <Link to={to} onClick={onClick} {...p}>{children}</Link>;
+    }
+}

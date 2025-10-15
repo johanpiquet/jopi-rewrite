@@ -1,3 +1,7 @@
+// noinspection JSUnusedGlobalSymbols
+
+import React from "react";
+
 //region Emulate ReactRouter api
 
 type ParamKeyValuePair = [string, string];
@@ -39,7 +43,7 @@ export interface NavigateFunction {
  * Wrap the hook 'useNavigate' of ReactRouter
  * but make it server-side safe.
  */
-export function useNavigateSafe() {
+export function useNavigateSafe(): NavigateFunction {
     return () => {};
 }
 
@@ -90,4 +94,10 @@ const gFake_useSearchParams = [
     function() {}
 ];
 
-alert("reactRouter - jBundler_noServer_isBrowser_noReactRouter");
+export function RouterLink({to, onClick, children, ...p}: React.ComponentProps<"a"> & {
+    to: string, onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void,
+    children?: React.ReactNode
+})
+{
+    return <a href={to} onClick={onClick} {...p}>{children}</a>;
+}
