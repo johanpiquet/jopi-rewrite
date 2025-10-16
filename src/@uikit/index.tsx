@@ -10,7 +10,7 @@ export * from "./menu/index.ts";
 export * from "./components/index.ts";
 export * from "./core/index.ts";
 export * from "./reactRouter/index.ts";
-export * from "./variants.ts";
+export * from "./variants/index.tsx";
 
 export const isBrowserSide = isBrowser;
 export const isServerSide = !isBrowser;
