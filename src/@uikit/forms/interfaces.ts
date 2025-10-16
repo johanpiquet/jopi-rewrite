@@ -44,7 +44,7 @@ export interface JFieldProps {
     name: string;
     title?: UiText;
     description?: UiText;
-    placeholder?: UiText;
+    placeholder?: string;
 
     variant?: React.FC<unknown>;
 
