@@ -75,6 +75,14 @@ export interface JFormMessageProps {
     variant?: React.FC<unknown>;
     isBefore?: boolean;
     message?: JFormSubmitMessage;
+
+    errorMessage?: UiText;
+
+    // false: allows hiding the submit message.
+    submittedMessage?: UiText|false;
+
+    // false: allows hiding the message if field errors.
+    fieldErrorMessage?: UiText|false;
 }
 
 export interface JInputFormFieldProps extends JFieldProps {
