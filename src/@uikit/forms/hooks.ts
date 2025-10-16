@@ -1,5 +1,5 @@
 import React, {useContext, useEffect} from "react";
-import type {JFieldController, JFormController} from "./interfaces.ts";
+import type {JFormSubmitMessage, JFieldController, JFormController} from "./interfaces.ts";
 import {FormContext, JFormControllerImpl} from "./private.ts";
 
 export function useJForm(): JFormController {
@@ -19,6 +19,11 @@ export function useJForm(): JFormController {
     }, []);
 
     return theForm;
+}
+
+export function useJFormSubmitMessage(): JFormSubmitMessage|undefined {
+    let form = useJForm();
+    return form.submitMessage
 }
 
 export function useJFormField(name: string): JFieldController {

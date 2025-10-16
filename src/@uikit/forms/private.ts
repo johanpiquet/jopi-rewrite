@@ -1,6 +1,13 @@
 import React from "react";
 import * as ns_schema from "jopi-node-space/ns_schema";
-import type {JFieldController, JFormComponentProps, JFormController} from "./interfaces.ts";
+import type {
+    JFormSubmitMessage,
+    JFieldController,
+    JFormComponentProps,
+    JFormController,
+    SubmitFunction
+} from "./interfaces.ts";
+import type {ValidationErrors} from "jopi-node-space/ns_schema";
 
 type Listener = () => void;
 
@@ -15,24 +22,17 @@ export class JFormControllerImpl implements JFormController {
     private readonly jsonSchema: ns_schema.SchemaDescriptor;
     private readonly onStateChange: Listener[] = [];
 
+    private readonly submitHandler?: SubmitFunction;
+
     submitted = false;
     error = false;
+    submitMessage?: JFormSubmitMessage;
 
     private autoRevalidate = false;
 
     constructor(private props: JFormComponentProps) {
         this.jsonSchema = ns_schema.toJson(this.props.schema).desc;
-    }
-
-    validate(): string | undefined {
-        this.autoRevalidate = true;
-
-        if (this.check()) {
-            this.declareStateChange(true, false);
-            return this.props.action || window.location.href;
-        } else {
-            return undefined;
-        }
+        this.submitHandler = props.submit;
     }
 
     getData<T = any>(): T {
@@ -46,9 +46,58 @@ export class JFormControllerImpl implements JFormController {
         return data as T;
     }
 
-    check(): boolean {
-        let data = this.getData();
+    getSubmitUrl(): string {
+        return this.props.action || window.location.href
+    }
 
+    private setFormMessage(message: JFormSubmitMessage): JFormSubmitMessage {
+        this.submitMessage = message;
+
+        if (message.isSubmitted) {
+            this.declareStateChange(true, false);
+        } else {
+            this.declareStateChange(false, !message.isOk);
+        }
+
+        return message;
+    }
+
+    async submit(): Promise<JFormSubmitMessage|undefined> {
+        this.autoRevalidate = true;
+        let data = this.getData();
+        let fieldErrors = this.validateAux(data);
+
+        if (fieldErrors) {
+            return this.setFormMessage({isOk: false, isSubmitted: false, fieldErrors});
+        }
+
+        if (this.submitHandler) {
+            try {
+                let r = this.submitHandler(data, this);
+                if (r instanceof Promise) r = await r;
+                if (r) return this.setFormMessage(r);
+            } catch (e) {
+                console.error("Error when submitting form:", e);
+
+                return this.setFormMessage({
+                    isOk: false,
+                    isSubmitted: false,
+                    message: "An error occurred when submitting form",
+                    code: "UNKNOWN_SUBMIT_ERROR"
+                });
+            }
+
+            return this.setFormMessage({isOk: true, isSubmitted: true});
+        }
+
+        return this.setFormMessage({isOk: true, isSubmitted: false});
+    }
+
+    validate(): ValidationErrors | undefined {
+        return this.validateAux(this.getData());
+    }
+
+    private validateAux(data: any): ValidationErrors | undefined {
         for (let field of Object.values(this.fields)) {
             field.error = false;
             field.errorMessage = undefined;
@@ -56,10 +105,7 @@ export class JFormControllerImpl implements JFormController {
 
         const errors = ns_schema.validateSchema(data, this.props.schema);
 
-        if (!errors) {
-            this.declareStateChange(this.submitted, false);
-        }
-        else {
+        if (errors) {
             if (errors.fields) {
                 for (let fieldError of Object.values(errors.fields)) {
                     let fieldRef = this.getField(fieldError.fieldName);
@@ -69,13 +115,15 @@ export class JFormControllerImpl implements JFormController {
             }
 
             this.declareStateChange(this.submitted, true);
+        } else {
+            this.declareStateChange(this.submitted, false);
         }
 
         for (let field of Object.values(this.fields)) {
             field.onStateChange?.();
         }
 
-        return errors===undefined;
+        return errors;
     }
 
     getField(name: string): JFieldController_Private {
@@ -106,7 +154,7 @@ export class JFormControllerImpl implements JFormController {
                 field.oldValue = field.value;
                 field.value = value;
 
-                if (form.autoRevalidate) form.check();
+                if (form.autoRevalidate) form.validate();
                 else if (field.onStateChange) {
                     field.onStateChange();
                 }
@@ -119,10 +167,6 @@ export class JFormControllerImpl implements JFormController {
     }
 
     private declareStateChange(isSubmitted: boolean, isError: boolean) {
-        //if (this.submitted === isSubmitted && this.error === isError) return;
-
-        console.log("declareStateChange", isSubmitted, isError, "listener count: ", this.onStateChange.length);
-
         this.submitted = isSubmitted;
         this.error = isError;
         this.onStateChange.forEach(l => l());

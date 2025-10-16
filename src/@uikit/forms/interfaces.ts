@@ -1,12 +1,15 @@
 import type {UiText} from "../helpers/tools";
-import {type Schema} from "jopi-node-space/ns_schema";
+import {type Schema, type ValidationErrors} from "jopi-node-space/ns_schema";
 import React from "react";
 
 //region Core
 
+export type SubmitFunction = (data: any, form: JFormController) => Promise<JFormSubmitMessage|undefined> | JFormSubmitMessage | undefined;
+
 export interface JFormComponentProps {
     schema: Schema;
     action?: string;
+    submit?: SubmitFunction
 }
 
 export interface JFieldController {
@@ -33,9 +36,21 @@ export interface JFieldController {
 export interface JFormController {
     error: boolean;
     submitted: boolean;
+    submitMessage?: JFormSubmitMessage;
 
-    validate(): string | undefined;
-    check(): boolean;
+    submit(): Promise<JFormSubmitMessage|undefined>;
+    validate(): ValidationErrors | undefined;
+    getSubmitUrl(): string;
+}
+
+export interface JFormSubmitMessage {
+    isOk: boolean;
+    isSubmitted: boolean;
+
+    message?: string;
+    code?: string;
+
+    fieldErrors?: ValidationErrors;
 }
 
 //endregion
@@ -54,20 +69,28 @@ export interface JFieldProps {
     className?: string;
 }
 
-export interface InputFormFieldProps extends JFieldProps {
+export interface JFormMessageProps {
+    id?: string;
+    className?: string;
+    variant?: React.FC<unknown>;
+    isBefore?: boolean;
+    message?: JFormSubmitMessage;
 }
 
-export interface CheckboxFormFieldProps extends JFieldProps {
+export interface JInputFormFieldProps extends JFieldProps {
+}
+
+export interface JCheckboxFormFieldProps extends JFieldProps {
     defaultChecked?: boolean;
 }
 
-export interface NumberFormFieldProps extends JFieldProps {
+export interface JNumberFormFieldProps extends JFieldProps {
     minValue?: number;
     maxValue?: number;
     incrStep?: number;
 }
 
-export interface AutoFormFieldProps extends InputFormFieldProps, CheckboxFormFieldProps, NumberFormFieldProps {
+export interface JAutoFormFieldProps extends JInputFormFieldProps, JCheckboxFormFieldProps, JNumberFormFieldProps {
 }
 
 //endregion

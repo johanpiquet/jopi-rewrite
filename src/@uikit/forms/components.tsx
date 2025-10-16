@@ -3,32 +3,29 @@
 import React, {useRef} from "react";
 import {useVariant, VariantContext} from "../variants/index.tsx";
 import {
-    type AutoFormFieldProps,
-    type CheckboxFormFieldProps,
-    type InputFormFieldProps, type JFieldProps,
+    type JAutoFormFieldProps,
+    type JCheckboxFormFieldProps, type JFormMessageProps, type JFormSubmitMessage,
+    type JInputFormFieldProps, type JFieldProps,
     type JFormComponentProps,
-    type JFormController, type NumberFormFieldProps
+    type JFormController, type JNumberFormFieldProps
 } from "./interfaces.ts";
 import {FormContext, JFormControllerImpl} from "./private.ts";
-import {useJForm, useJFormField} from "./hooks.ts";
+import {useJForm, useJFormField, useJFormSubmitMessage} from "./hooks.ts";
 
-export function JForm({children, className, variants, ...p}: { children: React.ReactNode, className?: string, variants?: any } & JFormComponentProps)
+export function JForm({children, className, variants, ...p}: JFormComponentProps & {
+    children: React.ReactNode, className?: string, variants?: any
+})
 {
     const ref = useRef<JFormControllerImpl>(new JFormControllerImpl(p));
 
-    const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-
-        let toSubmit = ref.current.validate();
-        if (toSubmit === undefined) setMessage("Form is not valid.");
-        else setMessage("Submitting form to " + toSubmit);
+        await ref.current.submit();
     };
-
-    const [message, setMessage] = React.useState<string>("");
 
     return <FormContext.Provider value={ref.current}>
         <VariantContext.Provider value={variants}>
-            <form className={className} onSubmit={onSubmit}>{message}{children}</form>
+            <form className={className} onSubmit={onSubmit}>{children}</form>
         </VariantContext.Provider>
     </FormContext.Provider>
 }
@@ -65,21 +62,29 @@ function renderField(variantName: string|undefined, p: JFieldProps) {
     return <V {...p} field={field} />;
 }
 
-export function AutoFormField({variant, ...p}: AutoFormFieldProps) {
+export function JAutoFormField({variant, ...p}: JAutoFormFieldProps) {
     return renderField(undefined, p);
 }
 
 //region Form Types
 
-export function TextFormField({variant, ...p}: InputFormFieldProps) {
+export function JFormMessage(p: JFormMessageProps) {
+    const message = useJFormSubmitMessage();
+    if (!message) return null;
+
+    const V = useVariant("FormMessage", p.variant);
+    return <V {...p} message={message} />;
+}
+
+export function JTextFormField({variant, ...p}: JInputFormFieldProps) {
     return renderField("TextFormField", p);
 }
 
-export function NumberFormField({variant, ...p}: NumberFormFieldProps) {
+export function JNumberFormField({variant, ...p}: JNumberFormFieldProps) {
     return renderField("NumberFormField", p);
 }
 
-export function CheckboxFormField({variant, ...p}: CheckboxFormFieldProps) {
+export function JCheckboxFormField({variant, ...p}: JCheckboxFormFieldProps) {
     return renderField("CheckboxFormField", p);
 }
 
