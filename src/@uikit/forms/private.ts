@@ -8,20 +8,9 @@ interface JFieldController_Private extends JFieldController {
     onStateChange?: () => void;
 }
 
-/**
- * Information about the field coming
- * from ZObject converted to JSON.
- */
-interface JsonFieldDef {
-    title: string;
-    description?: string;
-    type: string;
-    default?: any;
-}
-
 export class JFormControllerImpl implements JFormController {
     private readonly fields: Record<string, JFieldController_Private> = {};
-    private readonly allFieldDef: Record<string, JsonFieldDef>;
+    private readonly jsonSchema: ns_schema.SchemaDescriptor;
     private readonly onStateChange: Listener[] = [];
 
     submitted = false;
@@ -30,8 +19,7 @@ export class JFormControllerImpl implements JFormController {
     private autoRevalidate = false;
 
     constructor(private props: JFormComponentProps) {
-        let asJson = ns_schema.toJson(this.props.schema);
-        this.allFieldDef = asJson.properties as Record<string, JsonFieldDef>;
+        this.jsonSchema = ns_schema.toJson(this.props.schema);
     }
 
     validate(): string | undefined {
@@ -57,18 +45,19 @@ export class JFormControllerImpl implements JFormController {
             field.errorMessage = undefined;
         }
 
-        const res = this.props.schema.safeParse(data);
+        const errors = ns_schema.validateSchema(data, this.props.schema);
 
-        if (res.success) {
+        if (!errors) {
             this.declareStateChange(this.submitted, false);
         }
         else {
-            res.error.issues.forEach(issue => {
-                let fieldName = issue.path[0] as string;
-                let fieldRef = this.getField(fieldName);
-                fieldRef.error = true;
-                fieldRef.errorMessage = issue.message;
-            });
+            if (errors.fields) {
+                for (let fieldError of Object.values(errors.fields)) {
+                    let fieldRef = this.getField(fieldError.fieldName);
+                    fieldRef.error = true;
+                    fieldRef.errorMessage = fieldError.message;
+                }
+            }
 
             this.declareStateChange(this.submitted, true);
         }
@@ -77,14 +66,14 @@ export class JFormControllerImpl implements JFormController {
             field.onStateChange?.();
         }
 
-        return res.success;
+        return errors===undefined;
     }
 
     getField(name: string): JFieldController_Private {
         let field: JFieldController_Private = this.fields[name];
         if (field) return field;
 
-        const fieldDef = this.allFieldDef[name];
+        const fieldDef = this.jsonSchema[name];
         const form = this;
 
         this.fields[name] = field = {
@@ -133,7 +122,7 @@ export class JFormControllerImpl implements JFormController {
     }
 }
 
-function calcDefault(fieldDef: JsonFieldDef|undefined): any {
+function calcDefault(fieldDef: ns_schema.SchemaFieldInfos|undefined): any {
     if (!fieldDef) return undefined;
 
     if (fieldDef.type === "string") return "";

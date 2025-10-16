@@ -1,9 +1,5 @@
 # Handling request data
 
-> This part will evolve this next days, by the addition of an API
-> allowing to get and check the input data. It will be based on Zod
-> and will allow API compatibility and with things like API discover features.
-
 ## What will you see?
 
 Here we will see how to get the data the server receives when a request is made.  

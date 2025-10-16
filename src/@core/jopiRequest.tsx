@@ -8,7 +8,7 @@ import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
-import {ZodObject, ZodError} from "zod";
+import * as ns_schema from "jopi-node-space/ns_schema";
 
 import {initCheerio} from "./jQuery.ts";
 import {type CacheEntry, type PageCache, WebSiteMirrorCache} from "./caches/cache.ts";
@@ -145,7 +145,7 @@ export class JopiRequest {
      * - The search param (query string).
      * - The POST/PUT data if available.
      */
-    async getReqData<T>(options?: {ignoreUrl?: boolean, zodSchema?: ZodObject}): Promise<T> {
+    async getReqData<T>(options?: {ignoreUrl?: boolean, dataSchema?: ns_schema.Schema}): Promise<T> {
         let res: any = {};
 
         if (!(options && options.ignoreUrl)) {
@@ -183,8 +183,8 @@ export class JopiRequest {
             }
         }
 
-        if (options && options.zodSchema) {
-            this.validateZodSchema(res, options.zodSchema);
+        if (options && options.dataSchema) {
+            this.validateDataSchema(res, options.dataSchema);
         }
 
         return res as T;
@@ -264,25 +264,22 @@ export class JopiRequest {
     }
 
     /**
-     * Validate the Zod Schema.
+     * Validate the data Schema.
      * If invalid, throw a special exception allowing
      * to directly send a response to the caller.
      */
-    validateZodSchema(data: any, schema: ZodObject) {
-        try {
-            schema.parse(data);
-        }
-        catch (error) {
-            if (error instanceof ZodError) {
-                throw new DirectSendThisResponseException(new Response("Invalid data", {status: 400}));
-            }
+    validateDataSchema(data: any, schema: ns_schema.Schema) {
+        let error = ns_schema.validateSchema(data, schema);
+
+        if (error) {
+            throw new DirectSendThisResponseException(new Response("Invalid data", {status: 400}));
         }
     }
 
-    async reqBodyAsJson<T = any>(zodSchema?: ZodObject): Promise<T> {
-        if (zodSchema) {
+    async reqBodyAsJson<T = any>(dataSchema?: ns_schema.Schema): Promise<T> {
+        if (dataSchema) {
             const data = await this.reqBodyAsJson();
-            this.validateZodSchema(data, zodSchema);
+            this.validateDataSchema(data, dataSchema);
             return data;
         }
 
