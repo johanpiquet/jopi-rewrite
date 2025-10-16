@@ -77,6 +77,9 @@ export class JFormControllerImpl implements JFormController {
         const form = this;
 
         this.fields[name] = field = {
+            form: this,
+            variantName: getVariantName(fieldDef.type),
+
             name: name,
             error: false,
             value: fieldDef && fieldDef.default ? fieldDef.default : calcDefault(fieldDef),
@@ -134,4 +137,14 @@ function calcDefault(fieldDef: ns_schema.SchemaFieldInfos|undefined): any {
 }
 
 export const FormContext = React.createContext<JFormController>(undefined as unknown as JFormController);
+
+function getVariantName(fieldType: string): string {
+    switch (fieldType) {
+        case "string": return "TextFormField";
+        case "number": return "NumberFormField";
+        case "boolean": return "CheckboxFormField";
+    }
+
+    return "TextFormField";
+}
 

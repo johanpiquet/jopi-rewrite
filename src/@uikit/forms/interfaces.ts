@@ -10,17 +10,22 @@ export interface JFormComponentProps {
 }
 
 export interface JFieldController {
+    form: JFormController;
+
     name: string;
     error: boolean;
     errorMessage?: string;
 
     title?: string;
     description?: string;
+    placeholder?: string;
 
     value: any;
     oldValue: any;
 
     onChange: (value: any) => void;
+
+    variantName: string;
 }
 
 export interface JFormController {
@@ -39,19 +44,28 @@ export interface JFieldProps {
     name: string;
     title?: UiText;
     description?: UiText;
+    placeholder?: UiText;
+
     variant?: React.FC<unknown>;
+
+    id?: string;
+    className?: string;
 }
 
 export interface InputFormFieldProps extends JFieldProps {
-    id?: string;
-    className?: string;
-    placeholder?: string;
 }
 
 export interface CheckboxFormFieldProps extends JFieldProps {
-    id?: string,
-    className?: string,
-    defaultChecked?: boolean,
+    defaultChecked?: boolean;
+}
+
+export interface NumberFormFieldProps extends JFieldProps {
+    minValue?: number;
+    maxValue?: number;
+    incrStep?: number;
+}
+
+export interface AutoFormFieldProps extends InputFormFieldProps, CheckboxFormFieldProps, NumberFormFieldProps {
 }
 
 //endregion

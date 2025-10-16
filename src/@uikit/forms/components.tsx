@@ -3,13 +3,14 @@
 import React, {useRef} from "react";
 import {useVariant, VariantContext} from "../variants/index.tsx";
 import {
+    type AutoFormFieldProps,
     type CheckboxFormFieldProps,
-    type InputFormFieldProps,
+    type InputFormFieldProps, type JFieldProps,
     type JFormComponentProps,
-    type JFormController
+    type JFormController, type NumberFormFieldProps
 } from "./interfaces.ts";
 import {FormContext, JFormControllerImpl} from "./private.ts";
-import {useJForm} from "./hooks.ts";
+import {useJForm, useJFormField} from "./hooks.ts";
 
 export function JForm({children, className, variants, ...p}: { children: React.ReactNode, className?: string, variants?: any } & JFormComponentProps)
 {
@@ -48,16 +49,38 @@ export function JFormStateListener({custom, ifSubmitted, ifNotSubmitted}: {
     return custom?.(form);
 }
 
-export function InputFormField({variant, ...p}: InputFormFieldProps) {
-    const V = useVariant("InputFormField", variant);
-    return <V {...p}/>;
+function renderField(variantName: string|undefined, p: JFieldProps) {
+    const field = useJFormField(p.name);
+
+    p = {...p};
+    if (p.title===undefined) p.title = field.title;
+    if (p.description===undefined) p.description = field.description;
+    if (p.placeholder===undefined) p.placeholder = field.placeholder;
+
+    if (!variantName) {
+        variantName = field.variantName;
+    }
+
+    const V = useVariant(variantName, p.variant);
+    return <V {...p} field={field} />;
 }
 
-//region CheckboxFormField
+export function AutoFormField({variant, ...p}: AutoFormFieldProps) {
+    return renderField(undefined, p);
+}
+
+//region Form Types
+
+export function TextFormField({variant, ...p}: InputFormFieldProps) {
+    return renderField("TextFormField", p);
+}
+
+export function NumberFormField({variant, ...p}: NumberFormFieldProps) {
+    return renderField("NumberFormField", p);
+}
 
 export function CheckboxFormField({variant, ...p}: CheckboxFormFieldProps) {
-    const V = useVariant("CheckboxFormField", variant);
-    return <V {...p}/>;
+    return renderField("CheckboxFormField", p);
 }
 
 //endregion
