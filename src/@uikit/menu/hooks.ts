@@ -1,6 +1,5 @@
 import {MenuManager} from "./core.ts";
 import {type MenuItem} from "./interfaces.ts";
-import {useEventValue} from "../helpers/hooks.ts";
 import {isServerSide} from "jopi-node-space/ns_what";
 import {usePage, useEvent} from "jopi-rewrite/ui";
 import {useState} from "react";

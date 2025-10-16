@@ -1,6 +1,6 @@
 import {usePage, type UiUserInfos} from "jopi-rewrite/ui";
 import React, {useEffect} from "react";
-import {useNavigateSafe} from "../reactRouter/index.ts";
+import {useRouterNavigate} from "../reactRouter/index.ts";
 
 export function useLogOutUser(): ()=>void {
     const page = usePage();
@@ -42,7 +42,7 @@ export function RequireRoles({roles, ifRejected, children}: {
     ifRejected?: string,
     children: React.ReactNode
 }) {
-    const navigate = useNavigateSafe();
+    const navigate = useRouterNavigate();
     const hasRoles = useUserHasRoles(roles);
 
     useEffect(() => {
