@@ -74,9 +74,13 @@ export function useRefreshOnEvent(evenName: string|string[]) {
     useEvent(evenName, () => { setCounter(prev => prev + 1) });
 }
 
-export function useEventValue<T = any>(evenName: string|string[]): T|undefined {
-    const [value, setValue] = useState<T|undefined>(undefined);
-    useEvent(evenName, (data) => { setValue(data) });
+export function useEventValue<T = any>(evenName: string|string[], defaultProvider?: T | (() => T)): T|undefined {
+    const [value, setValue] = useState<T|undefined>(defaultProvider);
+
+    useEvent(evenName, (data) => {
+        setValue(data)
+    });
+
     return value;
 }
 

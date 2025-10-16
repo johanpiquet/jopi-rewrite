@@ -27,49 +27,11 @@ export class MenuManager {
     }
 
     getMenuItems(name: string): MenuItem[] {
-        const buildBreadcrumbAndReactKey = (menu: MenuItem) => {
-            function checkItem(item: MenuItem, breadcrumb: string[]) {
-                if (item.title) {
-                    breadcrumb = breadcrumb ? [...breadcrumb, item.title!] : [item.title!];
-                }
-
-                if (item.breadcrumb===undefined) {
-                    item.breadcrumb = breadcrumb;
-                }
-
-                item.reactKey = "R" + (gReactKey++) + "_"
-
-                if (item.items) {
-                    for (const child of item.items) {
-                        checkItem(child, breadcrumb);
-                    }
-                }
-            }
-
-            checkItem(menu, []);
-        };
-
-        const rebuildMenu = (menuName: string): AppMenu => {
-            let builders = this.menuBuilders[menuName];
-
-            const menu = new AppMenu({key: menuName});
-            menu.setNormalizer(menuNormalizer);
-            this.allMenus[menuName] = menu;
-
-            for (const builder of builders) {
-                builder(menu);
-            }
-
-            buildBreadcrumbAndReactKey(menu.value);
-
-            return menu;
-        };
-
         let menu = this.allMenus[name];
 
         if (!menu) {
             if (this.menuBuilders[name]) {
-                menu = rebuildMenu(name);
+                this.buildAllMenu();
             }
         }
 
@@ -83,6 +45,42 @@ export class MenuManager {
     }
 
     private isActiveItemSearched = false;
+
+    private buildAllMenu() {
+        function checkItem(item: MenuItem, breadcrumb: string[]) {
+            if (item.title) {
+                breadcrumb = breadcrumb ? [...breadcrumb, item.title!] : [item.title!];
+            }
+
+            if (item.breadcrumb===undefined) {
+                item.breadcrumb = breadcrumb;
+            }
+
+            item.reactKey = "R" + (gReactKey++) + "_"
+
+            if (item.items) {
+                for (const child of item.items) {
+                    checkItem(child, breadcrumb);
+                }
+            }
+        }
+
+        for (let menuName in this.menuBuilders) {
+            let builders = this.menuBuilders[menuName];
+
+            const menu = new AppMenu({key: menuName});
+            menu.setNormalizer(menuNormalizer);
+            this.allMenus[menuName] = menu;
+
+            for (const builder of builders) {
+                builder(menu);
+            }
+
+            checkItem(menu.value, []);
+        }
+
+        this.updateActiveItems();
+    }
 
     private updateActiveItems() {
         this.isActiveItemSearched = true;

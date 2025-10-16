@@ -10,13 +10,7 @@ export function useMenuManager(): MenuManager {
 }
 
 export function useMatchingMenuItem(): MenuItem|undefined {
-    if (isServerSide) {
-        return useMenuManager().getMatchingMenuItem();
-    }
-
-    let v = useEventValue("app.menu.activeItemChanged");
-    if (!v) return undefined;
-    return v.menuItem as MenuItem;
+    return useMenuManager().getMatchingMenuItem();
 }
 
 export function useMenu(name: string): MenuItem[] {
