@@ -73,7 +73,7 @@ export class JFormControllerImpl implements JFormController {
 
         if (this.submitHandler) {
             try {
-                let r = this.submitHandler(data, this);
+                let r = this.submitHandler({data, form: this});
                 if (r instanceof Promise) r = await r;
                 if (r) return this.setFormMessage(r);
             } catch (e) {

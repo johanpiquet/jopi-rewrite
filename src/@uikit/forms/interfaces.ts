@@ -4,7 +4,8 @@ import React from "react";
 
 //region Core
 
-export type SubmitFunction = (data: any, form: JFormController) => Promise<JFormSubmitMessage|undefined> | JFormSubmitMessage | undefined;
+export type SubmitFunction = (params: { data: any, form: JFormController })
+                              => Promise<JFormSubmitMessage|undefined|void> | JFormSubmitMessage | undefined | void;
 
 export interface JFormComponentProps {
     schema: Schema;
@@ -78,7 +79,7 @@ export interface JFormMessageProps {
 
     errorMessage?: UiText;
 
-    // false: allows hiding the submit message.
+    // false: allows hiding the submitted message.
     submittedMessage?: UiText|false;
 
     // false: allows hiding the message if field errors.
