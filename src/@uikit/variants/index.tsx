@@ -10,9 +10,11 @@ export function VariantProvider({children, variants}: {children: React.ReactNode
 
 export function useVariant<T extends React.FC>(name: string, defaultValue?: T|undefined) {
     const variants = React.useContext(VariantContext);
-    return variants[name] ?? (defaultValue ?? Empty);
+    return variants[name] ?? (defaultValue ?? variantNotFound(name));
 }
 
-function Empty() {
-    return undefined;
+function variantNotFound(variantName: string) {
+    return function () {
+        return <div>Variant not found: {variantName}</div>;
+    }
 }

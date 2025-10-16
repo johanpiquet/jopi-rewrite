@@ -21,6 +21,8 @@ export interface JFieldController {
     placeholder?: string;
 
     value: any;
+    valueConverter: (value: any, isTyping: boolean) => any;
+
     oldValue: any;
 
     onChange: (value: any) => void;

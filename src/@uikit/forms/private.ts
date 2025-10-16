@@ -4,6 +4,8 @@ import type {JFieldController, JFormComponentProps, JFormController} from "./int
 
 type Listener = () => void;
 
+export const FormContext = React.createContext<JFormController>(undefined as unknown as JFormController);
+
 interface JFieldController_Private extends JFieldController {
     onStateChange?: () => void;
 }
@@ -33,12 +35,19 @@ export class JFormControllerImpl implements JFormController {
         }
     }
 
-    check(): boolean {
+    getData<T = any>(): T {
         let data: any = {};
 
         for (let name in this.fields) {
-            data[name] = this.fields[name].value;
+            let field = this.fields[name];
+            data[name] = field.valueConverter(field.value, false);
         }
+
+        return data as T;
+    }
+
+    check(): boolean {
+        let data = this.getData();
 
         for (let field of Object.values(this.fields)) {
             field.error = false;
@@ -76,16 +85,22 @@ export class JFormControllerImpl implements JFormController {
         const fieldDef = this.jsonSchema[name];
         const form = this;
 
+        const valueConverter = selectValueConverter(fieldDef.type);
+
         this.fields[name] = field = {
             form: this,
             variantName: getVariantName(fieldDef.type),
 
             name: name,
             error: false,
+
+            valueConverter,
             value: fieldDef && fieldDef.default ? fieldDef.default : calcDefault(fieldDef),
+
             oldValue: undefined,
 
             onChange: (value: any) => {
+                if (value!==undefined) value = valueConverter(value, true);
                 if (value===field.value) return;
 
                 field.oldValue = field.value;
@@ -129,14 +144,12 @@ function calcDefault(fieldDef: ns_schema.SchemaFieldInfos|undefined): any {
     if (!fieldDef) return undefined;
 
     if (fieldDef.type === "string") return "";
-    if (fieldDef.type === "number") return 0;
+    if (fieldDef.type === "number") return undefined;
     if (fieldDef.type === "boolean") return false;
     if (fieldDef.type === "object") return {};
     if (fieldDef.type === "array") return [];
     return undefined;
 }
-
-export const FormContext = React.createContext<JFormController>(undefined as unknown as JFormController);
 
 function getVariantName(fieldType: string): string {
     switch (fieldType) {
@@ -148,3 +161,39 @@ function getVariantName(fieldType: string): string {
     return "TextFormField";
 }
 
+function selectValueConverter(fieldType: string): ((v: any, isTyping: boolean) => any) {
+    switch (fieldType) {
+        case "string": return (v: any) => {
+            return String(v);
+        }
+
+        case "number": return (v: any, isTyping: boolean) => {
+            if (!isTyping) {
+                if (v===undefined) return undefined;
+                v = String(v).trim().replaceAll(",", ".");
+                if (v === "") return undefined;
+            }
+            else {
+                v = String(v).trim().replaceAll(",", ".");
+            }
+
+            let asNumber = Number(v);
+
+            // Must avoid blocking if doing something like "+5,3"
+
+            // Let it return a string.
+            // Will send an error of the type "number is required".
+            //
+            if (isNaN(asNumber)) return v;
+
+            if (v==="") return undefined;
+            return asNumber;
+        }
+
+        case "boolean":  return (v: any) => {
+            return Boolean(v);
+        }
+    }
+
+    return (v: any) => v;
+}
