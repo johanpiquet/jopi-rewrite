@@ -19,7 +19,7 @@ export class JFormControllerImpl implements JFormController {
     private autoRevalidate = false;
 
     constructor(private props: JFormComponentProps) {
-        this.jsonSchema = ns_schema.toJson(this.props.schema);
+        this.jsonSchema = ns_schema.toJson(this.props.schema).desc;
     }
 
     validate(): string | undefined {
