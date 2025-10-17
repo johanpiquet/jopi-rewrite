@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 import postcss from "postcss";
 import tailwindPostcss from "@tailwindcss/postcss";
 
-export async function applyTailwindProcessor(params: CreateBundleEvent): Promise<string> {
+export async function applyTailwindProcessor(params: CreateBundleEvent): Promise<void> {
     function append(text: string) {
         return fs.appendFile(outFilePath, "\n" + text + "\n", "utf-8");
     }
@@ -27,8 +27,6 @@ export async function applyTailwindProcessor(params: CreateBundleEvent): Promise
 
     let postCss = await applyPostCss(params, sourceFiles);
     if (postCss) await append(postCss);
-
-    return outFilePath;
 }
 
 /**

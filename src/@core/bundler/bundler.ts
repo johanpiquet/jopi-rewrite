@@ -10,6 +10,9 @@ import {getExtraCssToBundle} from "./extraContent.ts";
 import {configureServer} from "./server.ts";
 import {getVirtualUrlMap, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
 
+// Will initialize events listeners.
+import "./eventHandlers.ts";
+
 export interface CreateBundleEvent {
     entryPoint: string;
     outputDir: string;
@@ -82,7 +85,7 @@ async function execute(data: CreateBundleEvent, useFallback = true) {
     // through the use of event priority. The default
     // bundle has a very low priority.
     //
-    ns_events.sendEvent("jopi.server.bundle.createBundle", data);
+    ns_events.sendEvent("jopi.bundler.createBundle", data);
 
     if (data.promise) {
         // Mean it's handled.

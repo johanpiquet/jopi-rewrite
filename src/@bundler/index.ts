@@ -1,13 +1,9 @@
 import * as ns_fs from "jopi-node-space/ns_fs";
 import *as ns_events from "jopi-node-space/ns_events";
-import * as ns_crypto from "jopi-node-space/ns_crypto";
 import type {CreateBundleEvent} from "jopi-rewrite";
 import {launchEsBuildProcess} from "./launcher.ts";
-import {applyTailwindProcessor} from "./tailwind.ts";
-import path from "node:path";
 
 async function createBundle(params: CreateBundleEvent): Promise<void> {
-    const cssToAdd = [];
     const config = params.config;
 
     let replaceRules: Record<string, string> = {
@@ -21,12 +17,6 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
         replaceRules["jBundler_isServer_noBrowser_noReactRouter"] = "jBundler_noServer_isBrowser_noReactRouter";
     }
 
-    // Build file tailwind.css
-    if (params.requireTailwind) {
-        let cssFilePath = await applyTailwindProcessor(params);
-        cssToAdd.push(cssFilePath);
-    }
-
     // Load the metadata generated.
     const metaDataFilePath = ns_fs.join(params.genDir, "esbuildMeta.json");
 
@@ -34,19 +24,12 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
     // to avoid jopi-loader deforming the 'import'.
     //
     await launchEsBuildProcess({
-        entryPoint: params.entryPoint,
-        cssToAdd: cssToAdd,
-        outputDir: params.outputDir,
-        genDir: params.genDir,
-        publicPath: params.publicUrl,
         metaDataFilePath,
-        useWatchMode: params.enableUiWatch,
         dontEmbed: config.embed.dontEmbedThis,
-        replaceRules
-    });
+        replaceRules,
 
-    // Calc some hash that will allow bypassing the browser cache.
-    await calcHash(params);
+        ...params
+    });
 
     // Virtual url are temporaire url used by Server Side.
     // If they are required, it's because at compile-time
@@ -67,23 +50,11 @@ async function resolveVirtualUrls(params: CreateBundleEvent, metaDataFilePath: s
     }
 }
 
-async function calcHash(params: CreateBundleEvent) {
-    const loaderHash: any = {};
-    params.webSite.data["jopiLoaderHash"] = loaderHash;
-
-    let cssFilePath = path.join(params.outputDir, params.out_cssEntryPoint!);
-    if (!await ns_fs.isFile(cssFilePath)) await ns_fs.writeTextToFile(cssFilePath, "");
-    loaderHash.css = ns_crypto.md5(await ns_fs.readTextFromFile(cssFilePath));
-
-    let jsFilePath = path.join(params.outputDir, params.out_jsEntryPoint!);
-    if (!await ns_fs.isFile(jsFilePath)) await ns_fs.writeTextToFile(jsFilePath, "");
-    loaderHash.js = ns_crypto.md5(await ns_fs.readTextFromFile(jsFilePath));
-}
-
-ns_events.addListener("jopi.server.bundle.createBundle", ns_events.EventPriority.VeryLow, (data) => {
+// createBundle is called when the event is triggered.
+//
+ns_events.addListener("jopi.bundler.createBundle", ns_events.EventPriority.VeryLow, (data) => {
     // Already handled?
     if (data.promise) return;
 
     data.promise = createBundle(data);
 });
-

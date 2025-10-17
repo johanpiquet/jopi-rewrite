@@ -3,18 +3,16 @@ import fs from "node:fs/promises";
 import {installEsBuildPlugins} from "jopi-rewrite/loader-tools";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import * as n_what from "jopi-node-space/ns_what";
-import {askRefreshingBrowser} from "jopi-rewrite/loader-client";
+import * as ns_events from "jopi-node-space/ns_events";
+import type {CreateBundleEvent} from "../@core/index.ts";
+import path from "node:path";
+import * as ns_crypto from "jopi-node-space/ns_crypto";
+import {applyTailwindProcessor} from "./tailwind.ts";
 
-export interface EsBuildParams {
-    entryPoint: string;
-    cssToAdd: string[];
-    outputDir: string;
-    genDir: string;
-    publicPath?: string;
+export interface EsBuildParams extends CreateBundleEvent {
     metaDataFilePath: string;
-    useWatchMode?: boolean;
-    dontEmbed?: string[]
     replaceRules: Record<string, string>;
+    dontEmbed: string[]|undefined;
 }
 
 export async function esBuildBundle(params: EsBuildParams) {
@@ -27,7 +25,6 @@ export async function esBuildBundle(params: EsBuildParams) {
 
         bundle: true,
         outdir: params.outputDir,
-
         external:  params.dontEmbed,
 
         // Allows generating relative url
@@ -42,11 +39,9 @@ export async function esBuildBundle(params: EsBuildParams) {
         splitting: true,
 
         plugins: [
-            // SCSS is natively managed.
-
             jopiLoaderPlugin,
             jopiReplaceServerPlugin(params.replaceRules),
-            jopiDetectRebuild
+            jopiDetectRebuild(params)
         ],
 
         loader: {
@@ -85,12 +80,12 @@ export async function esBuildBundle(params: EsBuildParams) {
         // Produce metadata about the build.
         metafile: true
     };
+
     const context = await esbuild.context(buildOptions);
     let result: BuildResult = await context.rebuild();
 
-    if (params.useWatchMode) {
+    if (params.enableUiWatch) {
         try {
-            gEnableRebuildWatch = true;
             await context.watch({
                 delay: n_what.isNodeJS ? 100 : 0
             });
@@ -173,15 +168,44 @@ const jopiLoaderPlugin: Plugin = {
     },
 };
 
-const jopiDetectRebuild: Plugin = {
-    name:"jopi-detect-rebuild",
-    setup(build) {
-        build.onEnd(() => {
-            if (!gEnableRebuildWatch) return;
-            console.log("🔥 JopiN - UI change detected: refreshing browser");
-            askRefreshingBrowser();
-        });
+function jopiDetectRebuild(params: EsBuildParams): Plugin {
+    let isFirstCall = true;
+
+    return {
+        name: "jopi-detect-rebuild",
+        setup(build) {
+            build.onStart(async () => {
+                if (params.requireTailwind) {
+                    await applyTailwindProcessor(params);
+                }
+
+                if (!isFirstCall && params.enableUiWatch) {
+                    await ns_events.sendAsyncEvent("jopi.bundler.watch.beforeRebuild");
+                }
+            });
+
+            build.onEnd(async () => {
+                isFirstCall = false;
+
+                await calcHash(params);
+
+                if (params.enableUiWatch) {
+                    await ns_events.sendAsyncEvent("jopi.bundler.watch.afterRebuild");
+                }
+            });
+        }
     }
 }
 
-let gEnableRebuildWatch = false;
+async function calcHash(params: CreateBundleEvent) {
+    const loaderHash: any = params.webSite.data["jopiLoaderHash"] ?? {};
+    params.webSite.data["jopiLoaderHash"] = loaderHash;
+
+    let cssFilePath = path.join(params.outputDir, params.out_cssEntryPoint!);
+    if (!await ns_fs.isFile(cssFilePath)) await ns_fs.writeTextToFile(cssFilePath, "");
+    loaderHash.css = ns_crypto.md5(await ns_fs.readTextFromFile(cssFilePath));
+
+    let jsFilePath = path.join(params.outputDir, params.out_jsEntryPoint!);
+    if (!await ns_fs.isFile(jsFilePath)) await ns_fs.writeTextToFile(jsFilePath, "");
+    loaderHash.js = ns_crypto.md5(await ns_fs.readTextFromFile(jsFilePath));
+}
