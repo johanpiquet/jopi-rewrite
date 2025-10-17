@@ -120,6 +120,8 @@ export class JFormControllerImpl implements JFormController {
             return this.setFormMessage({isOk: false, isSubmitted: false, fieldErrors});
         }
 
+        this.autoRevalidate = false;
+
         if (this.submitHandler) {
             this.declareState_Submitting();
 
@@ -169,8 +171,11 @@ export class JFormControllerImpl implements JFormController {
             if (errors.fields) {
                 for (let fieldError of Object.values(errors.fields)) {
                     let fieldRef = this.getField(fieldError.fieldName);
-                    fieldRef.error = true;
-                    fieldRef.errorMessage = fieldError.message;
+
+                    if (fieldRef) {
+                        fieldRef.error = true;
+                        fieldRef.errorMessage = fieldError.message;
+                    }
                 }
             }
         }
@@ -182,13 +187,14 @@ export class JFormControllerImpl implements JFormController {
         return errors;
     }
 
-    getField(name: string): JFieldController_Private {
+    getField(name: string): JFieldController_Private|undefined {
         let field: JFieldController_Private = this.fields[name];
         if (field) return field;
 
         const fieldDef = this.jsonSchema[name];
-        const form = this;
+        if (!fieldDef) return undefined;
 
+        const form = this;
         const valueConverter = selectValueConverter(fieldDef.type);
         
         if (fieldDef.type==="file") {

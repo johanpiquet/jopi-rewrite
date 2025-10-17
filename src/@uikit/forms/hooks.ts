@@ -26,12 +26,13 @@ export function UseJFormMessage(): JMessage|undefined {
     return form.formMessage
 }
 
-export function useJFormField(name: string): JFieldController {
+export function useJFormField(name: string): JFieldController|undefined {
     const [_, setCounter] = React.useState(0);
 
     const form = useJForm() as JFormControllerImpl;
     let thisField = form.getField(name);
-    thisField.onStateChange = () => { setCounter(prev => prev + 1) };
+    if (!thisField) return undefined;
 
+    thisField.onStateChange = () => { setCounter(prev => prev + 1) };
     return thisField;
 }

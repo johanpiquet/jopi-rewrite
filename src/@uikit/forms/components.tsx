@@ -38,7 +38,7 @@ export function JFormStateListener({custom, ifSubmitted, ifNotSubmitted}: {
 }) {
     const form = useJForm();
 
-    if (form.submitted) {
+    if (form.submitted || form.submitting) {
         if (ifSubmitted) return ifSubmitted;
     } else {
         if (ifNotSubmitted) return ifNotSubmitted;
@@ -49,6 +49,7 @@ export function JFormStateListener({custom, ifSubmitted, ifNotSubmitted}: {
 
 function renderField(variantName: string|undefined, p: JFieldProps) {
     const field = useJFormField(p.name);
+    if (!field) return null;
 
     p = {...p};
     if (p.title===undefined) p.title = field.title;
