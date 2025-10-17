@@ -8,6 +8,7 @@ import type {
     SubmitFunction
 } from "./interfaces.ts";
 import type {ValidationErrors} from "jopi-node-space/ns_schema";
+import {sendFormData, sendJsonData} from "../helpers/tools.ts";
 
 type Listener = () => void;
 
@@ -85,6 +86,34 @@ export class JFormControllerImpl implements JFormController {
 
     getSubmitUrl(): string {
         return this.props.action || window.location.href
+    }
+
+    async sendJsonData(url?: string): Promise<JMessage> {
+        if (!url) url = this.getSubmitUrl();
+        return this.processSendToServerResponse(await sendJsonData(url, this.getData()));
+    }
+
+    async sendFormData(url?: string): Promise<JMessage> {
+        if (!url) url = this.getSubmitUrl();
+        return this.processSendToServerResponse(await sendFormData(url, this.getFormData()));
+    }
+
+    private processSendToServerResponse(response: Response): JMessage {
+        if (response.status === 200) {
+            return {isOk: true, isSubmitted: true};
+        }
+
+        return {
+            isOk: false,
+            isSubmitted: false,
+            message: response.status===500
+                ? "An error occurred with the server. Please try again later."
+                : "Invalid form content.",
+
+            code: response.status === 500
+                ? "SERVER_ERROR_500"
+                : "SERVER_INVALID_DATA"
+        };
     }
 
     private setFormMessage(message: JMessage): JMessage {

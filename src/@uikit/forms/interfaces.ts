@@ -45,6 +45,9 @@ export interface JFormController {
     getData<T = any>(): T;
     getFormData(): FormData;
     getSubmitUrl(): string;
+
+    sendFormData(url?: string): Promise<JMessage>;
+    sendJsonData(url?: string): Promise<JMessage>;
 }
 
 export interface JMessage {

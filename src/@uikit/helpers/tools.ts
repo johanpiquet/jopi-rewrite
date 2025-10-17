@@ -21,10 +21,19 @@ export function IfFalse(cond: any, value: React.ReactNode) {
     return null;
 }
 
-export async function sendFormData(url: string, formData: FormData): Promise<Response> {
-    return await fetch(url!, {
+export function sendFormData(url: string, formData: FormData): Promise<Response> {
+    return fetch(url!, {
         method: 'POST',
         body: formData,
+        credentials: 'include'
+    });
+}
+
+export function sendJsonData(url: string, data: any): Promise<Response> {
+    return fetch(url!, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
         credentials: 'include'
     });
 }
