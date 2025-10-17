@@ -151,29 +151,28 @@ export class JFormControllerImpl implements JFormController {
 
         this.autoRevalidate = false;
 
-        if (this.submitHandler) {
-            this.declareState_Submitting();
+        let submitHandler = this.submitHandler;
+        if (!submitHandler) submitHandler = () => this.sendFormData()
 
-            try {
-                let r = this.submitHandler({data, form: this, hasFiles: this.hasFiles});
-                
-                if (r instanceof Promise) r = await r;
-                if (r) return this.setFormMessage(r);
-            } catch (e) {
-                console.error("Error when submitting form:", e);
+        this.declareState_Submitting();
 
-                return this.setFormMessage({
-                    isOk: false,
-                    isSubmitted: false,
-                    message: "An error occurred when submitting form",
-                    code: "UNKNOWN_SUBMIT_ERROR"
-                });
-            }
+        try {
+            let r = submitHandler({data, form: this, hasFiles: this.hasFiles});
 
-            return this.setFormMessage({isOk: true, isSubmitted: true});
+            if (r instanceof Promise) r = await r;
+            if (r) return this.setFormMessage(r);
+        } catch (e) {
+            console.error("Error when submitting form:", e);
+
+            return this.setFormMessage({
+                isOk: false,
+                isSubmitted: false,
+                message: "An error occurred when submitting form",
+                code: "UNKNOWN_SUBMIT_ERROR"
+            });
         }
 
-        return this.setFormMessage({isOk: true, isSubmitted: false});
+        return this.setFormMessage({isOk: true, isSubmitted: true});
     }
 
     validate(): ValidationErrors | undefined {
