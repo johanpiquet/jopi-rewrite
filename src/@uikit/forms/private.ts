@@ -1,7 +1,7 @@
 import React from "react";
 import * as ns_schema from "jopi-node-space/ns_schema";
 import type {
-    JFormSubmitMessage,
+    JMessage,
     JFieldController,
     JFormComponentProps,
     JFormController,
@@ -26,8 +26,9 @@ export class JFormControllerImpl implements JFormController {
     private hasFiles = false;
 
     error = false;
+    submitting = false;
     submitted = false;
-    submitMessage?: JFormSubmitMessage;
+    formMessage?: JMessage;
     
     constructor(private props: JFormComponentProps, private readonly formRef: React.RefObject<HTMLFormElement|null>) {
         this.jsonSchema = ns_schema.toJson(this.props.schema).desc;
@@ -86,19 +87,31 @@ export class JFormControllerImpl implements JFormController {
         return this.props.action || window.location.href
     }
 
-    private setFormMessage(message: JFormSubmitMessage): JFormSubmitMessage {
-        this.submitMessage = message;
+    private setFormMessage(message: JMessage): JMessage {
+        this.formMessage = message;
+
+        if (!message.message && message.fieldErrors && message.fieldErrors.globalError) {
+            message.message = message.fieldErrors.globalError;
+            message.code = "GLOBAL_ERROR";
+        }
 
         if (message.isSubmitted) {
-            this.declareStateChange(true, false);
+            this.declareState_Submitted();
         } else {
-            this.declareStateChange(false, !message.isOk);
+            if (message.isOk) {
+                this.declareState_Reset();
+            }
+            else {
+                this.submitted = false;
+                this.submitting = false;
+                this.declareState_Error()
+            }
         }
 
         return message;
     }
 
-    async submit(): Promise<JFormSubmitMessage|undefined> {
+    async submit(): Promise<JMessage|undefined> {
         this.autoRevalidate = true;
         let data = this.getData();
         let fieldErrors = this.validateAux(data);
@@ -108,6 +121,8 @@ export class JFormControllerImpl implements JFormController {
         }
 
         if (this.submitHandler) {
+            this.declareState_Submitting();
+
             try {
                 let r = this.submitHandler({data, form: this, hasFiles: this.hasFiles});
                 
@@ -131,7 +146,15 @@ export class JFormControllerImpl implements JFormController {
     }
 
     validate(): ValidationErrors | undefined {
-        return this.validateAux(this.getData());
+        let errors = this.validateAux(this.getData());
+
+        if (errors) {
+            this.setFormMessage({isOk: false, isSubmitted: false, fieldErrors: errors});
+        } else {
+            this.declareState_Reset();
+        }
+
+        return errors;
     }
 
     private validateAux(data: any): ValidationErrors | undefined {
@@ -150,10 +173,6 @@ export class JFormControllerImpl implements JFormController {
                     fieldRef.errorMessage = fieldError.message;
                 }
             }
-
-            this.declareStateChange(this.submitted, true);
-        } else {
-            this.declareStateChange(this.submitted, false);
         }
 
         for (let field of Object.values(this.fields)) {
@@ -205,10 +224,39 @@ export class JFormControllerImpl implements JFormController {
         return field;
     }
 
-    private declareStateChange(isSubmitted: boolean, isError: boolean) {
-        this.submitted = isSubmitted;
-        this.error = isError;
+    private declareState_Submitting() {
+        this.submitting = true;
+        this.submitted = false;
+        this.error = false;
+
         this.onStateChange.forEach(l => l());
+    }
+
+    private declareState_Submitted() {
+        this.submitting = false;
+        this.submitted = true;
+        this.error = false;
+
+        this.onStateChange.forEach(l => l());
+    }
+
+    private declareState_Error(isError = true) {
+        // Here we must keep the submitted state.
+        this.error = isError;
+
+        if (!isError) {
+            if (this.formMessage && !this.formMessage.isOk) {
+                this.formMessage = undefined;
+            }
+        }
+
+        this.onStateChange.forEach(l => l());
+    }
+
+    private declareState_Reset() {
+        this.submitting = false;
+        this.submitted = false;
+        this.declareState_Error(false);
     }
 
     addStateChangeListener(l: () => void) {

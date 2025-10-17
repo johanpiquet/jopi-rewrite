@@ -4,13 +4,13 @@ import React, {useRef} from "react";
 import {useVariant, VariantContext} from "../variants/index.tsx";
 import {
     type JAutoFormFieldProps,
-    type JCheckboxFormFieldProps, type JFormMessageProps, type JFormSubmitMessage,
+    type JCheckboxFormFieldProps, type JFormMessageProps, type JMessage,
     type JInputFormFieldProps, type JFieldProps,
     type JFormComponentProps,
     type JFormController, type JNumberFormFieldProps, type JFileSelectFieldProps
 } from "./interfaces.ts";
 import {FormContext, JFormControllerImpl} from "./private.ts";
-import {useJForm, useJFormField, useJFormSubmitMessage} from "./hooks.ts";
+import {useJForm, useJFormField, UseJFormMessage} from "./hooks.ts";
 
 export function JForm({children, className, variants, ...p}: JFormComponentProps & {
     children: React.ReactNode, className?: string, variants?: any
@@ -70,7 +70,7 @@ export function JAutoFormField({variant, ...p}: JAutoFormFieldProps) {
 //region Form Types
 
 export function JFormMessage(p: JFormMessageProps) {
-    const message = useJFormSubmitMessage();
+    const message = UseJFormMessage();
     if (!message) return null;
 
     const V = useVariant("FormMessage", p.variant);
