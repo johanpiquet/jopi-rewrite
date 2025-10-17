@@ -309,7 +309,7 @@ export class JopiRequest {
         let error = ns_schema.validateSchema(data, schema);
 
         if (error) {
-            throw new DirectSendThisResponseException(new Response("Invalid data", {status: 400}));
+            throw new DirectSendThisResponseException(this.returnError400_BadRequest("Invalid data"));
         }
     }
 
@@ -367,7 +367,7 @@ export class JopiRequest {
 
     //region Response helpers
 
-    redirectResponse(permanent: boolean = false, url?: string | URL) {
+    redirectResponse(permanent: boolean = false, url?: string | URL): Response {
         if (!url) url = this.urlInfos;
         return new Response(null, {status: permanent ? 301 : 302, headers: {"location": url.toString()}});
     }
@@ -376,19 +376,23 @@ export class JopiRequest {
         return new Response(text, {status: statusCode, headers: {"content-type": "text/plain;charset=utf-8"}});
     }
 
-    htmlResponse(html: string, statusCode: number = 200) {
+    returnResultMessage(isOk: true, message?: string): Response {
+        return this.jsonResponse({isOk, message});
+    }
+
+    htmlResponse(html: string, statusCode: number = 200): Response {
         html = this.postProcessHtml(html);
         return new Response(html, {status: statusCode, headers: {"content-type": "text/html;charset=utf-8"}});
     }
 
-    jsonResponse(json: any, statusCode: number = 200) {
+    jsonResponse(json: any, statusCode: number = 200): Response {
         return new Response(JSON.stringify(json), {
             status: statusCode,
             headers: {"content-type": "application/json;charset=utf-8"}
         });
     }
 
-    jsonStringResponse(json: string, statusCode: number = 200) {
+    jsonStringResponse(json: string, statusCode: number = 200): Response {
         return new Response(json, {status: statusCode, headers: {"content-type": "application/json;charset=utf-8"}});
     }
 
@@ -402,6 +406,10 @@ export class JopiRequest {
 
     returnError401_Unauthorized(error?: Error | string): Response | Promise<Response> {
         return this.webSite.return401(this, error);
+    }
+
+    returnError400_BadRequest(error?: Error | string): Response {
+        return new Response(error ? error.toString() : "Bad request", {status: 400});
     }
 
     //endregion

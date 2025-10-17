@@ -49,7 +49,7 @@ export function JFormStateListener({custom, ifSubmitted, ifNotSubmitted}: {
 
 function renderField(variantName: string|undefined, p: JFieldProps) {
     const field = useJFormField(p.name);
-    if (!field) return <div style={{color: "red"}}><strong>The form field {p.name} doesn't exist.</strong></div>;
+    if (!field) return <div style={{color: "red"}}><strong>Form error: the field '{p.name}' doesn't exist.</strong></div>;
 
     p = {...p};
     if (p.title===undefined) p.title = field.title;

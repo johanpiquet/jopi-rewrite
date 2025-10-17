@@ -589,7 +589,7 @@ export class WebSiteImpl implements WebSite {
     private readonly router: RouterContext<WebSiteRoute>;
     private readonly wsRouter: RouterContext<JopiWsRouteHandler>;
 
-    private _on404_NotFound?: JopiRouteHandler;
+    private _on404_NotFound?: JopiErrorHandler;
     private _on500_Error?: JopiErrorHandler;
     private _on401_Unauthorized?: JopiErrorHandler;
 
@@ -688,54 +688,81 @@ export class WebSiteImpl implements WebSite {
      */
     private cacheFor_404_NotFound_ref?: any;
 
-    return404(req: JopiRequest): Response|Promise<Response> {
+    async return404(req: JopiRequest): Promise<Response> {
         const accept = req.headers.get("accept");
         if (!accept || !accept.startsWith("text/html")) return new Response("", {status: 404});
 
         if (this._on404_NotFound) {
-            return this._on404_NotFound(req);
+            let res = await this._on404_NotFound(req);
+            if (res instanceof Promise) res = await res;
+
+            if (res) {
+                if (res.status !== 404) {
+                    return new Response(res.body, {status: 404, headers: res.headers});
+                }
+            }
         }
 
         // Use a cache. Without that here 404 will trigger a full React rendering.
         //
-        if (this.cacheFor_404_NotFound === undefined) {
+        if ((this.cacheFor_404_NotFound === undefined) || (this.cacheFor_404_NotFound_ref!==G_Default404Template)) {
             if (G_Default404Template) {
                 this.cacheFor_404_NotFound = ReactServer.renderToStaticMarkup(renderPage(<G_Default404Template />));
                 this.cacheFor_404_NotFound_ref = G_Default404Template;
             } else {
                 this.cacheFor_404_NotFound = "404 Not Found";
             }
-        } else if (this.cacheFor_404_NotFound_ref!==G_Default404Template) {
-            this.cacheFor_404_NotFound_ref = undefined;
-            return this.return404(req);
         }
 
         return new Response(this.cacheFor_404_NotFound, {status: 404, headers: {"content-type": "text/html"}});
     }
 
-    return500(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
+    async return500(req: JopiRequest, error?: Error|string): Promise<Response> {
         if (this._on500_Error) {
-            return this._on500_Error(req, error);
+            let res = this._on500_Error(req, error);
+            if (res instanceof Promise) res = await res;
+
+            if (res) {
+                if (res.status !== 500) {
+                    return new Response(res.body, {status: 500, headers: res.headers});
+                }
+            }
+        }
+
+        if (req.method!=="GET") {
+            return new Response(error ? error.toString() : "", {status: 500});
         }
 
         if (G_Default500Template) {
-            return req.reactResponse(<G_Default500Template />);
+            let res = req.reactResponse(<G_Default500Template/>);
+            return new Response(res.body, {status: 500, headers: res.headers});
         }
 
-        return new Response("", {status: 500});
+        return new Response(error ? error.toString() : "", {status: 500});
     }
 
-    return401(req: JopiRequest, error?: Error|string): Response|Promise<Response> {
+    async return401(req: JopiRequest, error?: Error|string): Promise<Response> {
         if (this._on401_Unauthorized) {
-            return this._on401_Unauthorized(req, error);
+            let res = this._on401_Unauthorized(req, error);
+            if (res instanceof Promise) res = await res;
+
+            if (res) {
+                if (res.status !== 401) {
+                    return new Response(res.body, {status: 401, headers: res.headers});
+                }
+            }
+        }
+
+        if (req.method!=="GET") {
+            return new Response(error ? error.toString() : "", {status: 401});
         }
 
         if (G_Default401Template) {
-            return req.reactResponse(<G_Default401Template />);
+            let res = req.reactResponse(<G_Default401Template/>);
+            return new Response(res.body, {status: 401, headers: res.headers});
         }
 
-
-        return new Response("", {status: 401});
+        return new Response(error ? error.toString() : "", {status: 401});
     }
 
     //endregion
