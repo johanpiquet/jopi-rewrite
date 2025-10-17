@@ -141,6 +141,7 @@ export class JopiRequest {
     /**
      * Returns all the data about the request.
      * It's concat all data source.
+     *
      * - The url parts.
      * - The search param (query string).
      * - The POST/PUT data if available.
@@ -159,6 +160,42 @@ export class JopiRequest {
                 res = {...res, ...this.urlParts};
             }
         }
+
+        if (this.isReqBodyJson) {
+            try {
+                const asJson = await this.reqBodyAsJson();
+                if (asJson) res = {...res, ...asJson};
+            } catch {
+                // If JSON is invalid.
+            }
+        } else if (this.isReqBodyXFormUrlEncoded) {
+            try {
+                let data = await this.reqBodyAsText();
+                new URLSearchParams(data).forEach((value, key) => res[key] = value);
+            } catch {
+                // If invalid.
+            }
+        } else if (this.isReqBodyFormData) {
+            try {
+                const asFormData = await this.reqBodyAsFormData();
+                asFormData.forEach((value, key) => res[key] = value);
+            } catch {
+                // If FormData is invalid.
+            }
+        }
+
+        if (options && options.dataSchema) {
+            this.validateDataSchema(res, options.dataSchema);
+        }
+
+        return res as T;
+    }
+
+    /**
+     * Get the request body and decode it properly.
+     */
+    async getBodyData<T>(options?: {dataSchema?: ns_schema.Schema}): Promise<T> {
+        let res: any = {};
 
         if (this.isReqBodyJson) {
             try {
