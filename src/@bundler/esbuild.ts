@@ -1,13 +1,8 @@
-import esbuild, {type BuildResult, type Plugin} from "esbuild";
-import fs from "node:fs/promises";
-import {installEsBuildPlugins} from "jopi-rewrite/loader-tools";
+import esbuild, {type BuildResult} from "esbuild";
 import * as ns_fs from "jopi-node-space/ns_fs";
 import * as n_what from "jopi-node-space/ns_what";
-import * as ns_events from "jopi-node-space/ns_events";
 import type {CreateBundleEvent} from "../@core/index.ts";
-import path from "node:path";
-import * as ns_crypto from "jopi-node-space/ns_crypto";
-import {applyTailwindProcessor} from "./tailwind.ts";
+import {jopiReplaceText, jopiLoaderPlugin, jopiDetectRebuild} from "./plugins.ts";
 
 export interface EsBuildParams extends CreateBundleEvent {
     metaDataFilePath: string;
@@ -40,7 +35,7 @@ export async function esBuildBundle(params: EsBuildParams) {
 
         plugins: [
             jopiLoaderPlugin,
-            jopiReplaceServerPlugin(params.replaceRules),
+            jopiReplaceText(params.replaceRules),
             jopiDetectRebuild(params)
         ],
 
@@ -130,82 +125,4 @@ export async function esBuildBundle(params: EsBuildParams) {
     }
 
     await ns_fs.writeTextToFile(params.metaDataFilePath, JSON.stringify(jsonReport, null, 4));
-}
-
-// Allow replacing jopi-node-space-server by jopi-node-space-browser.
-// Is required by jopi-node-space.
-//
-function jopiReplaceServerPlugin(replaceRules: Record<string, string>|undefined): Plugin {
-    return {
-        name: "jopi-replace-server",
-
-        setup(build) {
-            build.onLoad({ filter: /\.(ts|js)x?$/ }, async (args) => {
-                let contents = await fs.readFile(args.path, 'utf8');
-                const oldContent = contents;
-
-                for (let toReplace in replaceRules) {
-                    let replaceWith = replaceRules[toReplace];
-                    contents = contents.replaceAll(toReplace, replaceWith);
-                }
-
-                if (oldContent === contents) return null;
-                return {contents: contents, loader: 'ts'};
-            });
-        }
-    };
-}
-
-/**
- * Allows managing custom import:
- * * Importing CSS modules (.module.css)
- * * Import with ?raw and ?inline
- */
-const jopiLoaderPlugin: Plugin = {
-    name: "jopi-loader",
-    setup(build) {
-        installEsBuildPlugins(build as unknown as Bun.PluginBuilder)
-    },
-};
-
-function jopiDetectRebuild(params: EsBuildParams): Plugin {
-    let isFirstCall = true;
-
-    return {
-        name: "jopi-detect-rebuild",
-        setup(build) {
-            build.onStart(async () => {
-                if (params.requireTailwind) {
-                    await applyTailwindProcessor(params);
-                }
-
-                if (!isFirstCall && params.enableUiWatch) {
-                    await ns_events.sendAsyncEvent("jopi.bundler.watch.beforeRebuild");
-                }
-            });
-
-            build.onEnd(async () => {
-                isFirstCall = false;
-
-                await calcHash(params);
-
-                if (params.enableUiWatch) {
-                    await ns_events.sendAsyncEvent("jopi.bundler.watch.afterRebuild");
-                }
-            });
-        }
-    }
-}
-
-async function calcHash(params: CreateBundleEvent) {
-    const loaderHash: any = params.webSite.data["jopiLoaderHash"] ?? {};
-    params.webSite.data["jopiLoaderHash"] = loaderHash;
-
-    let cssFilePath = path.join(params.outputDir, params.out_cssEntryPoint!);
-    if (!await ns_fs.isFile(cssFilePath)) await ns_fs.writeTextToFile(cssFilePath, "");
-    loaderHash.css = ns_crypto.md5(await ns_fs.readTextFromFile(cssFilePath));
-
-    let jsFilePath = path.join(params.outputDir, params.out_jsEntryPoint!);
-    if (!await ns_fs.isFile(jsFilePath)) await ns_fs.writeTextToFile(jsFilePath, "");
-    loaderHash.js = ns_crypto.md5(await ns_fs.readTextFromFile(jsFilePath));
 }

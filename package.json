@@ -3,7 +3,6 @@
   "version": "2.0.29",
   "publishedDate": "9/29/2025",
   "publicPublishedDate": "9/25/2025",
-
   "license": "MIT",
   "homepage": "https://github.com/johanpiquet/jopi-rewrite",
   "keywords": [
@@ -15,77 +14,67 @@
   ],
   "author": "Johan PIQUET",
   "description": "A web framework for building proxy/cache and react-hydrate applications",
-
   "engines": {
     "node": ">=22.18.0"
   },
-
   "type": "module",
-
   "files": [
     "/dist",
     "./src",
     "README.md",
     "LICENSE"
   ],
-
   "bin": {
     "jopin": "bin/jopin.js",
     "jopib": "bin/jopib.js"
   },
-
   "scripts": {
     "clean": "rm -rf ./dist .turbo tsconfig.tsbuildinfo",
     "build:priority:2": "npx tsc",
-
     "bun-publish": "bun publish",
     "untrack": "git rm -r --cached -- ./dist/**;"
   },
-
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/postcss-url": "^10.0.4",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/ws": "^8.18.1",
-    "@types/postcss-url": "^10.0.4"
+    "@types/ws": "^8.18.1"
   },
-
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
     "acme-client": "^5.4.0",
     "cheerio": "^1.1.2",
+    "chokidar": "^4.0.3",
     "css-url-parser": "^1.1.4",
+    "esbuild": "=0.25.9",
     "jopi-node-space": "*",
     "jsonwebtoken": "^9.0.2",
+    "magic-string": "^0.30.19",
     "postcss": "^8.5.6",
+    "postcss-modules": "^6.0.1",
+    "postcss-url": "^10.1.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router": "^7.8.2",
     "rou3": "^0.7.3",
-    "ws": "^8.18.3",
-    "@tailwindcss/postcss": "^4.1.12",
-    "tailwindcss": "^4.1.12",
-    "esbuild": "=0.25.9",
-
-    "chokidar": "^4.0.3",
-    "postcss-modules": "^6.0.1",
-    "postcss-url": "^10.1.3",
     "sass": "^1.90.0",
-    "strip-json-comments": "^5.0.3"
+    "source-map": "^0.7.6",
+    "strip-json-comments": "^5.0.3",
+    "tailwindcss": "^4.1.12",
+    "ws": "^8.18.3"
   },
-
   "exports": {
     ".": "./dist/@core/index.js",
     "./ui": "./dist/@ui/index.js",
     "./uikit": "./dist//@uikit/index.js",
     "./bundler": "./dist/@bundler/index.js",
     "./crawler": "./dist/@crawler/index.js",
-
     "./loader": "./dist/@loader/index.js",
     "./loader/loader.mjs": "./src/@loader/loader.mjs",
     "./loader-tools": "./dist/@loader-tools/index.js",
     "./loader-client": "./dist/@loader-client/index.js",
-
     "./types": "./src/@loader-types/extensions.d.ts",
     "./tool-jopinb": "./dist/@tool-jopinb/index.js"
   }
