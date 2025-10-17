@@ -4,7 +4,7 @@ import React, {useRef} from "react";
 import {useVariant, VariantContext} from "../variants/index.tsx";
 import {
     type JAutoFormFieldProps,
-    type JCheckboxFormFieldProps, type JFormMessageProps, type JMessage,
+    type JCheckboxFormFieldProps, type JFormMessageProps,
     type JInputFormFieldProps, type JFieldProps,
     type JFormComponentProps,
     type JFormController, type JNumberFormFieldProps, type JFileSelectFieldProps

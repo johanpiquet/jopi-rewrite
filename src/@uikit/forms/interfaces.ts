@@ -15,6 +15,7 @@ export interface JFormComponentProps {
 
 export interface JFieldController {
     form: JFormController;
+    variantName: string;
 
     name: string;
     type: string;
@@ -27,13 +28,58 @@ export interface JFieldController {
     placeholder?: string;
 
     value: any;
+    oldValue: any;
+    onChange: (value: any) => void;
     valueConverter: (value: any, isTyping: boolean) => any;
 
-    oldValue: any;
+    //region Type String
 
-    onChange: (value: any) => void;
+    minLength?: number;
+    errorMessage_minLength?: string;
 
-    variantName: string;
+    maxLength?: number;
+    errorMessage_maxLength?: string;
+
+    //endregion
+
+    //region Type Number
+
+    minValue?: number;
+    errorMessage_minValue?: string;
+
+    maxValue?: number;
+    errorMessage_maxValue?: string;
+
+    allowDecimal?: boolean;
+    roundMethod?: "round" | "floor" | "ceil";
+    errorMessage_dontAllowDecimal?: string;
+
+    incrStep?: number;
+
+    //endregion
+
+    //region Type File
+
+    maxFileCount?: number;
+    errorMessage_maxFileCount?: string;
+
+    acceptFileType?: string;
+    errorMessage_invalidFileType?: string;
+
+    maxFileSize?: number;
+    errorMessage_maxFileSize?: string;
+
+    //endregion
+
+    //region Type Boolean
+
+    requireTrue?: boolean;
+    errorMessage_requireTrue?: string;
+
+    requireFalse?: boolean;
+    errorMessage_requireFalse?: string;
+
+    //endregion
 }
 
 export interface JFormController {
