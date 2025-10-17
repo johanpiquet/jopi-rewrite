@@ -5,7 +5,7 @@ import {ServerFetch} from "./serverFetch.ts";
 import {ReactRouterManager} from "./reactRouterManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
-import type {ServerInstance, WebSocketConnectionInfos} from "./jopiServer.ts";
+import {onSseEvent, type ServerInstance, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
 import {declareServerReady} from "jopi-rewrite/loader-client";
 import {PostMiddlewares} from "./middlewares/index.ts";
 import jwt from "jsonwebtoken";
@@ -62,6 +62,8 @@ export interface WebSite {
     onOPTIONS(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
 
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
+
+    addSseEVent(path: string|string[], handler: SseEvent): void;
 
     on404_NotFound(handler: JopiRouteHandler): void;
     return404(req: JopiRequest): Response | Promise<Response>;
@@ -197,7 +199,7 @@ export class WebSiteImpl implements WebSite {
         return this.welcomeUrl;
     }
 
-    async processRequest(urlInfos: URL, bunRequest: Request, serverImpl: ServerInstance): Promise<Response> {
+    async processRequest(urlInfos: URL, bunRequest: Request, serverImpl: ServerInstance): Promise<Response|undefined> {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
 
@@ -210,12 +212,15 @@ export class WebSiteImpl implements WebSite {
             try {
                 return await matched.data.handler(req);
             } catch (e) {
-                if (e instanceof ServerByPassException) {
-                    if (e instanceof DirectSendThisResponseException) {
+                if (e instanceof SBPE_ServerByPassException) {
+                    if (e instanceof SBPE_DirectSendThisResponseException) {
                         return e.response;
                     }
-                    else if (e instanceof NotAuthorizedException) {
+                    else if (e instanceof SBPE_NotAuthorizedException) {
                         return req.textResponse(e.message, 401);
+                    }
+                    else if (e instanceof SBPE_MustReturnWithoutResponseException) {
+                        return undefined;
                     }
                 }
 
@@ -457,6 +462,14 @@ export class WebSiteImpl implements WebSite {
         }
 
         return this.reactRouterManager;
+    }
+
+    addSseEVent(path: string|string[], handler: SseEvent): void {
+        handler = {...handler};
+
+        this.onGET(path, async req => {
+            return onSseEvent(handler, req.coreRequest);
+        });
     }
 
     //region UI Modules
@@ -907,14 +920,20 @@ export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Pro
 export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
 export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
 
-export class ServerByPassException extends Error {
+export class SBPE_ServerByPassException extends Error {
 }
 
-export class NotAuthorizedException extends ServerByPassException {
+export class SBPE_NotAuthorizedException extends SBPE_ServerByPassException {
 }
 
-export class DirectSendThisResponseException extends ServerByPassException {
+export class SBPE_DirectSendThisResponseException extends SBPE_ServerByPassException {
     constructor(public readonly response: Response) {
+        super();
+    }
+}
+
+export class SBPE_MustReturnWithoutResponseException extends SBPE_ServerByPassException {
+    constructor() {
         super();
     }
 }

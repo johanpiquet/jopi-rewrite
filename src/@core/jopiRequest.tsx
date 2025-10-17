@@ -14,8 +14,8 @@ import {initCheerio} from "./jQuery.ts";
 import {type CacheEntry, type PageCache, WebSiteMirrorCache} from "./caches/cache.ts";
 import {
     type AuthResult,
-    type CookieOptions, DirectSendThisResponseException,
-    type HttpMethod, type JopiRouteHandler, type LoginPassword, NotAuthorizedException,
+    type CookieOptions, SBPE_DirectSendThisResponseException,
+    type HttpMethod, type JopiRouteHandler, type LoginPassword, SBPE_NotAuthorizedException,
     type RequestBody,
     type ResponseModifier, type ServeFileOptions, type TestCookieValue, type TextModifier, type UserInfos,
     type WebSite,
@@ -309,7 +309,7 @@ export class JopiRequest {
         let error = ns_schema.validateSchema(data, schema);
 
         if (error) {
-            throw new DirectSendThisResponseException(this.returnError400_BadRequest("Invalid data"));
+            throw new SBPE_DirectSendThisResponseException(this.returnError400_BadRequest("Invalid data"));
         }
     }
 
@@ -966,7 +966,7 @@ export class JopiRequest {
 
     public requireUserInfos(): UserInfos {
         let userInfos = this.getUserInfos();
-        if (!userInfos) throw new NotAuthorizedException();
+        if (!userInfos) throw new SBPE_NotAuthorizedException();
         return userInfos;
     }
 
@@ -1007,7 +1007,7 @@ export class JopiRequest {
 
     public assertUserHasRoles(requiredRoles: string[]) {
         if (!this.userHasRoles(requiredRoles)) {
-            throw new NotAuthorizedException();
+            throw new SBPE_NotAuthorizedException();
         }
     }
 

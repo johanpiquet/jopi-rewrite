@@ -12,7 +12,7 @@ jopiApp.startApp(import.meta, jopiEasy => {
 
         .add_path_GET("/", async req => {
             // If the user does not have this role, then throw
-            // a NotAuthorizedException error, which will
+            // a SBPE_NotAuthorizedException error, which will
             // return a response with code 401.
             //
             req.assertUserHasRoles(["reader"]);

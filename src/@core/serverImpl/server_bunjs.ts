@@ -1,4 +1,10 @@
-import type {ServerInstance, StartServerOptions, ServerImpl, WebSocketConnectionInfos} from "../jopiServer.ts";
+import type {
+    ServerInstance,
+    StartServerOptions,
+    ServerImpl,
+    WebSocketConnectionInfos,
+    SseEvent
+} from "../jopiServer.ts";
 
 const impl: ServerImpl = {
     startServer(options: StartServerOptions): ServerInstance {
@@ -51,6 +57,7 @@ const impl: ServerImpl = {
 
             return server;
         } else {
+            // @ts-ignore
             return Bun.serve(options);
         }
     },
@@ -60,6 +67,7 @@ const impl: ServerImpl = {
         options.tls = newSslCertificate;
 
         // Will reload without breaking the current connections.
+        // @ts-ignore
         bunServer.reload(options);
     }
 }
@@ -73,3 +81,7 @@ interface WebSocketData {
 }
 
 export default impl;
+
+export function onSseEvent(sseEvent: SseEvent, req: any): Promise<Response> {
+    throw new Error("Method not implemented.");
+}

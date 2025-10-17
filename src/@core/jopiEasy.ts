@@ -38,7 +38,7 @@ import {
     WebSiteOptions
 } from "./jopiWebSite.js";
 import type {PageCache} from "./caches/cache.js";
-import {getServer, type WebSocketConnectionInfos} from "./jopiServer.js";
+import {getServer, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
 import {getImportTransformConfig} from "jopi-rewrite/loader-tools";
 
@@ -479,6 +479,14 @@ class JopiEasyWebSite {
 
     add_path(path: string|string[]): WebSite_PathBuilder {
         return new WebSite_PathBuilder(this, this.internals, path);
+    }
+
+    add_SseEvent(path: string|string[], handler: SseEvent) {
+        this.internals.afterHook.push((webSite) => {
+            webSite.addSseEVent(path, handler);
+        });
+
+        return this;
     }
 
     add_path_GET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): this {

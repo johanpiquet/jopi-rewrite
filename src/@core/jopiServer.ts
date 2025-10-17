@@ -18,10 +18,9 @@ import * as ns_fs from "jopi-node-space/ns_fs";
 import * as ns_os from "jopi-node-space/ns_os";
 import {isBunJS} from "jopi-node-space/ns_what";
 
-import bunJsServer from "./serverImpl/server_bunjs.js";
-import nodeJsServer from "./serverImpl/server_nodejs.js";
+import bunJsServer, {onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.js";
+import nodeJsServer, {onSseEvent as NodeSseEvent} from "./serverImpl/server_nodejs.js";
 import {getImportTransformConfig} from "jopi-rewrite/loader-tools";
-
 
 class JopiServer {
     private readonly webSites: WebSiteMap = {};
@@ -125,7 +124,7 @@ class JopiServer {
                     const urlInfos = new URL(req.url);
                     const webSite = hostNameMap[urlInfos.host];
                     if (!webSite) return new Response("", {status: 404});
-                    return (webSite as WebSiteImpl).processRequest(urlInfos, req, myServerInstance);
+                    return (webSite as WebSiteImpl).processRequest(urlInfos, req, myServerInstance)!;
                 },
 
                 async onWebSocketConnection(ws: WebSocket, infos: WebSocketConnectionInfos) {
@@ -185,14 +184,10 @@ export function getServerStartOptions(): StartServerCoreOptions {
     return gServerStartGlobalOptions;
 }
 
-let gServerInstance: JopiServer|undefined;
-
 export function getServer(): JopiServer {
     if (!gServerInstance) gServerInstance = new JopiServer();
     return gServerInstance;
 }
-
-const gServerStartGlobalOptions: StartServerCoreOptions = {};
 
 export interface StartServerCoreOptions {
     /**
@@ -214,7 +209,7 @@ export interface StartServerOptions extends StartServerCoreOptions {
      */
     tls?: TlsCertificate|TlsCertificate[],
 
-    fetch: (req: Request) => Response|Promise<Response>;
+    fetch: (req: Request) => Response|Promise<Response|undefined>|undefined;
 
     onWebSocketConnection?: (ws: WebSocket, infos: WebSocketConnectionInfos) => void;
 }
@@ -256,7 +251,21 @@ export interface ServerImpl {
     updateSslCertificate(server: ServerInstance, options: StartServerOptions, sslCertificate: any|any[]|undefined): void;
 }
 
+export interface SseEvent {
+    getWelcomeMessage: () => string;
+    handler: (controller: SseEventController) => void;
+}
+
+export interface SseEventController {
+    send(data: string): void;
+    close(): void;
+}
+
 const serverImpl: ServerImpl = isBunJS ?  bunJsServer : nodeJsServer;
+export const onSseEvent = isBunJS ? bunOnSseEvent : NodeSseEvent;
+
+let gServerInstance: JopiServer|undefined;
+const gServerStartGlobalOptions: StartServerCoreOptions = {};
 
 // In case we are using Jopi Loader (jopin).
 //

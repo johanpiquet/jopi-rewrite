@@ -1,8 +1,16 @@
 import http from "node:http";
 import https from "node:https";
-import type {ServerImpl, ServerInstance, ServerSocketAddress, StartServerOptions} from "../jopiServer.ts";
+import type {
+    ServerImpl,
+    ServerInstance,
+    ServerSocketAddress,
+    SseEvent,
+    SseEventController,
+    StartServerOptions
+} from "../jopiServer.ts";
 import {WebSocketServer} from "ws";
 import * as ns_fs from "jopi-node-space/ns_fs";
+import {SBPE_MustReturnWithoutResponseException} from "../jopiWebSite.tsx";
 
 class NodeServer implements ServerInstance {
     private readonly server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
@@ -23,9 +31,12 @@ class NodeServer implements ServerInstance {
 
             // @ts-ignore
             webReq.nodeJsReq = req;
+            // @ts-ignore
+            webReq.nodeJsRes = res;
 
             let webRes = reqFetch(webReq);
             if (webRes instanceof Promise) webRes = await webRes;
+            if (webRes===undefined) return;
 
             let resHeaders = webRes.headers;
             let asJson: any = {};
@@ -109,4 +120,59 @@ function updateSslCertificate() {
 }
 
 const serverImpl : ServerImpl = {startServer, updateSslCertificate};
+
 export default serverImpl;
+
+interface NodeSseEvent extends SseEvent {
+    clients: http.ServerResponse[];
+}
+
+export async function onSseEvent(sseEvent: SseEvent, rawReq: any): Promise<Response> {
+    const req = rawReq.nodeJsReq as unknown as http.IncomingMessage;
+    const res = rawReq.nodeJsRes as unknown as http.ServerResponse;
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    res.write(`data: ${sseEvent.getWelcomeMessage()}\n\n`);
+
+    const nodeSseEvent = sseEvent as NodeSseEvent;
+
+    if (!nodeSseEvent.clients) {
+        nodeSseEvent.clients = [];
+
+        let controller: SseEventController = {
+            send(data: string) {
+                console.log("SssEvent - Sending ", data, "to", nodeSseEvent.clients.length, "clients");
+
+                nodeSseEvent.clients.forEach(res => {
+                    res.write(`data: ${data}\n\n`);
+                });
+            },
+
+            close() {
+                nodeSseEvent.clients.forEach(res => {
+                    if (!res.closed) {
+                        res.end();
+                    }
+
+                    nodeSseEvent.clients = [];
+                });
+            }
+        }
+
+        nodeSseEvent.handler(controller);
+    }
+
+    nodeSseEvent.clients.push(res);
+
+    req.on('close', () => {
+        nodeSseEvent.clients = nodeSseEvent.clients.filter(client => client !== res);
+    });
+
+    // Allow bubbling up.
+    throw new SBPE_MustReturnWithoutResponseException();
+}
