@@ -16,7 +16,8 @@ export function JForm({children, className, variants, ...p}: JFormComponentProps
     children: React.ReactNode, className?: string, variants?: any
 })
 {
-    const ref = useRef<JFormControllerImpl>(new JFormControllerImpl(p));
+    const formRef = useRef<HTMLFormElement>(null);
+    const ref = useRef<JFormControllerImpl>(new JFormControllerImpl(p, formRef));
 
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -25,7 +26,7 @@ export function JForm({children, className, variants, ...p}: JFormComponentProps
 
     return <FormContext.Provider value={ref.current}>
         <VariantContext.Provider value={variants}>
-            <form className={className} onSubmit={onSubmit}>{children}</form>
+            <form ref={formRef} className={className} onSubmit={onSubmit}>{children}</form>
         </VariantContext.Provider>
     </FormContext.Provider>
 }

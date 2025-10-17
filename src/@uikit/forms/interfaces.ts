@@ -4,7 +4,7 @@ import React from "react";
 
 //region Core
 
-export type SubmitFunction = (params: { data: any, form: JFormController })
+export type SubmitFunction = (params: { data: any, form: JFormController, hasFiles: boolean })
                               => Promise<JFormSubmitMessage|undefined|void> | JFormSubmitMessage | undefined | void;
 
 export interface JFormComponentProps {
@@ -17,6 +17,8 @@ export interface JFieldController {
     form: JFormController;
 
     name: string;
+    type: string;
+
     error: boolean;
     errorMessage?: string;
 
@@ -39,8 +41,8 @@ export interface JFormController {
     submitted: boolean;
     submitMessage?: JFormSubmitMessage;
 
-    submit(): Promise<JFormSubmitMessage|undefined>;
-    validate(): ValidationErrors | undefined;
+    getData<T = any>(): T;
+    getFormData(): FormData;
     getSubmitUrl(): string;
 }
 

@@ -21,16 +21,15 @@ export class JFormControllerImpl implements JFormController {
     private readonly fields: Record<string, JFieldController_Private> = {};
     private readonly jsonSchema: ns_schema.SchemaDescriptor;
     private readonly onStateChange: Listener[] = [];
-
     private readonly submitHandler?: SubmitFunction;
-
-    submitted = false;
-    error = false;
-    submitMessage?: JFormSubmitMessage;
-
     private autoRevalidate = false;
+    private hasFiles = false;
 
-    constructor(private props: JFormComponentProps) {
+    error = false;
+    submitted = false;
+    submitMessage?: JFormSubmitMessage;
+    
+    constructor(private props: JFormComponentProps, private readonly formRef: React.RefObject<HTMLFormElement|null>) {
         this.jsonSchema = ns_schema.toJson(this.props.schema).desc;
         this.submitHandler = props.submit;
     }
@@ -44,6 +43,43 @@ export class JFormControllerImpl implements JFormController {
         }
 
         return data as T;
+    }
+    
+    getFormData(): FormData {
+        let form = this.formRef.current!;
+        let formData = new FormData(form);
+
+        let data = this.getData();
+
+        // Values can have been updated by a normalization step.
+        // It's why we inject back the values.
+        //
+        for (let name in this.fields) {
+            let field = this.fields[name];
+            let value = data[name];
+
+            // Special case for files.
+            //
+            if (field.type === "file") {
+                if (field.value instanceof File) {
+                    formData.set(name, field.value);
+                } else if (field.value instanceof Array) {
+                    // Remove the current value.
+                    formData.delete(name);
+
+                    // Add each one file of the array.
+                    for (let i = 0; i < field.value.length; i++) {
+                        formData.append(name, field.value[i]);
+                    }
+                }
+            } else {
+                if (value !== undefined && value !== null) {
+                    formData.set(name, String(value));
+                }
+            }
+        }
+
+        return formData;
     }
 
     getSubmitUrl(): string {
@@ -73,7 +109,8 @@ export class JFormControllerImpl implements JFormController {
 
         if (this.submitHandler) {
             try {
-                let r = this.submitHandler({data, form: this});
+                let r = this.submitHandler({data, form: this, hasFiles: this.hasFiles});
+                
                 if (r instanceof Promise) r = await r;
                 if (r) return this.setFormMessage(r);
             } catch (e) {
@@ -134,6 +171,10 @@ export class JFormControllerImpl implements JFormController {
         const form = this;
 
         const valueConverter = selectValueConverter(fieldDef.type);
+        
+        if (fieldDef.type==="file") {
+            this.hasFiles = true;
+        }
 
         this.fields[name] = field = {
             form: this,
@@ -155,13 +196,11 @@ export class JFormControllerImpl implements JFormController {
                 field.value = value;
 
                 if (form.autoRevalidate) form.validate();
-                else if (field.onStateChange) {
-                    field.onStateChange();
-                }
+                else if (field.onStateChange) field.onStateChange();
             },
 
             ...fieldDef
-        };
+        } as JFieldController_Private;
 
         return field;
     }

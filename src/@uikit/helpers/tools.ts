@@ -20,3 +20,11 @@ export function IfFalse(cond: any, value: React.ReactNode) {
     if (!cond) return value;
     return null;
 }
+
+export async function sendFormData(url: string, formData: FormData): Promise<Response> {
+    return await fetch(url!, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+    });
+}
