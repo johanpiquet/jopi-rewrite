@@ -145,12 +145,9 @@ export async function onSseEvent(sseEvent: SseEvent, rawReq: any): Promise<Respo
         nodeSseEvent.clients = [];
 
         let controller: SseEventController = {
-            send(data: string) {
-                console.log("SssEvent - Sending ", data, "to", nodeSseEvent.clients.length, "clients");
-
-                nodeSseEvent.clients.forEach(res => {
-                    res.write(`data: ${data}\n\n`);
-                });
+            send(eventName: string, data: string) {
+                let toSend = `event: ${eventName}\ndata: ${ JSON.stringify({message: data}) }\n\n`;
+                nodeSseEvent.clients.forEach(res => { res.write(toSend) });
             },
 
             close() {

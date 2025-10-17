@@ -257,7 +257,7 @@ export interface SseEvent {
 }
 
 export interface SseEventController {
-    send(data: string): void;
+    send(eventName: string, data: string): void;
     close(): void;
 }
 
