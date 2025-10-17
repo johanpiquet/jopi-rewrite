@@ -92,6 +92,8 @@ export interface JInputFormFieldProps extends JFieldProps {
 export interface JCheckboxFormFieldProps extends JFieldProps {
     defaultChecked?: boolean;
 }
+export interface JFileSelectFieldProps extends JFieldProps {
+}
 
 export interface JNumberFormFieldProps extends JFieldProps {
     minValue?: number;

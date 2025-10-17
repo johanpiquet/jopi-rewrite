@@ -7,7 +7,7 @@ import {
     type JCheckboxFormFieldProps, type JFormMessageProps, type JFormSubmitMessage,
     type JInputFormFieldProps, type JFieldProps,
     type JFormComponentProps,
-    type JFormController, type JNumberFormFieldProps
+    type JFormController, type JNumberFormFieldProps, type JFileSelectFieldProps
 } from "./interfaces.ts";
 import {FormContext, JFormControllerImpl} from "./private.ts";
 import {useJForm, useJFormField, useJFormSubmitMessage} from "./hooks.ts";
@@ -86,6 +86,10 @@ export function JNumberFormField({variant, ...p}: JNumberFormFieldProps) {
 
 export function JCheckboxFormField({variant, ...p}: JCheckboxFormFieldProps) {
     return renderField("CheckboxFormField", p);
+}
+
+export function JFileSelectField({variant, ...p}: JFileSelectFieldProps) {
+    return renderField("FileSelectField", p);
 }
 
 //endregion

@@ -200,6 +200,7 @@ function getVariantName(fieldType: string): string {
         case "string": return "TextFormField";
         case "number": return "NumberFormField";
         case "boolean": return "CheckboxFormField";
+        case "file": return "FileSelectField";
     }
 
     return "TextFormField";
