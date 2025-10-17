@@ -27,6 +27,10 @@ export class MenuManager {
     }
 
     getMenuItems(name: string): MenuItem[] {
+        if (this.isInvalid) {
+            this.buildAllMenu();
+        }
+
         let menu = this.allMenus[name];
 
         if (!menu) {
@@ -64,6 +68,8 @@ export class MenuManager {
                 }
             }
         }
+
+        this.isInvalid = false;
 
         for (let menuName in this.menuBuilders) {
             let builders = this.menuBuilders[menuName];
@@ -111,7 +117,10 @@ export class MenuManager {
     }
 
     public getMatchingMenuItem(forceRefresh: boolean = false): MenuItem|undefined {
-        if (!this.isActiveItemSearched || forceRefresh) {
+        if (this.isInvalid) {
+            this.buildAllMenu();
+        }
+        else if (!this.isActiveItemSearched || forceRefresh) {
             this.updateActiveItems();
         }
 
@@ -178,11 +187,6 @@ export class MenuManager {
         this.allMenus = {};
 
         ns_events.sendEvent("app.menu.invalided", this);
-
-        setTimeout(() => {
-            // This will rebuild the menus.
-            this.updateActiveItems()
-        });
     }
 }
 
