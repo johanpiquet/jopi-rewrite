@@ -123,6 +123,8 @@ const serverImpl : ServerImpl = {startServer, updateSslCertificate};
 
 export default serverImpl;
 
+//region SSE Events
+
 interface NodeSseEvent extends SseEvent {
     clients: http.ServerResponse[];
 }
@@ -155,9 +157,9 @@ export async function onSseEvent(sseEvent: SseEvent, rawReq: any): Promise<Respo
                     if (!res.closed) {
                         res.end();
                     }
-
-                    nodeSseEvent.clients = [];
                 });
+
+                nodeSseEvent.clients = [];
             }
         }
 
@@ -173,3 +175,5 @@ export async function onSseEvent(sseEvent: SseEvent, rawReq: any): Promise<Respo
     // Allow bubbling up.
     throw new SBPE_MustReturnWithoutResponseException();
 }
+
+//endregion

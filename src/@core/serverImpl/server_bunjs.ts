@@ -3,8 +3,9 @@ import type {
     StartServerOptions,
     ServerImpl,
     WebSocketConnectionInfos,
-    SseEvent
+    SseEvent, SseEventController
 } from "../jopiServer.ts";
+import http from "node:http";
 
 const impl: ServerImpl = {
     startServer(options: StartServerOptions): ServerInstance {
@@ -82,6 +83,71 @@ interface WebSocketData {
 
 export default impl;
 
-export function onSseEvent(sseEvent: SseEvent, req: any): Promise<Response> {
-    throw new Error("Method not implemented.");
+//region SSE Events
+
+interface SseClient {
+    controller: ReadableStreamDefaultController,
+    me: any
 }
+
+interface BunSseEvent extends SseEvent {
+    clients: SseClient[];
+}
+
+export async function onSseEvent(sseEvent: SseEvent): Promise<Response> {
+    // Serve a reference for this client.
+    // To know: stream can't be used because it's not initialized yet.
+    const me = {};
+
+    const stream = new ReadableStream({
+        start(controller) {
+            const nodeSseEvent = sseEvent as BunSseEvent;
+
+            if (!nodeSseEvent.clients) {
+                nodeSseEvent.clients = [];
+
+                let controller: SseEventController = {
+                    send(eventName: string, data: string) {
+                        let toSend = `event: ${eventName}\ndata: ${ JSON.stringify({message: data}) }\n\n`;
+                        const encoder = new TextEncoder();
+                        const encodedData = encoder.encode(toSend);
+                        nodeSseEvent.clients.forEach(e => { e.controller.enqueue(encodedData); });
+                        console.log("sse - sending to",  nodeSseEvent.clients.length, "clients")
+                    },
+
+                    close() {
+                        nodeSseEvent.clients.forEach(e => {
+                            e.controller.close();
+                        });
+
+                        nodeSseEvent.clients = [];
+                    }
+                }
+
+                nodeSseEvent.handler(controller);
+            }
+
+            nodeSseEvent.clients.push({controller, me});
+
+            const initialData = sseEvent.getWelcomeMessage();
+
+            const encoder = new TextEncoder();
+            controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
+        },
+
+        cancel() {
+            const nodeSseEvent = sseEvent as BunSseEvent;
+            nodeSseEvent.clients = nodeSseEvent.clients.filter(e => e.me !== me);
+        }
+    });
+
+    return new Response(stream, {
+        headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
+        }
+    });
+}
+
+//endregion
