@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import {WebSocket, WebSocketServer} from 'ws';
 import {type ChildProcess, spawn} from "node:child_process";
 import path from "node:path";
 import * as ns_app from "jopi-node-space/ns_app";
@@ -73,13 +72,7 @@ function getDevModeType(): DevModType {
 
 export async function jopiLauncherTool(jsEngine: string) {
     function onSpawned() {
-        // If gMustWaitServerReady is set, this means the server
-        // will send us a signal once ready. Without that we refresh
-        // once the server is created.
-
-        if (!gMustWaitServerReady) {
-            setTimeout(wsAskRefreshBrowser, 100);
-        }
+        // Nothing to do. Keep for future usages.
     }
 
     function addKnownPackages(toPreload: string[], toSearch: string[]) {
@@ -252,17 +245,9 @@ export async function jopiLauncherTool(jsEngine: string) {
     let env: Record<string, string> = {...process.env} as Record<string, string>;
 
     if (config.needWatch || config.needUiWatch) {
-        //env["JOPIN_SOURCE_WATCHING_ENABLED"] = "1";
-
+        env["JOPIN_BROWSER_REFRESH_ENABLED"] = "1";
         if (config.needWatch) env["JOPI_DEV"] = "1";
         if (config.needUiWatch) env["JOPI_DEV_UI"] = "1";
-
-        let wsUrl = await startWebSocket();
-
-        if (wsUrl) {
-            env["JOPIN_BROWSER_REFRESH_ENABLED"] = "1";
-            env["JOPIN_WEBSOCKET_URL"] = wsUrl;
-        }
 
         let toPrepend: string[] = [];
 
@@ -343,11 +328,6 @@ function killAll(signalName: NodeJS.Signals) {
 function spawnChild(params: SpawnParams): void {
     let useShell = params.cmd.endsWith('.cmd') || params.cmd.endsWith('.bat') || params.cmd.endsWith('.sh');
 
-    process.on('SIGTERM', () => killAll("SIGTERM"));
-    process.on('SIGINT', () => killAll("SIGINT"));
-    process.on('SIGHUP', () => killAll("SIGHUP"));
-    process.on('exit', () => killAll("exit" as NodeJS.Signals));
-
     const child = spawn(params.cmd, params.args, {
         stdio: "inherit", shell: useShell,
         cwd: process.cwd(),
@@ -377,87 +357,12 @@ function spawnChild(params: SpawnParams): void {
     }
 }
 
-function tryOpenWS(port: number): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const wss = new WebSocketServer({port});
+// Allow a killing child process when this process exits.
 
-        wss.on('connection', ws => {
-            onWebSocketConnection(ws);
-        });
-
-        wss.on("listening", ()=>{
-            resolve()
-        });
-
-        wss.on('error', (e)=>{
-            reject(e);
-        });
-    });
-}
-
-async function startWebSocket(): Promise<string|undefined> {
-    // Allow forcing the url, which is needed for docker env.
-    if (process.env.JOPIN_WEBSOCKET_PORT) {
-        let port = parseInt(process.env.JOPIN_WEBSOCKET_PORT);
-
-        try {
-            await tryOpenWS(port);
-            return "ws://127.0.0.1:" + port;
-        }
-        catch {
-            throw "Can't use port " + port + " for websocket. See env var JOPIN_WEBSOCKET_PORT."
-        }
-    }
-
-    for (let port=5100;port<5400;port++) {
-        try {
-            await tryOpenWS(port);
-            return "ws://127.0.0.1:" + port;
-        }
-        catch {
-        }
-    }
-
-    return undefined;
-}
-
-function onWebSocketConnection(ws: WebSocket) {
-    if (mustLog) ns_term.logBgGreen("jopin - Client connected to web-socket")
-    gWebSockets.push(ws);
-
-    ws.onclose = (e) => {
-        let idx = gWebSockets.indexOf(e.target);
-        gWebSockets.splice(idx, 1);
-
-        if (mustLog) ns_term.logBgRed("jopiN - Client disconnected from web-socket");
-        startWebSocket().catch();
-    }
-
-    ws.onmessage = (e) => {
-        const msg = e.data;
-        if (mustLog) ns_term.logBlue("jopiN - websocket message received: ", msg);
-
-        switch (msg) {
-            case "mustWaitServerReady":
-                gMustWaitServerReady = true;
-                break;
-            case "askRefreshingBrowser":
-                wsAskRefreshBrowser();
-                break;
-            case "declareServerReady":
-                wsAskRefreshBrowser();
-                break;
-        }
-    };
-}
-
-function wsAskRefreshBrowser() {
-    gWebSockets.forEach(ws => {
-        ws.send("browser-refresh-asked");
-    })
-}
+process.on('SIGTERM', () => killAll("SIGTERM"));
+process.on('SIGINT', () => killAll("SIGINT"));
+process.on('SIGHUP', () => killAll("SIGHUP"));
+process.on('exit', () => killAll("exit" as NodeJS.Signals));
 
 const gDevModeType = getDevModeType();
 const gToKill: ChildProcess[] = [];
-const gWebSockets: WebSocket[] = [];
-let gMustWaitServerReady: boolean = false;

@@ -10,9 +10,6 @@ import {getExtraCssToBundle} from "./extraContent.ts";
 import {configureServer} from "./server.ts";
 import {getVirtualUrlMap, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
 
-// Will initialize events listeners.
-import "./eventHandlers.ts";
-
 export interface CreateBundleEvent {
     entryPoint: string;
     outputDir: string;

@@ -1,6 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {declareApplicationStopping as jlOnAppStopping, mustWaitServerReady} from "jopi-rewrite/loader-client";
 import path from "node:path";
 
 import fs from "node:fs/promises";
@@ -35,9 +34,6 @@ class JopiServer {
 
     async stopServer(): Promise<void> {
         if (!this._isStarted) return;
-
-        // The socket for jopi loader.
-        jlOnAppStopping();
 
         await Promise.all(this.servers.map(server => server.stop(false)));
     }
@@ -266,11 +262,3 @@ export const onSseEvent = isBunJS ? bunOnSseEvent : NodeSseEvent;
 
 let gServerInstance: JopiServer|undefined;
 const gServerStartGlobalOptions: StartServerCoreOptions = {};
-
-// In case we are using Jopi Loader (jopin).
-//
-// The load must not refresh the browser once this process is created but wait until we are ready.
-// The main reason is that we create as JavaScript bundle that takes time to create, and the
-// browser must not refresh too soon (event if it's only one second)
-//
-mustWaitServerReady();

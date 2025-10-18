@@ -6,7 +6,6 @@ import {ReactRouterManager} from "./reactRouterManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
 import {onSseEvent, type ServerInstance, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
-import {declareServerReady} from "jopi-rewrite/loader-client";
 import {PostMiddlewares} from "./middlewares/index.ts";
 import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
@@ -33,6 +32,7 @@ import {installBundleServer} from "./bundler/server.ts";
 import {createBundle} from "./bundler/bundler.ts";
 import * as ns_webSocket from "jopi-node-space/ns_webSocket";
 import * as ns_events from "jopi-node-space/ns_events";
+import {isBrowserRefreshEnabled, installBrowserRefreshSseEvent} from "../@loader-client/index.ts";
 
 export interface WebSite {
     data: any;
@@ -246,10 +246,9 @@ export class WebSiteImpl implements WebSite {
             this._onWebSiteReady.forEach(e => e());
         }
 
-        // In case we use jopin with browser refresh,
-        // then we manually declare that the server is ok.
-        //
-        declareServerReady();
+        if (isBrowserRefreshEnabled()) {
+            installBrowserRefreshSseEvent(this);
+        }
 
         installBundleServer(this);
 

@@ -6,7 +6,6 @@ import React, {type ReactNode} from "react";
 import {PageController_ExposePrivate, type PageOptions, renderPage} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
-import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import * as ns_schema from "jopi-node-space/ns_schema";
 
@@ -29,6 +28,7 @@ import * as ns_fs from "jopi-node-space/ns_fs";
 import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
 import {getBundleEntryPointUrl_JS, getBundleEntryPointUrl_CSS} from "./bundler/server.ts";
+import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "../@loader-client/index.ts";
 
 export class JopiRequest {
     public cache: PageCache;
