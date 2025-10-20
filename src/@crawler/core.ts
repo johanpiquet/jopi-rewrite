@@ -3,7 +3,7 @@
 import {DirectFileCache} from "./directFileCache.ts";
 import {UrlMapping} from "./urlMapping.ts";
 import * as cheerio from 'cheerio';
-import {getErrorMessage} from "jopi-toolkit/ns_tools";
+import {getErrorMessage} from "jopi-toolkit/jk_tools";
 
 // @ts-ignore no ts definition
 import parseCssUrls from "css-url-parser";

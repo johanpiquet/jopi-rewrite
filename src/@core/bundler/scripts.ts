@@ -1,5 +1,5 @@
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import {pathToFileURL} from "node:url";
 import {getAllUiComposites, getGlobalUiInitFiles, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
 import {getBundlerConfig} from "./config.ts";
@@ -35,7 +35,7 @@ export async function generateScript(genDir: string, components: {[key: string]:
         //region Adds key to components binding
 
         for (const componentKey in components) {
-            let componentPath = ns_app.requireSourceOf(components[componentKey]);
+            let componentPath = jk_app.requireSourceOf(components[componentKey]);
 
             // Patch for windows. Require a linux-like path.
             if (isWin32) componentPath = pathToFileURL(componentPath).href.substring("file:///".length);
@@ -98,8 +98,8 @@ export async function generateScript(genDir: string, components: {[key: string]:
         script = script.replace("//[ON_INIT]", tplInit);
         script = script.replace("//[PLUGINS]", tplPlugins);
 
-        const filePath = ns_fs.join(genDir, "loader.jsx");
-        await ns_fs.writeTextToFile(filePath, script, true);
+        const filePath = jk_fs.join(genDir, "loader.jsx");
+        await jk_fs.writeTextToFile(filePath, script, true);
 
         return filePath;
     }
@@ -114,10 +114,10 @@ export function addGenerateScriptPlugin(plugin: GeneratedScriptPlugin) {
 }
 
 export async function loadCodeGenTemplate(name: string): Promise<string> {
-    let resolvedPath = ns_fs.join(import.meta.dirname, "templates", name);
-    let toSearch = ns_fs.join("dist", "@core", "bundler");
-    let replaceBy = ns_fs.join("src", "@core", "bundler");
+    let resolvedPath = jk_fs.join(import.meta.dirname, "templates", name);
+    let toSearch = jk_fs.join("dist", "@core", "bundler");
+    let replaceBy = jk_fs.join("src", "@core", "bundler");
     if (resolvedPath.includes(toSearch)) resolvedPath = resolvedPath.replace(toSearch, replaceBy);
 
-    return await ns_fs.readTextFromFile(resolvedPath);
+    return await jk_fs.readTextFromFile(resolvedPath);
 }

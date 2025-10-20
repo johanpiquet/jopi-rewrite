@@ -1,4 +1,4 @@
-import {isBrowser} from "jopi-toolkit/ns_what";
+import {isBrowser} from "jopi-toolkit/jk_what";
 
 // Expose all his item to simplify things.
 export * from "jopi-rewrite/ui";

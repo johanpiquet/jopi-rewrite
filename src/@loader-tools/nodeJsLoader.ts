@@ -2,7 +2,7 @@ import type { ResolveHook, ResolveFnOutput } from 'node:module';
 import nodeModule from 'node:module';
 
 import {pathToFileURL} from "node:url";
-import * as ns_app from "jopi-toolkit/ns_app";
+import * as jk_app from "jopi-toolkit/jk_app";
 import {getPathAliasInfo, type PathAliasInfo} from "./tools.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -56,7 +56,7 @@ export const resolveNodeJsAlias: ResolveHook = async (specifier, context, nextRe
             const resolvedPath = specifier.replace(foundAlias, pathAlias);
 
             let filePath = resolvedPath.endsWith('.js') ? resolvedPath : `${resolvedPath}.js`;
-            filePath = ns_app.getCompiledFilePathFor(filePath);
+            filePath = jk_app.getCompiledFilePathFor(filePath);
 
             return nextResolve(pathToFileURL(filePath).href, context);
         }

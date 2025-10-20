@@ -1,7 +1,7 @@
 import path from "node:path";
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_events from "jopi-toolkit/ns_events";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_events from "jopi-toolkit/jk_events";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import {type WebSite, WebSiteImpl} from "./jopiWebSite.ts";
 import React from "react";
 
@@ -33,22 +33,22 @@ export class ModulesManager {
             await this.initModule(moduleDirPath);
         }
 
-        ns_events.sendEvent("app.init.server");
+        jk_events.sendEvent("app.init.server");
     }
 
-    addInitializer(priority: ns_events.EventPriority, initializer: ()=>Promise<void>) {
-        ns_events.addListener("app.init.server", priority, initializer);
+    addInitializer(priority: jk_events.EventPriority, initializer: ()=>Promise<void>) {
+        jk_events.addListener("app.init.server", priority, initializer);
     }
 
     private async initModule(moduleDirPath: string) {
         let currentModuleInfo: ModuleInfoWithPath = {
             moduleDir: moduleDirPath,
-            moduleName: ns_fs.basename(moduleDirPath)
+            moduleName: jk_fs.basename(moduleDirPath)
         };
 
-        let file = ns_app.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
+        let file = jk_app.getCompiledFilePathFor(path.join(moduleDirPath, "serverInit.tsx"));
 
-        if (await ns_fs.isFile(file)) {
+        if (await jk_fs.isFile(file)) {
             const exportDefault = (await import(file)).default;
 
             if (exportDefault && typeof exportDefault === "function") {
@@ -59,9 +59,9 @@ export class ModulesManager {
             this.allModuleInfo.push(currentModuleInfo);
         }
 
-        file = ns_app.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
+        file = jk_app.getCompiledFilePathFor(path.join(moduleDirPath, "uiInit.tsx"));
 
-        if (await ns_fs.isFile(file)) {
+        if (await jk_fs.isFile(file)) {
             // > Do the UI init on the server-side.
             //   Require because the server is also a UI generator.
 
@@ -69,7 +69,7 @@ export class ModulesManager {
 
             if (exportDefault && typeof exportDefault === "function") {
                 // Will allows an init inside the browser.
-                gUiInitFiles.push(ns_app.getSourcesCodePathFor(file));
+                gUiInitFiles.push(jk_app.getSourcesCodePathFor(file));
 
                 (this.webSite as WebSiteImpl).addUiModule(exportDefault);
             }
@@ -77,26 +77,26 @@ export class ModulesManager {
 
         let dirPath = path.join(moduleDirPath, "routes");
 
-        if (await ns_fs.isDirectory(dirPath)) {
+        if (await jk_fs.isDirectory(dirPath)) {
             await this.webSite.getReactRouterManager().scanRoutesFrom(dirPath);
         }
 
         dirPath = path.join(moduleDirPath, "public");
 
-        if (await ns_fs.isDirectory(dirPath)) {
+        if (await jk_fs.isDirectory(dirPath)) {
             await this.processPublicDir(dirPath);
         }
 
         dirPath = path.join(moduleDirPath, "uiComposites");
 
-        if (await ns_fs.isDirectory(dirPath)) {
+        if (await jk_fs.isDirectory(dirPath)) {
             await this.processCompositesDir(dirPath, currentModuleInfo);
         }
     }
 
     private async processPublicDir(dirPath: string) {
         const addDir = async (dirPath: string, route: string) => {
-            const dirItems = await ns_fs.listDir(dirPath);
+            const dirItems = await jk_fs.listDir(dirPath);
 
             for (const dirItem of dirItems) {
                 if (dirItem.name[0]===".") continue;
@@ -116,7 +116,7 @@ export class ModulesManager {
     }
 
     private async processCompositesDir(dirPath: string, module: ModuleInfoWithPath) {
-        const dirItems = await ns_fs.listDir(dirPath);
+        const dirItems = await jk_fs.listDir(dirPath);
 
         for (let dirItem of dirItems) {
             if (!dirItem.isDirectory) continue;
@@ -124,7 +124,7 @@ export class ModulesManager {
 
             let compositeName = dirItem.name;
 
-            let subDirItems = await ns_fs.listDir(dirItem.fullPath);
+            let subDirItems = await jk_fs.listDir(dirItem.fullPath);
 
             for (let subDirItem of subDirItems) {
                 if (subDirItem.isDirectory) continue;
@@ -153,7 +153,7 @@ export class ModuleInitContext_Server {
         }
     }
 
-    addServerInitializer(priority: ns_events.EventPriority, initializer: ()=>Promise<void>) {
+    addServerInitializer(priority: jk_events.EventPriority, initializer: ()=>Promise<void>) {
         this.modulesManager.addInitializer(priority, initializer);
     }
 }
@@ -205,7 +205,7 @@ interface UiCompositeItem {
 const gAllComposites: Record<string, UiCompositeItem[]> = {};
 
 async function addUiComposite(compositeName: string, extensionName: string, implFilePath: string) {
-    const distFilePath = ns_app.getCompiledFilePathFor(implFilePath);
+    const distFilePath = jk_app.getCompiledFilePathFor(implFilePath);
 
     let composite = gAllComposites[compositeName];
     if (!composite) gAllComposites[compositeName] = composite = [];

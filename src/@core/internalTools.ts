@@ -1,7 +1,7 @@
 import type {CacheEntry} from "./caches/cache.ts";
-import * as ns_timer from "jopi-toolkit/ns_timer";
+import * as jk_timer from "jopi-toolkit/jk_timer";
 
-export const serverInitChronos = ns_timer.chrono(false);
+export const serverInitChronos = jk_timer.chrono(false);
 
 export function parseCookies(headers: Headers): { [name: string]: string } {
     const cookies: { [name: string]: string } = {};

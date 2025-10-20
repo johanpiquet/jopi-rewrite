@@ -1,6 +1,6 @@
 import path from "node:path";
-import * as ns_fs from "jopi-toolkit/ns_fs";
-import * as ns_app from "jopi-toolkit/ns_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
 
 /**
  * The value of the "jopi" entry in package.json
@@ -69,7 +69,7 @@ export function getImportTransformConfig(): PackageJson_jopi {
     }
 
     if (gTransformConfig!==undefined) return gTransformConfig;
-    let pkgJsonFilePath = ns_app.findPackageJson();
+    let pkgJsonFilePath = jk_app.findPackageJson();
 
     let bundlerOutputDir = "./temp/.reactHydrateCache";
 
@@ -81,7 +81,7 @@ export function getImportTransformConfig(): PackageJson_jopi {
 
     if (pkgJsonFilePath) {
         try {
-            let json = JSON.parse(ns_fs.readTextSyncFromFile(pkgJsonFilePath));
+            let json = JSON.parse(jk_fs.readTextSyncFromFile(pkgJsonFilePath));
             let jopi = json.jopi;
 
             if (jopi) {

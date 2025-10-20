@@ -2,9 +2,9 @@
 
 import path from "node:path";
 import fsc from "node:fs";
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_timer from "jopi-toolkit/ns_timer";
-import * as ns_term from "jopi-toolkit/ns_term";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_timer from "jopi-toolkit/jk_timer";
+import * as jk_term from "jopi-toolkit/jk_term";
 
 import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
@@ -54,8 +54,8 @@ class JopiApp {
 
     startApp(importMeta: any, f: (jopiEasy: JopiEasy) => void|Promise<void>): void {
         async function doStart() {
-            await ns_app.waitServerSideReady();
-            await ns_app.declareAppStarted();
+            await jk_app.waitServerSideReady();
+            await jk_app.declareAppStarted();
 
             let res = f(new JopiEasy());
             if (res instanceof Promise) await res;
@@ -64,7 +64,7 @@ class JopiApp {
         if (this._isStartAppSet) throw "App is already started";
         this._isStartAppSet = true;
 
-        ns_app.setApplicationMainFile(importMeta.filename);
+        jk_app.setApplicationMainFile(importMeta.filename);
 
         doStart().then();
     }
@@ -422,13 +422,13 @@ class JopiEasyWebSite {
                 }
                 catch (e: any) {
                     if (e instanceof Error) {
-                        ns_term.logBgRed("Error when initializing website", this.origin);
-                        ns_term.logRed(e.message);
+                        jk_term.logBgRed("Error when initializing website", this.origin);
+                        jk_term.logRed(e.message);
                         console.log(e.stack);
                     }
                     else {
                         console.error("Error when initializing website", this.origin);
-                        ns_term.logRed("|-", e.message);
+                        jk_term.logRed("|-", e.message);
                     }
 
                     process.exit(1);
@@ -543,10 +543,10 @@ class WebSite_UserModules {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
         this.internals.afterHook.push(async webSite => {
             if (!this.moduleDir) {
-                this.moduleDir = path.join(ns_app.getSourceCodeDir(), "modules");
+                this.moduleDir = path.join(jk_app.getSourceCodeDir(), "modules");
             } else {
                 if (!path.isAbsolute(this.moduleDir)) {
-                    this.moduleDir = path.join(ns_app.getSourceCodeDir(), this.moduleDir);
+                    this.moduleDir = path.join(jk_app.getSourceCodeDir(), this.moduleDir);
                 }
             }
 
@@ -979,7 +979,7 @@ class WebSite_AutomaticCacheBuilder implements WebSite_AutomaticCacheBuilder_End
 }
 
 class WebSite_AutomaticCacheBuilder_UseFileCache {
-    private rootDir: string = path.join(ns_app.getTempDir(), "page-cache");
+    private rootDir: string = path.join(jk_app.getTempDir(), "page-cache");
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: AutoCacheBuilder_Internal) {
         this.internals.initCache = (webSite) => {
@@ -1080,7 +1080,7 @@ async function autoStartServer() {
     if (gIsAutoStartDone) return;
     gIsAutoStartDone = true;
 
-    await ns_timer.tick(5);
+    await jk_timer.tick(5);
     await myServer.startServer();
 }
 
@@ -1490,7 +1490,7 @@ class JwtTokenAuth_Builder {
     setTokenStore_useCookie(expirationDuration_hours: number = 3600) {
         this.internals.afterHook.push(async webSite => {
             webSite.setJwtTokenStore((token, cookieValue, req, res) => {
-                req.addCookie(res, "authorization", cookieValue, {maxAge: ns_timer.ONE_HOUR * expirationDuration_hours})
+                req.addCookie(res, "authorization", cookieValue, {maxAge: jk_timer.ONE_HOUR * expirationDuration_hours})
             });
         });
 

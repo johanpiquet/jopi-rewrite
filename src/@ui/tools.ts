@@ -1,4 +1,4 @@
-import {isServerSide} from "jopi-toolkit/ns_what";
+import {isServerSide} from "jopi-toolkit/jk_what";
 
 //region User info
 

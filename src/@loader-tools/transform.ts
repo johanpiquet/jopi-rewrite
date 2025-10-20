@@ -3,7 +3,7 @@ import {supportedExtensionToType} from "./rules.ts";
 import path from "node:path";
 import fs from "node:fs/promises";
 
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import {getImportTransformConfig, INLINE_MAX_SIZE_KO} from "./config.ts";
 import {getVirtualUrlForFile} from "./virtualUrl.ts";
 
@@ -80,7 +80,7 @@ export default __URL__;`
 }
 
 async function transform_json(filePath: string) {
-    const resText = await ns_fs.readTextFromFile(filePath);
+    const resText = await jk_fs.readTextFromFile(filePath);
     return `export default ${resText};`;
 }
 
@@ -92,7 +92,7 @@ async function transform_raw(filePath: string) {
     let resText: string;
 
     if ((type==="text")||(type==="css")) {
-        resText = await ns_fs.readTextFromFile(filePath);
+        resText = await jk_fs.readTextFromFile(filePath);
     } else {
         const buffer: Buffer = await fs.readFile(filePath);
 
@@ -113,19 +113,19 @@ async function transform_inline(filePath: string) {
     let resText: string;
 
     if ((type==="text")||(type==="css")) {
-        resText = await ns_fs.readTextFromFile(filePath);
+        resText = await jk_fs.readTextFromFile(filePath);
     } else {
         const config = getImportTransformConfig();
         let maxSize = config ? config.inlineMaxSize_ko : INLINE_MAX_SIZE_KO;
 
-        let fileSize = Math.trunc(await ns_fs.getFileSize(filePath) / 1024);
+        let fileSize = Math.trunc(await jk_fs.getFileSize(filePath) / 1024);
 
         if (fileSize > maxSize) {
             return transform_filePath(filePath);
         }
 
         const buffer: Buffer = await fs.readFile(filePath);
-        const mimeType = ns_fs.getMimeTypeFromName(filePath);
+        const mimeType = jk_fs.getMimeTypeFromName(filePath);
 
         // Here there is no the prefix "data:image/jpeg;base64".
         // It's the difference with the "?inline" option.

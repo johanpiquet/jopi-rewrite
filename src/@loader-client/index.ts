@@ -1,6 +1,6 @@
 import process from 'node:process';
 import type {WebSite} from "../@core";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 let gIsBrowserRefreshEnabled: boolean|undefined;
 
@@ -25,7 +25,7 @@ export function installBrowserRefreshSseEvent(webSite: WebSite) {
         },
 
         handler(controller) {
-            ns_events.addListener("jopi.bundler.watch.afterRebuild", () => {
+            jk_events.addListener("jopi.bundler.watch.afterRebuild", () => {
                 console.log("🔥 JopiN - UI change detected: refreshing browser");
                 controller.send("change", "updated");
             });

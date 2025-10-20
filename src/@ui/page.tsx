@@ -3,10 +3,10 @@
 import React, {useState} from "react";
 import {type ServerRequestInstance} from "./hooks.tsx";
 import {decodeJwtToken, decodeUserInfosFromCookie, isUserInfoCookieUpdated, deleteCookie, type UiUserInfos} from "./tools.ts";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 import type {ComponentAliasDef, ModuleInitContext_Host} from "./modules.ts";
 import {gComponentAlias} from "./internal.ts";
-import {isServerSide} from "jopi-toolkit/ns_what";
+import {isServerSide} from "jopi-toolkit/jk_what";
 import {getDefaultObjectRegistry, type IsObjectRegistry, ObjectRegistry} from "./objectRegistry.ts";
 
 export interface PageOptions {
@@ -28,7 +28,7 @@ export class PageController<T = any> implements ModuleInitContext_Host {
     protected userInfos?: UiUserInfos;
     private readonly componentAlias: Record<string, ComponentAliasDef> = {};
 
-    public readonly events = isServerSide ? ns_events.newEventGroup() : ns_events.defaultEventGroup;
+    public readonly events = isServerSide ? jk_events.newEventGroup() : jk_events.defaultEventGroup;
     public readonly objectRegistry: IsObjectRegistry = isServerSide ? new ObjectRegistry() : getDefaultObjectRegistry();
 
     constructor(public readonly isDetached = false, options?: PageOptions) {
@@ -92,7 +92,7 @@ export class PageController<T = any> implements ModuleInitContext_Host {
     public refreshUserInfos() {
         if (!isServerSide && isUserInfoCookieUpdated()) {
             this.userInfos = decodeUserInfosFromCookie();
-            ns_events.sendEvent("user.infosUpdated")
+            jk_events.sendEvent("user.infosUpdated")
         }
     }
 

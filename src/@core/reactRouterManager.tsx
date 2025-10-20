@@ -9,12 +9,12 @@ import {mustHydrate} from "jopi-rewrite/ui";
 import {getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {JopiRequest} from "./jopiRequest.ts";
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
 import {addGenerateScriptPlugin, loadCodeGenTemplate} from "./bundler/scripts.ts";
-import {isBunJS} from "jopi-toolkit/ns_what";
+import {isBunJS} from "jopi-toolkit/jk_what";
 import {getBundlerConfig} from "./bundler/config.ts";
 
 interface RouteInfo {
@@ -37,7 +37,7 @@ export class ReactRouterManager {
 
     async initialize(routesDir: string = "routes") {
         await this.scanRoutesFrom(
-            path.join(ns_app.getSourceCodeDir(), routesDir)
+            path.join(jk_app.getSourceCodeDir(), routesDir)
         );
     }
 
@@ -62,7 +62,7 @@ export class ReactRouterManager {
                             let idx = dstEntryFullPath.lastIndexOf(".");
                             dstEntryFullPath = dstEntryFullPath.substring(0, idx) + ".js";
 
-                            if (!await ns_fs.isFile(dstEntryFullPath)) {
+                            if (!await jk_fs.isFile(dstEntryFullPath)) {
                                 throw new Error("No compiled file found for: " + srcDirToScan + "\nExpected: " + dstEntryFullPath);
                             }
                         }
@@ -70,7 +70,7 @@ export class ReactRouterManager {
                         let finalPath = srcEntryFullPath;
 
                         if (dstDirToCheck) {
-                            finalPath = ns_app.getCompiledFilePathFor(srcEntryFullPath);
+                            finalPath = jk_app.getCompiledFilePathFor(srcEntryFullPath);
                         }
 
                         // Calc the route of the page, something like "/product/listing".
@@ -96,12 +96,12 @@ export class ReactRouterManager {
         let srcDirToScan: string;
         let distDirToScan: string;
 
-        if (dirToScan.startsWith(ns_app.getCompiledCodeDir())) {
+        if (dirToScan.startsWith(jk_app.getCompiledCodeDir())) {
             distDirToScan = dirToScan;
-            srcDirToScan = path.join(ns_app.getSourceCodeDir(), dirToScan.substring(ns_app.getCompiledCodeDir().length));
+            srcDirToScan = path.join(jk_app.getSourceCodeDir(), dirToScan.substring(jk_app.getCompiledCodeDir().length));
         } else {
             srcDirToScan = dirToScan;
-            distDirToScan = path.join(ns_app.getCompiledCodeDir(), dirToScan.substring(ns_app.getSourceCodeDir().length));
+            distDirToScan = path.join(jk_app.getCompiledCodeDir(), dirToScan.substring(jk_app.getSourceCodeDir().length));
         }
 
         await scanRoutesFromAux(srcDirToScan, pathToFileURL(srcDirToScan).href, isBunJS ? undefined : distDirToScan);

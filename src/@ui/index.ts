@@ -1,4 +1,4 @@
-import {isBrowser} from "jopi-toolkit/ns_what";
+import {isBrowser} from "jopi-toolkit/jk_what";
 
 export * from "./tools.ts";
 export * from "./page.tsx";

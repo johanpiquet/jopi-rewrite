@@ -9,7 +9,7 @@ import type {
     StartServerOptions
 } from "../jopiServer.ts";
 import {WebSocketServer} from "ws";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import {SBPE_MustReturnWithoutResponseException} from "../jopiWebSite.tsx";
 
 class NodeServer implements ServerInstance {
@@ -20,7 +20,7 @@ class NodeServer implements ServerInstance {
             const headers = new Headers(req.headers as any);
 
             const method = req.method!;
-            const body = (method == "GET" || method === "HEAD") ? undefined : ns_fs.nodeStreamToWebStream(req);
+            const body = (method == "GET" || method === "HEAD") ? undefined : jk_fs.nodeStreamToWebStream(req);
 
             // req doesn't allow knowing if we are http or https.
             const webReq = new Request("https://" + req.headers.host! + req.url!, {
@@ -45,7 +45,7 @@ class NodeServer implements ServerInstance {
             res.writeHead(webRes.status, asJson);
 
             if (webRes.body) {
-                const asNodeStream = ns_fs.webStreamToNodeStream(webRes.body);
+                const asNodeStream = jk_fs.webStreamToNodeStream(webRes.body);
                 asNodeStream.pipe(res);
             }
         }

@@ -1,5 +1,5 @@
 import {HierarchyBuilder} from "./internal.ts";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 import {ucFirst} from "../helpers/tools.ts";
 import type {MenuItem} from "./interfaces.ts";
@@ -12,11 +12,11 @@ export class MenuManager {
     private readonly menuBuilders: Record<string, MenuBuilder[]> = {};
 
     constructor(private readonly forceURL?: URL) {
-        ns_events.addListener("user.infosUpdated", () => {
+        jk_events.addListener("user.infosUpdated", () => {
             this.invalidateMenus(true);
         });
 
-        ns_events.addListener("app.router.locationUpdated", () => {
+        jk_events.addListener("app.router.locationUpdated", () => {
             this.updateActiveItems();
         })
     }
@@ -137,7 +137,7 @@ export class MenuManager {
 
                 if (gMenuActiveItem!==item) {
                     gMenuActiveItem = item;
-                    ns_events.sendEvent("app.menu.activeItemChanged", {menuName, menuItem: item});
+                    jk_events.sendEvent("app.menu.activeItemChanged", {menuName, menuItem: item});
                 }
             }
 
@@ -186,7 +186,7 @@ export class MenuManager {
         this.isInvalid = true;
         this.allMenus = {};
 
-        ns_events.sendEvent("app.menu.invalided", this);
+        jk_events.sendEvent("app.menu.invalided", this);
     }
 }
 

@@ -1,5 +1,5 @@
 import {addVirtualUrlEntry, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 /**
  * Add a CSS file which must be bundled with the page.
@@ -18,7 +18,7 @@ export function getExtraCssToBundle(): string[] {
     return gAllCssFiles;
 }
 
-ns_events.addListener<VirtualUrlEntry>("jopi.virtualUrl.added", (v) => {
+jk_events.addListener<VirtualUrlEntry>("jopi.virtualUrl.added", (v) => {
     if (!v.url) debugger;
 
     if (v.url && v.url.endsWith(".css") || v.url.endsWith(".scss")) {

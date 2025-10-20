@@ -3,8 +3,8 @@ import {transformFile} from "./transform.ts";
 import {getImportTransformConfig} from "./config.ts";
 import path from "node:path";
 import fs from "node:fs";
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 
 // Note: Bun.js plugins are partially compatible with EsBuild modules.
 
@@ -24,8 +24,8 @@ async function processCssModule(path: string) {
 
 async function inlineAndRawModuleHandler(options: string, resPath: string) {
     // Occurs when it's compiled with TypeScript.
-    if (!await ns_fs.isFile(resPath)) {
-        resPath = ns_app.requireSourceOf(resPath);
+    if (!await jk_fs.isFile(resPath)) {
+        resPath = jk_app.requireSourceOf(resPath);
     }
 
     let res = await transformFile(resPath, options);
@@ -60,7 +60,7 @@ function createJopiRawFile(targetFilePath: string, processType: string): any {
     // Also, there are strange behaviors that we avoid when using this strategy.
 
     let options = getImportTransformConfig();
-    let tempDir = options?.bundlerOutputDir || path.join(ns_app.getTempDir(), "bunjs");
+    let tempDir = options?.bundlerOutputDir || path.join(jk_app.getTempDir(), "bunjs");
     fs.mkdirSync(tempDir, {recursive: true});
 
     let fileName = path.resolve(tempDir, (gNextTempFileName++) + ".jopiraw");
@@ -109,8 +109,8 @@ export function installEsBuildPlugins(build: Bun.PluginBuilder) {
 
     // @ts-ignore
     build.onLoad({filter: /\.jopiraw$/},  async (args) => {
-        let json = JSON.parse(await ns_fs.readTextFromFile(args.path)) as JopiRawContent;
-        await ns_fs.unlink(args.path);
+        let json = JSON.parse(await jk_fs.readTextFromFile(args.path)) as JopiRawContent;
+        await jk_fs.unlink(args.path);
 
         let filePath = json.file;
 

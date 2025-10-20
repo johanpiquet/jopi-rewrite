@@ -1,8 +1,8 @@
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_timer from "jopi-toolkit/ns_timer";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_timer from "jopi-toolkit/jk_timer";
 
-const ONE_MINUTE = ns_timer.ONE_MINUTE;
-const newInterval = ns_timer.newInterval;
+const ONE_MINUTE = jk_timer.ONE_MINUTE;
+const newInterval = jk_timer.newInterval;
 
 export enum AutomaticStartStopState { Stopped, Starting, Started, Stopping }
 
@@ -26,7 +26,7 @@ export class AutomaticStartStop {
         this.onStop = params.onStop;
         this.onStart = params.onStart;
 
-        ns_app.onAppExiting(this.stop.bind(this));
+        jk_app.onAppExiting(this.stop.bind(this));
     }
 
     get state() {

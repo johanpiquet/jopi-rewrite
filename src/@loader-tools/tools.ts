@@ -1,6 +1,6 @@
 import path from "node:path";
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 
 import fss from "node:fs";
 import stripJsonComments from "strip-json-comments";
@@ -89,18 +89,18 @@ export interface PathAliasInfo {
 export async function getPathAliasInfo(): Promise<PathAliasInfo> {
     if (gCache_getPathAliasInfo) return gCache_getPathAliasInfo;
 
-    let pkgJsonFile = ns_app.findPackageJson();
+    let pkgJsonFile = jk_app.findPackageJson();
     if (!pkgJsonFile) throw new Error("Package.json not found");
 
     const rootDir = path.dirname(pkgJsonFile);
 
     let tsconfigJsonPath = path.join(rootDir, "tsconfig.json");
 
-    if (!await ns_fs.isFile(tsconfigJsonPath)) {
+    if (!await jk_fs.isFile(tsconfigJsonPath)) {
         throw new Error(`tsconfig.json not found at ${tsconfigJsonPath}`);
     }
 
-    let asText = await ns_fs.readTextFromFile(tsconfigJsonPath);
+    let asText = await jk_fs.readTextFromFile(tsconfigJsonPath);
     let asJson = JSON.parse(stripJsonComments(asText));
 
     let compilerOptions = asJson.compilerOptions;

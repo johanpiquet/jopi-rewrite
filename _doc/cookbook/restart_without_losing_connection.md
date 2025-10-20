@@ -38,8 +38,8 @@ have nothing to import.
 The `onHotReload` function allows you to be notified when a hot-reload has occurred.
 
 ```typescript
-import * as ns_app from "jopi-toolkit/ns_app";
-ns_app.onHotReload(() => { console.log("Hot reloading !") });
+import * as jk_app from "jopi-toolkit/jk_app";
+jk_app.onHotReload(() => { console.log("Hot reloading !") });
 ```
 
 ### keepIfHotReload
@@ -47,9 +47,9 @@ ns_app.onHotReload(() => { console.log("Hot reloading !") });
 The `keepIfHotReload` function allows you to preserve some data during a hot-reload.
 
 ```typescript
-import * as ns_app from "jopi-toolkit/ns_app";
+import * as jk_app from "jopi-toolkit/jk_app";
 
-let statCounter = ns_app.keepOnHotReload(
+let statCounter = jk_app.keepOnHotReload(
     // The name of the memorized value;
     "statCount",
     
@@ -75,10 +75,10 @@ This function is similar to setInterval, but with three differences:
 - If the executed function explicitly returns `false`, the timer stops.
 
 ```typescript
-import * as ns_timer from "jopi-toolkit/ns_timer";
+import * as jk_timer from "jopi-toolkit/jk_timer";
 const myRandom = Math.trunc(Math.random() * 1000);
 
-ns_timer.newInterval(1000, () => {
+jk_timer.newInterval(1000, () => {
     console.log("Timer (newInterval)", myRandom);
     // returning false stop the timer.
     //return false;

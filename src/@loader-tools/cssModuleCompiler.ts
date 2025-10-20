@@ -4,10 +4,10 @@ import fs from "node:fs/promises";
 import postcssModules from "postcss-modules";
 import postcss from "postcss";
 import postcssUrl from "postcss-url";
-import * as ns_crypto from "jopi-toolkit/ns_crypto";
-import * as ns_app from "jopi-toolkit/ns_app";
+import * as jk_crypto from "jopi-toolkit/jk_crypto";
+import * as jk_app from "jopi-toolkit/jk_app";
 
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import {getVirtualUrlForFile} from "./virtualUrl.js";
 
 /**
@@ -15,8 +15,8 @@ import {getVirtualUrlForFile} from "./virtualUrl.js";
  */
 export default async function compileCssModule(filePath: string): Promise<string> {
     // Occurs when it's compiled with TypeScript.
-    if (!await ns_fs.isFile(filePath)) {
-        let source = ns_app.searchSourceOf(filePath)!;
+    if (!await jk_fs.isFile(filePath)) {
+        let source = jk_app.searchSourceOf(filePath)!;
         if (!source) throw new Error(`Source not found for file not found: ${filePath}`);
         filePath = source;
     }
@@ -80,7 +80,7 @@ export default async function compileCssModule(filePath: string): Promise<string
     }
 
     knownClassNames.__CSS__ = css;
-    knownClassNames.__FILE_HASH__ = ns_crypto.md5(filePath);
+    knownClassNames.__FILE_HASH__ = jk_crypto.md5(filePath);
 
     // Here __TOKENS__ contain something like {myLocalStyle: "LocalStyleButton__myLocalStyle___n1l3e"}.
     // The goal is to resolve the computed class name and the original name.

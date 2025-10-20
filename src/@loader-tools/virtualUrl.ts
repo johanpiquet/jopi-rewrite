@@ -1,7 +1,7 @@
 import {getImportTransformConfig} from "./config.js";
 import path from "node:path";
-import * as ns_events from "jopi-toolkit/ns_events";
-import * as ns_crypto from "jopi-toolkit/ns_crypto";
+import * as jk_events from "jopi-toolkit/jk_events";
+import * as jk_crypto from "jopi-toolkit/jk_crypto";
 
 export interface VirtualUrlEntry {
     url: string;
@@ -18,7 +18,7 @@ export function getVirtualUrlMap() {
 
 export function addVirtualUrlEntry(entry: VirtualUrlEntry) {
     gVirtualUrlMap.push(entry);
-    ns_events.sendEvent("jopi.virtualUrl.added", entry);
+    jk_events.sendEvent("jopi.virtualUrl.added", entry);
 }
 
 export function getVirtualUrlForFile(filePath: string): VirtualUrlEntry|undefined {
@@ -32,7 +32,7 @@ export function getVirtualUrlForFile(filePath: string): VirtualUrlEntry|undefine
     const config = getImportTransformConfig();
 
     let route = path.relative(process.cwd(), filePath);
-    route = config.webResourcesRoot_SSR + ns_crypto.md5(route) + path.extname(filePath);
+    route = config.webResourcesRoot_SSR + jk_crypto.md5(route) + path.extname(filePath);
 
     const entry: VirtualUrlEntry = {
         // Use an url relative to the url base path.

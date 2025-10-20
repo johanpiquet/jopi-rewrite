@@ -2,11 +2,11 @@ import {type Plugin} from "esbuild";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {applyTailwindProcessor} from "./tailwind.ts";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 import type {EsBuildParams} from "./esbuild.ts";
 import type {CreateBundleEvent} from "../@core/index.ts";
-import * as ns_fs from "jopi-toolkit/ns_fs";
-import * as ns_crypto from "jopi-toolkit/ns_crypto";
+import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import {installEsBuildPlugins} from "jopi-rewrite/loader-tools";
 import MagicString from 'magic-string';
 import {SourceMapConsumer, SourceMapGenerator} from "source-map";
@@ -127,7 +127,7 @@ export function jopiDetectRebuild(params: EsBuildParams): Plugin {
                 }
 
                 if (!isFirstCall && params.enableUiWatch) {
-                    await ns_events.sendAsyncEvent("jopi.bundler.watch.beforeRebuild");
+                    await jk_events.sendAsyncEvent("jopi.bundler.watch.beforeRebuild");
                 }
             });
 
@@ -137,7 +137,7 @@ export function jopiDetectRebuild(params: EsBuildParams): Plugin {
                 await calcHash(params);
 
                 if (params.enableUiWatch) {
-                    await ns_events.sendAsyncEvent("jopi.bundler.watch.afterRebuild");
+                    await jk_events.sendAsyncEvent("jopi.bundler.watch.afterRebuild");
                 }
             });
         }
@@ -161,10 +161,10 @@ async function calcHash(params: CreateBundleEvent) {
     params.webSite.data["jopiLoaderHash"] = loaderHash;
 
     let cssFilePath = path.join(params.outputDir, params.out_cssEntryPoint!);
-    if (!await ns_fs.isFile(cssFilePath)) await ns_fs.writeTextToFile(cssFilePath, "");
-    loaderHash.css = ns_crypto.md5(await ns_fs.readTextFromFile(cssFilePath));
+    if (!await jk_fs.isFile(cssFilePath)) await jk_fs.writeTextToFile(cssFilePath, "");
+    loaderHash.css = jk_crypto.md5(await jk_fs.readTextFromFile(cssFilePath));
 
     let jsFilePath = path.join(params.outputDir, params.out_jsEntryPoint!);
-    if (!await ns_fs.isFile(jsFilePath)) await ns_fs.writeTextToFile(jsFilePath, "");
-    loaderHash.js = ns_crypto.md5(await ns_fs.readTextFromFile(jsFilePath));
+    if (!await jk_fs.isFile(jsFilePath)) await jk_fs.writeTextToFile(jsFilePath, "");
+    loaderHash.js = jk_crypto.md5(await jk_fs.readTextFromFile(jsFilePath));
 }

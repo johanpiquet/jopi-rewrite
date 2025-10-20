@@ -1,9 +1,9 @@
 // noinspection JSUnusedGlobalSymbols
 
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 import {type UiUserInfos} from "./tools.ts";
 import React from "react";
-import {isServerSide} from "jopi-toolkit/ns_what";
+import {isServerSide} from "jopi-toolkit/jk_what";
 import {type IsObjectRegistry} from "./objectRegistry.ts";
 import {getDefaultPageController} from "./internal.ts";
 
@@ -15,7 +15,7 @@ export interface ModuleInitContext_Host {
     setComponentAlias(alias: ComponentAliasDef): void;
     getComponentAlias(alias: string): ComponentAliasDef|undefined;
 
-    events: ns_events.EventGroup;
+    events: jk_events.EventGroup;
 }
 
 export interface ComponentAliasDef {
@@ -35,7 +35,7 @@ type UiInitializer = () => void;
  */
 export class ModuleInitContext_UI {
     public readonly objectRegistry: IsObjectRegistry;
-    public readonly events: ns_events.EventGroup;
+    public readonly events: jk_events.EventGroup;
     public readonly isBrowserSide: boolean = !isServerSide;
     protected readonly host: ModuleInitContext_Host;
 
@@ -57,7 +57,7 @@ export class ModuleInitContext_UI {
         return this.host.getCurrentURL();
     }
 
-    addUiInitializer(priority: UiInitializer|ns_events.EventPriority, initializer?: UiInitializer|undefined) {
+    addUiInitializer(priority: UiInitializer|jk_events.EventPriority, initializer?: UiInitializer|undefined) {
         this.events.addListener("app.init.ui", priority, initializer);
     }
 

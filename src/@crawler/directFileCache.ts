@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import type {CrawlerCache} from "./common.ts";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 
 export class DirectFileCache implements CrawlerCache {
     public readonly rootDir: string;
@@ -19,7 +19,7 @@ export class DirectFileCache implements CrawlerCache {
         url2.protocol = "file:";
 
         const sURL = url2.toString();
-        return ns_fs.fileURLToPath(sURL);
+        return jk_fs.fileURLToPath(sURL);
     }
 
     private calcFilePath(url: string): string {
@@ -47,7 +47,7 @@ export class DirectFileCache implements CrawlerCache {
         await fs.mkdir(path.dirname(filePath), {recursive: true});
 
         try {
-            await ns_fs.writeResponseToFile(response, filePath);
+            await jk_fs.writeResponseToFile(response, filePath);
         }
         catch (e) {
             console.error(e);
@@ -58,7 +58,7 @@ export class DirectFileCache implements CrawlerCache {
         const filePath = this.calcFilePath(url);
 
         try {
-            const stat = await ns_fs.getFileStat(filePath);
+            const stat = await jk_fs.getFileStat(filePath);
             return (stat!==undefined) && stat.isFile();
         }
         catch {

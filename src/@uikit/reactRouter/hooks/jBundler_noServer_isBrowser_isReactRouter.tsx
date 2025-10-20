@@ -2,7 +2,7 @@
 
 import React, {useEffect} from "react";
 import {Link, useLocation, useNavigate, useParams as rrUserParams, useSearchParams} from "react-router";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 export function useRouterNavigate() {
     let f = useNavigate();
@@ -28,7 +28,7 @@ export function useRouterLocation(): Path {
 
 export function useSendRouterLocationUpdateEvent(eventName: string = "app.router.locationUpdated") {
     let newLocation = useLocation();
-    ns_events.sendEvent(eventName, newLocation);
+    jk_events.sendEvent(eventName, newLocation);
 }
 
 export function RouterLink({to, onClick, children, ...p}: React.ComponentProps<"a"> & {

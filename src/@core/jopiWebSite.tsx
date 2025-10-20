@@ -30,8 +30,8 @@ import {getInMemoryCache} from "./caches/InMemoryCache.ts";
 import {ModulesManager} from "./modulesManager.ts";
 import {installBundleServer} from "./bundler/server.ts";
 import {createBundle} from "./bundler/bundler.ts";
-import * as ns_webSocket from "jopi-toolkit/ns_webSocket";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_webSocket from "jopi-toolkit/jk_webSocket";
+import * as jk_events from "jopi-toolkit/jk_events";
 import {isBrowserRefreshEnabled, installBrowserRefreshSseEvent} from "../@loader-client/index.ts";
 
 export interface WebSite {
@@ -192,7 +192,7 @@ export class WebSiteImpl implements WebSite {
         this._onWebSiteReady = options.onWebSiteReady;
 
         // Allow hooking the newly created websites.
-        ns_events.sendEvent("jopi.webSite.created", this);
+        jk_events.sendEvent("jopi.webSite.created", this);
     }
 
     getWelcomeUrl(): string {
@@ -878,11 +878,11 @@ export class JopiWebSocket {
     }
 
     onMessage(listener: (msg: string|Buffer) => void): void {
-        ns_webSocket.onMessage(this.webSocket, listener);
+        jk_webSocket.onMessage(this.webSocket, listener);
     }
 
     sendMessage(msg: string|Buffer|Uint8Array|ArrayBuffer) {
-        ns_webSocket.sendMessage(this.webSocket, msg);
+        jk_webSocket.sendMessage(this.webSocket, msg);
     }
 }
 

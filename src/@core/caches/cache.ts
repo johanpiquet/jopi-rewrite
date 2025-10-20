@@ -1,5 +1,5 @@
 import path from "node:path";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import fs from "node:fs/promises";
 import {makeIterable} from "../internalTools.js";
 
@@ -34,12 +34,12 @@ export class WebSiteMirrorCache implements PageCache {
         if (!rootDir) rootDir = ".";
         if (!path.isAbsolute(rootDir)) rootDir = path.resolve(process.cwd(), rootDir);
         this.rootDir = rootDir;
-        this.rootDirAtFileUrl = ns_fs.pathToFileURL(this.rootDir).href;
+        this.rootDirAtFileUrl = jk_fs.pathToFileURL(this.rootDir).href;
     }
 
     private calKey(url: URL): string {
         let sURL = this.rootDirAtFileUrl + url.pathname;
-        return ns_fs.fileURLToPath(sURL);
+        return jk_fs.fileURLToPath(sURL);
     }
 
     private calcFilePath(url: URL): string {
@@ -66,11 +66,11 @@ export class WebSiteMirrorCache implements PageCache {
             if (!response.body) return response;
 
             const [bodyRes, bodySaveFile] = response.body.tee();
-            await ns_fs.writeResponseToFile(new Response(bodySaveFile), filePath);
+            await jk_fs.writeResponseToFile(new Response(bodySaveFile), filePath);
 
             const headers: any = {
-                "content-type": ns_fs.getMimeTypeFromName(filePath),
-                "content-length": await ns_fs.getFileSize(filePath)
+                "content-type": jk_fs.getMimeTypeFromName(filePath),
+                "content-length": await jk_fs.getFileSize(filePath)
             };
 
             return new Response(bodyRes, {status: 200, headers});
@@ -88,16 +88,16 @@ export class WebSiteMirrorCache implements PageCache {
 
     async hasInCache(url: URL): Promise<boolean> {
         const filePath = this.calcFilePath(url);
-        const stats = await ns_fs.getFileStat(filePath);
+        const stats = await jk_fs.getFileStat(filePath);
         return !!stats && stats.isFile();
     }
 
     async getFromCache(url: URL): Promise<Response|undefined> {
         const filePath = this.calcFilePath(url);
-        const stats = await ns_fs.getFileStat(filePath);
+        const stats = await jk_fs.getFileStat(filePath);
 
         if (stats && stats.isFile()) {
-            let contentType = ns_fs.getMimeTypeFromName(filePath);
+            let contentType = jk_fs.getMimeTypeFromName(filePath);
             const contentLength = stats.size;
 
             const headers: any = {
@@ -105,7 +105,7 @@ export class WebSiteMirrorCache implements PageCache {
                 "content-length": contentLength.toString()
             };
 
-            return ns_fs.createResponseFromFile(filePath, 200, headers);
+            return jk_fs.createResponseFromFile(filePath, 200, headers);
         }
 
         return undefined;

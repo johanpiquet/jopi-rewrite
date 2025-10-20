@@ -1,5 +1,5 @@
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 import {supportedExtensions} from "./rules.ts";
@@ -16,7 +16,7 @@ import {transformFile} from "./transform.ts";
 
 export async function doNodeJsResolve(specifier: string, context: any, nextResolve: any) {
     async function tryResolveFile(filePath: string, moduleName: string) {
-        if (await ns_fs.isFile(filePath)) {
+        if (await jk_fs.isFile(filePath)) {
             return nextResolve(moduleName, context);
         }
 
@@ -119,8 +119,8 @@ export async function doNodeJsLoad(url: string, context: any, nextLoad: any) {
         let filePath = fileURLToPath(url);
 
         // Occurs when it's compiled with TypeScript.
-        if (!await ns_fs.isFile(filePath)) {
-            filePath = ns_app.requireSourceOf(filePath);
+        if (!await jk_fs.isFile(filePath)) {
+            filePath = jk_app.requireSourceOf(filePath);
         }
 
         try {

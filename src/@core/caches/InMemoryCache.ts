@@ -1,14 +1,14 @@
 import {gzipFile, mkDirForFile, saveReadableStreamToFile} from "../gzip.ts";
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 
 import * as path from "node:path";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {octetToMo, ONE_KILO_OCTET, ONE_MEGA_OCTET} from "../publicTools.ts";
 import {cacheEntryToResponse, makeIterable, readContentLength, responseToCacheEntry} from "../internalTools.ts";
 
-const clearHotReloadKey = ns_app.clearHotReloadKey;
-const keepOnHotReload = ns_app.keepOnHotReload;
+const clearHotReloadKey = jk_app.clearHotReloadKey;
+const keepOnHotReload = jk_app.keepOnHotReload;
 const HOT_RELOAD_KEY = "jopi.rewrite.inMemoryCache.hotReloadKey";
 
 export interface InMemoryCacheOptions {
@@ -124,23 +124,23 @@ class InMemoryCache implements PageCache {
             return;
         }
 
-        const fileUncompressed = path.resolve(path.join(ns_app.getTempDir(), crypto.randomUUID()));
+        const fileUncompressed = path.resolve(path.join(jk_app.getTempDir(), crypto.randomUUID()));
         const fileGzip = fileUncompressed + ".gzip";
         await mkDirForFile(fileUncompressed);
 
         await saveReadableStreamToFile(fileUncompressed, response.body as ReadableStream);
         await gzipFile(fileUncompressed, fileGzip);
 
-        const fileGZipSize = await ns_fs.getFileSize(fileGzip);
+        const fileGZipSize = await jk_fs.getFileSize(fileGzip);
 
         if (fileGZipSize<this.maxContentLength) {
-            let bytes = await ns_fs.readFileToBytes(fileGzip);
+            let bytes = await jk_fs.readFileToBytes(fileGzip);
             cacheEntry.gzipBinary = bytes.buffer as ArrayBuffer;
             cacheEntry.gzipBinarySize = cacheEntry.gzipBinary.byteLength;
         }
 
-        await ns_fs.unlink(fileUncompressed);
-        await ns_fs.unlink(fileGzip);
+        await jk_fs.unlink(fileUncompressed);
+        await jk_fs.unlink(fileGzip);
     }
 
     getCacheEntryIterator(subCacheName?: string): Iterable<CacheEntry> {

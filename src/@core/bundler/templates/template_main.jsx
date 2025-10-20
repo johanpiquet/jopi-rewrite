@@ -3,7 +3,7 @@ import { lazy } from 'react';
 import React from "react";
 import ReactDOM from 'react-dom/client';
 import {ModuleInitContext_UI} from "jopi-rewrite/ui";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 //[IMPORT]
 
 const jopiComposites = {};
@@ -64,7 +64,7 @@ async function mod_initializeMod(exportDefault) {
 
 async function mod_onAllModInitialized() {
     hydrateAll();
-    await ns_events.sendEvent("app.init.ui");
+    await jk_events.sendEvent("app.init.ui");
 }
 
 async function process() {

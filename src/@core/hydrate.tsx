@@ -1,13 +1,13 @@
 import path from "node:path";
-import * as ns_app from "jopi-toolkit/ns_app";
-import {isServerSide} from "jopi-toolkit/ns_what";
+import * as jk_app from "jopi-toolkit/jk_app";
+import {isServerSide} from "jopi-toolkit/jk_what";
 
 import React from "react";
 import {setHandler_bundleExternalCss, setHandler_mustHydrate, useCssModule} from "jopi-rewrite/ui";
 import {fileURLToPath, pathToFileURL} from "node:url";
 import {addExtraCssToBundle} from "./bundler/extraContent.ts";
-import * as ns_crypto from "jopi-toolkit/ns_crypto";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_crypto from "jopi-toolkit/jk_crypto";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 
 export function hasHydrateComponents() {
     return gHasComponents;
@@ -26,7 +26,7 @@ interface JopiHydrateProps {
 
 function useHydrateComponent(importMeta: { filename: string }): string {
     if (isServerSide) {
-        const key = ns_crypto.fastHash(importMeta.filename).toString();
+        const key = jk_crypto.fastHash(importMeta.filename).toString();
         const filePath = importMeta.filename;
 
         const currentFilePath = gHydrateComponents[key];
@@ -92,7 +92,7 @@ async function handler_bundleExternalCss(importMeta: {filename: string}, cssFile
         cssFileUrl = cssFilePath;
     } else {
         if (!cssFilePath.startsWith("./")) {
-            console.error("* CSS file must starts with 'file:/' or './'\n|- See:", ns_app.requireSourceOf(importMeta.filename));
+            console.error("* CSS file must starts with 'file:/' or './'\n|- See:", jk_app.requireSourceOf(importMeta.filename));
         }
 
         let dirPath = path.dirname(importMeta.filename);
@@ -102,9 +102,9 @@ async function handler_bundleExternalCss(importMeta: {filename: string}, cssFile
     cssFilePath = fileURLToPath(cssFileUrl);
 
     // If using a TypeScript compiler, then the CSS remain in the source folder.
-    cssFilePath = ns_app.requireSourceOf(cssFilePath);
+    cssFilePath = jk_app.requireSourceOf(cssFilePath);
 
-    if (!await ns_fs.isFile(cssFilePath)) {
+    if (!await jk_fs.isFile(cssFilePath)) {
         console.warn("JopiHydrate: CSS file not found:", cssFilePath);
         return;
     }

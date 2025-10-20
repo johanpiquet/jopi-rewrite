@@ -12,10 +12,10 @@ import {
     type WebSiteMap
 } from "./jopiWebSite.tsx";
 
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
-import * as ns_os from "jopi-toolkit/ns_os";
-import {isBunJS} from "jopi-toolkit/ns_what";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_os from "jopi-toolkit/jk_os";
+import {isBunJS} from "jopi-toolkit/jk_what";
 
 import bunJsServer, {onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.js";
 import nodeJsServer, {onSseEvent as NodeSseEvent} from "./serverImpl/server_nodejs.js";
@@ -89,8 +89,8 @@ class JopiServer {
                         const certFile = path.resolve(webSite.certificate.cert);
 
                         certificates.push({
-                            key: ns_fs.readTextSyncFromFile(keyFile),
-                            cert: ns_fs.readTextSyncFromFile(certFile),
+                            key: jk_fs.readTextSyncFromFile(keyFile),
+                            cert: jk_fs.readTextSyncFromFile(certFile),
                             serverName: webSite.host
                         });
                     }
@@ -146,7 +146,7 @@ class JopiServer {
         }
 
         // Stop the server if the exit signal is received.
-        ns_app.onAppExiting(() => {
+        jk_app.onAppExiting(() => {
             this.stopServer().catch();
         });
     }
@@ -161,12 +161,12 @@ class JopiServer {
         const keyFilePath = path.join(sslDirPath, "certificate.key");
         const certFilePath = path.join(sslDirPath, "certificate.crt.key");
 
-        if (!await ns_fs.isFile(certFilePath)) {
-            let mkCertToolPath = ns_os.whichSync("mkcert");
+        if (!await jk_fs.isFile(certFilePath)) {
+            let mkCertToolPath = jk_os.whichSync("mkcert");
 
             if (mkCertToolPath) {
                 await fs.mkdir(sslDirPath, {recursive: true});
-                await ns_os.exec(`cd ${sslDirPath}; ${mkCertToolPath} -install; ${mkCertToolPath} --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
+                await jk_os.exec(`cd ${sslDirPath}; ${mkCertToolPath} -install; ${mkCertToolPath} --cert-file certificate.crt.key --key-file certificate.key ${hostName} localhost 127.0.0.1 ::1`);
             } else {
                 throw "Can't generate certificate, mkcert tool not found. See here for installation: https://github.com/FiloSottile/mkcert";
             }

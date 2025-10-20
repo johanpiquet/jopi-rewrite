@@ -1,6 +1,6 @@
 import esbuild, {type BuildResult} from "esbuild";
-import * as ns_fs from "jopi-toolkit/ns_fs";
-import * as n_what from "jopi-toolkit/ns_what";
+import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as n_what from "jopi-toolkit/jk_what";
 import type {CreateBundleEvent} from "../@core/index.ts";
 import {jopiReplaceText, jopiLoaderPlugin, jopiDetectRebuild} from "./plugins.ts";
 
@@ -98,13 +98,13 @@ export async function esBuildBundle(params: EsBuildParams) {
     // store the mapping in memory.
 
     const allMeta = result.metafile!;
-    await ns_fs.writeTextToFile(ns_fs.join(params.genDir, "raw-meta.json"), JSON.stringify(allMeta, null, 4));
+    await jk_fs.writeTextToFile(jk_fs.join(params.genDir, "raw-meta.json"), JSON.stringify(allMeta, null, 4));
 
     const jsonReport: Record<string, string> = {};
 
     if (allMeta.outputs) {
         for (const outputFilePath in allMeta.outputs) {
-            const ext = ns_fs.extname(outputFilePath);
+            const ext = jk_fs.extname(outputFilePath);
             if ([".js", ".ts", ".tsx", ".jsx", ".mjs"].includes(ext)) continue;
 
             const metaValue = allMeta.outputs[outputFilePath];
@@ -117,12 +117,12 @@ export async function esBuildBundle(params: EsBuildParams) {
                     // entry can be a resource using our entry, so it
                     // will be overridden.
                     //
-                    let key = ns_fs.resolve(inputFilePath);
+                    let key = jk_fs.resolve(inputFilePath);
                     if (!jsonReport[key]) jsonReport[key] = outputFilePath;
                 }
             }
         }
     }
 
-    await ns_fs.writeTextToFile(params.metaDataFilePath, JSON.stringify(jsonReport, null, 4));
+    await jk_fs.writeTextToFile(params.metaDataFilePath, JSON.stringify(jsonReport, null, 4));
 }

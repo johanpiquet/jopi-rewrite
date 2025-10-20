@@ -1,7 +1,7 @@
 import path from "node:path";
 import {spawn, ChildProcess} from "node:child_process";
 import chokidar from "chokidar";
-import * as ns_timer from "jopi-toolkit/ns_timer";
+import * as jk_timer from "jopi-toolkit/jk_timer";
 
 export interface SourceChangesWatcherParams {
     watchDirs: string[];
@@ -149,7 +149,7 @@ export class SourceChangesWatcher {
             }
 
             gChild = undefined;
-            await ns_timer.tick(100);
+            await jk_timer.tick(100);
         }
 
         let useShell = this._cmd.endsWith('.cmd') || this._cmd.endsWith('.bat') || this._cmd.endsWith('.sh');

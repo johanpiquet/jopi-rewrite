@@ -1,7 +1,7 @@
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.tsx";
 import {serverInitChronos} from "../internalTools.ts";
-import * as ns_fs from "jopi-toolkit/ns_fs";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_events from "jopi-toolkit/jk_events";
 import {getHydrateComponents} from "../hydrate.tsx";
 import {generateScript} from "./scripts.ts";
 import {getBundleDirPath} from "./common.ts";
@@ -36,11 +36,11 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     const reactComponentFiles = getHydrateComponents();
 
     const genDir = getBundleDirPath(webSite);
-    const outputDir = ns_fs.join(genDir, "out");
+    const outputDir = jk_fs.join(genDir, "out");
 
     // Reset the dir.
-    await ns_fs.rmDir(genDir);
-    await ns_fs.mkDir(genDir);
+    await jk_fs.rmDir(genDir);
+    await jk_fs.mkDir(genDir);
 
     const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
     // noinspection PointlessBooleanExpressionJS
@@ -82,7 +82,7 @@ async function execute(data: CreateBundleEvent, useFallback = true) {
     // through the use of event priority. The default
     // bundle has a very low priority.
     //
-    ns_events.sendEvent("jopi.bundler.createBundle", data);
+    jk_events.sendEvent("jopi.bundler.createBundle", data);
 
     if (data.promise) {
         // Mean it's handled.

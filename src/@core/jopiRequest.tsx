@@ -23,8 +23,8 @@ import {
 } from "./jopiWebSite.tsx";
 
 import {parseCookies} from "./internalTools.ts";
-import * as ns_term from "jopi-toolkit/ns_term";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_term from "jopi-toolkit/jk_term";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
 import {getBundleEntryPointUrl_JS, getBundleEntryPointUrl_CSS} from "./bundler/server.ts";
@@ -664,8 +664,8 @@ export class JopiRequest {
     }
 
     async printSpyRequestData(data: JopiRequestSpyData) {
-        const headerColor = ns_term.buildWriter(ns_term.C_RED);
-        const titleColor = ns_term.buildWriter(ns_term.C_ORANGE);
+        const headerColor = jk_term.buildWriter(jk_term.C_RED);
+        const titleColor = jk_term.buildWriter(jk_term.C_ORANGE);
 
         let resAsText = "";
         //
@@ -1035,10 +1035,10 @@ export class JopiRequest {
     }
 
     async tryReturnFile(filePath: string): Promise<Response|undefined> {
-        const stats = await ns_fs.getFileStat(filePath);
+        const stats = await jk_fs.getFileStat(filePath);
 
         if (stats && stats.isFile()) {
-            let contentType = ns_fs.getMimeTypeFromName(filePath);
+            let contentType = jk_fs.getMimeTypeFromName(filePath);
             const contentLength = stats.size;
 
             const headers: any = {
@@ -1046,7 +1046,7 @@ export class JopiRequest {
                 "content-length": contentLength.toString()
             };
 
-            return ns_fs.createResponseFromFile(filePath, 200, headers);
+            return jk_fs.createResponseFromFile(filePath, 200, headers);
         }
 
         return undefined;

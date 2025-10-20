@@ -2,7 +2,7 @@
 
 import React, {useEffect, useState} from "react";
 
-import {isServerSide} from "jopi-toolkit/ns_what";
+import {isServerSide} from "jopi-toolkit/jk_what";
 import {useEvent, useServerRequest} from "jopi-rewrite/ui";
 
 /**

@@ -1,6 +1,6 @@
 import * as NodeModule from 'node:module';
 
-import {isNodeJS, isBunJS} from "jopi-toolkit/ns_what";
+import {isNodeJS, isBunJS} from "jopi-toolkit/jk_what";
 import {installBunJsLoader} from "jopi-rewrite/loader-tools";
 
 // Guard to avoid recursive self-registration when using Module.register(import.meta.url)

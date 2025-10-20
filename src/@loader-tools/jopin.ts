@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import {type ChildProcess, spawn} from "node:child_process";
 import path from "node:path";
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
-import * as ns_os from "jopi-toolkit/ns_os";
-import * as ns_term from "jopi-toolkit/ns_term";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_os from "jopi-toolkit/jk_os";
+import * as jk_term from "jopi-toolkit/jk_term";
 
 // *************************
 const FORCE_LOG = false;
@@ -86,7 +86,7 @@ export async function jopiLauncherTool(jsEngine: string) {
     }
 
     function getPreloadModules() {
-        const packageJsonPath = ns_app.findPackageJson();
+        const packageJsonPath = jk_app.findPackageJson();
 
         if (!packageJsonPath) {
             return [];
@@ -124,7 +124,7 @@ export async function jopiLauncherTool(jsEngine: string) {
             needHot: (gDevModeType === DevModType.FULL_RELOAD) && (jsEngine==="bun")
         };
 
-        let pckJson = ns_app.findPackageJson();
+        let pckJson = jk_app.findPackageJson();
 
         if (pckJson) {
             if (mustLog) console.log("JopiN - package.json file found at", pckJson);
@@ -132,7 +132,7 @@ export async function jopiLauncherTool(jsEngine: string) {
             res.packageJsonFilePath = pckJson;
 
             try {
-                let json = JSON.parse(await ns_fs.readTextFromFile(pckJson));
+                let json = JSON.parse(await jk_fs.readTextFromFile(pckJson));
                 let jopi: any = json["jopi"];
 
                 if (jopi) {
@@ -219,7 +219,7 @@ export async function jopiLauncherTool(jsEngine: string) {
         preloadArgs.push("--no-warnings");
     }
 
-    let cmd = ns_os.whichSync(jsEngine, jsEngine)!;
+    let cmd = jk_os.whichSync(jsEngine, jsEngine)!;
     if (mustLog) console.log("jopiN - Using " + jsEngine + " from:", cmd);
     let args = [...preloadArgs, ...argv];
 
@@ -256,11 +256,11 @@ export async function jopiLauncherTool(jsEngine: string) {
             else toPrepend.push("--watch");
 
             args = [...toPrepend, ...args];
-            ns_term.logBlue("JopiN - Full source watching enabled.");
+            jk_term.logBlue("JopiN - Full source watching enabled.");
         }
 
         if (config.needUiWatch) {
-            ns_term.logBlue("JopiN - UI source watching enabled.");
+            jk_term.logBlue("JopiN - UI source watching enabled.");
         }
     }
 

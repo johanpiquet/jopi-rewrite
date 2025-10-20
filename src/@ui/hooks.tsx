@@ -3,7 +3,7 @@
 import React, {useEffect} from "react";
 import {PageContext, PageController, PageController_ExposePrivate} from "./page.tsx";
 import {CssModule, type UseCssModuleContextProps} from "./cssModules.tsx";
-import * as ns_events from "jopi-toolkit/ns_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 /**
  * Allows getting the page object and alter it.
@@ -76,17 +76,17 @@ export function useEvent(evenName: string|string[], listener: (data: any) => voi
     useEffect(() => {
         if (evenName instanceof Array) {
             evenName.forEach(e => {
-                ns_events.addListener(e, listener);
+                jk_events.addListener(e, listener);
             });
 
             return () => {
                 evenName.forEach(e => {
-                    ns_events.removeListener(e, listener);
+                    jk_events.removeListener(e, listener);
                 });
             }
         }
 
-        ns_events.addListener(evenName, listener);
-        return () => { ns_events.removeListener(evenName, listener) };
+        jk_events.addListener(evenName, listener);
+        return () => { jk_events.removeListener(evenName, listener) };
     }, [evenName, listener]);
 }

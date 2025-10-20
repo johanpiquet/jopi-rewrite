@@ -1,8 +1,8 @@
 import * as acme from 'acme-client';
 import {type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 import path from "node:path";
-import * as ns_timer from "jopi-toolkit/ns_timer";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_timer from "jopi-toolkit/jk_timer";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 
 export type OnTimeoutError = (webSite: WebSite, isRenew: boolean) => void;
 
@@ -34,16 +34,16 @@ enum CertificateState {
 }
 
 async function getCertificateState(certPaths: SslCertificatePath, params: LetsEncryptParams): Promise<CertificateState> {
-    if (!await ns_fs.isFile(certPaths.cert)) return CertificateState.DontExist;
-    if (!await ns_fs.isFile(certPaths.key)) return CertificateState.DontExist;
+    if (!await jk_fs.isFile(certPaths.cert)) return CertificateState.DontExist;
+    if (!await jk_fs.isFile(certPaths.key)) return CertificateState.DontExist;
 
     let proofFile = path.join(path.dirname(certPaths.cert), "_updateDate.txt");
-    if (!await ns_fs.isFile(proofFile)) return CertificateState.DontExist;
+    if (!await jk_fs.isFile(proofFile)) return CertificateState.DontExist;
 
     // Using a file allows copying/paste the file or store it in GitHub.
     // It's better than checking his update date.
     //
-    const sDate = await ns_fs.readTextFromFile(proofFile);
+    const sDate = await jk_fs.readTextFromFile(proofFile);
     if (!sDate) return CertificateState.DontExist;
 
     const now = new Date();
@@ -67,12 +67,12 @@ function getCertificateDir(certDirPath: string, hostName: string): SslCertificat
 }
 
 async function saveCertificate(certPaths: SslCertificatePath, key: string, cert: string): Promise<void> {
-    await ns_fs.mkDir(path.dirname(certPaths.cert));
-    await ns_fs.writeTextToFile(certPaths.key, key);
-    await ns_fs.writeTextToFile(certPaths.cert, cert);
+    await jk_fs.mkDir(path.dirname(certPaths.cert));
+    await jk_fs.writeTextToFile(certPaths.key, key);
+    await jk_fs.writeTextToFile(certPaths.cert, cert);
 
     let proofFile = path.join(path.dirname(certPaths.cert), "_updateDate.txt");
-    await ns_fs.writeTextToFile(proofFile, Date.now().toString());
+    await jk_fs.writeTextToFile(proofFile, Date.now().toString());
 }
 
 /**
@@ -229,7 +229,7 @@ function startCron() {
     if (gIsCronStarted) return;
     gIsCronStarted = true;
 
-    ns_timer.newInterval(ns_timer.ONE_DAY, () => {
+    jk_timer.newInterval(jk_timer.ONE_DAY, () => {
         gWebsiteToCheck.forEach(ce => checkWebSite(ce.webSite, ce.params, true));
     });
 }

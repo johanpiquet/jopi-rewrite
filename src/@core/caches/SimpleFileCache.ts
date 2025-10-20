@@ -4,9 +4,9 @@ import fs from "node:fs/promises";
 import fss from "node:fs";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {cacheEntryToResponse, makeIterable, responseToCacheEntry} from "../internalTools.ts";
-import * as ns_compress from "jopi-toolkit/ns_compress";
-import * as ns_fs from "jopi-toolkit/ns_fs";
-import * as ns_crypto from "jopi-toolkit/ns_crypto";
+import * as jk_compress from "jopi-toolkit/jk_compress";
+import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_crypto from "jopi-toolkit/jk_crypto";
 
 export class SimpleFileCache implements PageCache {
     public readonly rootDir: string;
@@ -19,7 +19,7 @@ export class SimpleFileCache implements PageCache {
 
     private calKey(url: URL): string {
         // Using a hash allows avoiding difficulties with query string special characters.
-        return ns_crypto.fastHash(url.toString());
+        return jk_crypto.fastHash(url.toString());
     }
 
     private calcFilePath(url: URL): string {
@@ -44,19 +44,19 @@ export class SimpleFileCache implements PageCache {
         }
 
         const filePath = this.calcFilePath(url);
-        await ns_fs.writeResponseToFile(response, filePath);
+        await jk_fs.writeResponseToFile(response, filePath);
 
         if (!storeUncompressed) {
             await gzipFile(filePath, filePath + " gz");
-            await ns_fs.unlink(filePath);
+            await jk_fs.unlink(filePath);
         }
 
         if (storeUncompressed) {
-            const result = ns_fs.createResponseFromFile(filePath, response.status, response.headers);
+            const result = jk_fs.createResponseFromFile(filePath, response.status, response.headers);
             result.headers.delete("content-encoding");
             return result;
         } else {
-            const result = ns_fs.createResponseFromFile(filePath + " gz", response.status, response.headers);
+            const result = jk_fs.createResponseFromFile(filePath + " gz", response.status, response.headers);
             result.headers.set("content-encoding", "gzip");
             return result;
         }
@@ -65,9 +65,9 @@ export class SimpleFileCache implements PageCache {
     async removeFromCache(url: URL): Promise<void> {
         const filePath = this.calcFilePath(url);
 
-        await ns_fs.unlink(filePath);
-        await ns_fs.unlink(filePath + " gz");
-        await ns_fs.unlink(filePath + " info");
+        await jk_fs.unlink(filePath);
+        await jk_fs.unlink(filePath + " gz");
+        await jk_fs.unlink(filePath + " info");
 
         return Promise.resolve();
     }
@@ -99,11 +99,11 @@ export class SimpleFileCache implements PageCache {
             const baseFilePath = this.calcFilePath(url);
             const filePath = getGzippedVersion ? baseFilePath + " gz" : baseFilePath;
 
-            if (await ns_fs.isFile(filePath)) {
-                const fileBytes = await ns_fs.readFileToBytes(filePath);
+            if (await jk_fs.isFile(filePath)) {
+                const fileBytes = await jk_fs.readFileToBytes(filePath);
 
                 if (mustUnzip) {
-                    const stream = ns_compress.gunzipSync(fileBytes);
+                    const stream = jk_compress.gunzipSync(fileBytes);
 
                     cacheEntry.binary = stream.buffer as ArrayBuffer;
                     cacheEntry.binarySize = stream.length;
@@ -130,7 +130,7 @@ export class SimpleFileCache implements PageCache {
         const filePath = this.calcFilePath(url);
 
         try {
-            return JSON.parse(await ns_fs.readTextFromFile(filePath + " info"));
+            return JSON.parse(await jk_fs.readTextFromFile(filePath + " info"));
         }
         catch {
             // We are here if the file doesn't exist.
@@ -146,7 +146,7 @@ export class SimpleFileCache implements PageCache {
     private async saveCacheEntry(url: URL, cacheEntry: CacheEntry) {
         const filePath = this.calcFilePath(url) + " info";
         await fs.mkdir(path.dirname(filePath), {recursive: true});
-        await ns_fs.writeTextToFile(filePath, JSON.stringify(cacheEntry));
+        await jk_fs.writeTextToFile(filePath, JSON.stringify(cacheEntry));
     }
 
     createSubCache(name: string): PageCache {
@@ -157,7 +157,7 @@ export class SimpleFileCache implements PageCache {
     getCacheEntryIterator() {
         function getCacheEntryFrom(filePath: string): CacheEntry|undefined {
             try {
-                return JSON.parse(ns_fs.readTextSyncFromFile(filePath));
+                return JSON.parse(jk_fs.readTextSyncFromFile(filePath));
             }
             catch {
                 // We are here if the file doesn't exist.

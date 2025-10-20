@@ -1,6 +1,6 @@
 import type {BundlerConfig, CreateBundleEvent} from "jopi-rewrite";
-import * as ns_app from "jopi-toolkit/ns_app";
-import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
+import * as jk_fs from "jopi-toolkit/jk_fs";
 import path from "node:path";
 import fs from "node:fs/promises";
 import postcss from "postcss";
@@ -12,14 +12,14 @@ export async function applyTailwindProcessor(params: CreateBundleEvent): Promise
     }
 
     // Prefer the sources if possible.
-    const sourceFiles = await Promise.all(params.reactComponentFiles.map(ns_app.requireSourceOf))
+    const sourceFiles = await Promise.all(params.reactComponentFiles.map(jk_app.requireSourceOf))
 
     // >>> Tailwind transform
 
     const outFilePath = path.resolve(params.genDir, "tailwind.css");
 
-    if (await ns_fs.isFile(outFilePath)) {
-        await ns_fs.unlink(outFilePath);
+    if (await jk_fs.isFile(outFilePath)) {
+        await jk_fs.unlink(outFilePath);
     }
 
     // Assure the file exists.
@@ -84,20 +84,20 @@ async function resolveGlobalCss(config: BundlerConfig): Promise<string> {
     }
 
     if (config.tailwind.globalCssFilePath) {
-        if (!await ns_fs.isFile(config.tailwind.globalCssFilePath)) {
+        if (!await jk_fs.isFile(config.tailwind.globalCssFilePath)) {
             throw new Error(`Tailwind - File not found where resolving 'global.css': ${config.tailwind.globalCssFilePath}`);
         }
 
-        return ns_fs.readTextFromFile(config.tailwind.globalCssFilePath);
+        return jk_fs.readTextFromFile(config.tailwind.globalCssFilePath);
     }
 
     let found = await getTailwindTemplateFromShadCnConfig();
     if (found) return found;
 
-    let rootDir = ns_fs.dirname(ns_app.findPackageJson());
+    let rootDir = jk_fs.dirname(jk_app.findPackageJson());
 
-    if (await ns_fs.isFile(ns_fs.join(rootDir, "global.css"))) {
-        return ns_fs.readTextFromFile(ns_fs.join(rootDir, "global.css"));
+    if (await jk_fs.isFile(jk_fs.join(rootDir, "global.css"))) {
+        return jk_fs.readTextFromFile(jk_fs.join(rootDir, "global.css"));
     }
 
     return `@import "tailwindcss";`;
@@ -108,14 +108,14 @@ async function resolveGlobalCss(config: BundlerConfig): Promise<string> {
  * See: https://ui.shadcn.com/docs/components-json
  */
 async function getTailwindTemplateFromShadCnConfig() {
-    const pkgJsonPath = ns_app.findPackageJson();
+    const pkgJsonPath = jk_app.findPackageJson();
     if (!pkgJsonPath) return undefined;
 
     let filePath = path.join(path.dirname(pkgJsonPath), "components.json");
-    if (!await ns_fs.isFile(filePath)) return undefined;
+    if (!await jk_fs.isFile(filePath)) return undefined;
 
     try {
-        let asText = ns_fs.readTextSyncFromFile(filePath);
+        let asText = jk_fs.readTextSyncFromFile(filePath);
         let asJSON = JSON.parse(asText);
 
         let tailwindConfig = asJSON.tailwind;
@@ -125,7 +125,7 @@ async function getTailwindTemplateFromShadCnConfig() {
         if (!tailwindCssTemplate) return undefined;
 
         let fullPath = path.resolve(path.dirname(pkgJsonPath), tailwindCssTemplate);
-        return ns_fs.readTextSyncFromFile(fullPath);
+        return jk_fs.readTextSyncFromFile(fullPath);
     }
     catch (e) {
         console.error("Error reading Shadcn config file:", e);
