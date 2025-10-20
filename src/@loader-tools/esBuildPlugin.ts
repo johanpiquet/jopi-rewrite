@@ -3,8 +3,8 @@ import {transformFile} from "./transform.ts";
 import {getImportTransformConfig} from "./config.ts";
 import path from "node:path";
 import fs from "node:fs";
-import * as ns_app from "jopi-node-space/ns_app";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_app from "jopi-toolkit/ns_app";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 
 // Note: Bun.js plugins are partially compatible with EsBuild modules.
 

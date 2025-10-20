@@ -7,7 +7,7 @@ import {PageController_ExposePrivate, type PageOptions, renderPage} from "jopi-r
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
-import * as ns_schema from "jopi-node-space/ns_schema";
+import * as ns_schema from "jopi-toolkit/ns_schema";
 
 import {initCheerio} from "./jQuery.ts";
 import {type CacheEntry, type PageCache, WebSiteMirrorCache} from "./caches/cache.ts";
@@ -23,8 +23,8 @@ import {
 } from "./jopiWebSite.tsx";
 
 import {parseCookies} from "./internalTools.ts";
-import * as ns_term from "jopi-node-space/ns_term";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_term from "jopi-toolkit/ns_term";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
 import {getBundleEntryPointUrl_JS, getBundleEntryPointUrl_CSS} from "./bundler/server.ts";

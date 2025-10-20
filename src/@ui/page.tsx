@@ -3,10 +3,10 @@
 import React, {useState} from "react";
 import {type ServerRequestInstance} from "./hooks.tsx";
 import {decodeJwtToken, decodeUserInfosFromCookie, isUserInfoCookieUpdated, deleteCookie, type UiUserInfos} from "./tools.ts";
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-toolkit/ns_events";
 import type {ComponentAliasDef, ModuleInitContext_Host} from "./modules.ts";
 import {gComponentAlias} from "./internal.ts";
-import {isServerSide} from "jopi-node-space/ns_what";
+import {isServerSide} from "jopi-toolkit/ns_what";
 import {getDefaultObjectRegistry, type IsObjectRegistry, ObjectRegistry} from "./objectRegistry.ts";
 
 export interface PageOptions {

@@ -2,9 +2,9 @@
 
 import path from "node:path";
 import fsc from "node:fs";
-import * as ns_app from "jopi-node-space/ns_app";
-import * as ns_timer from "jopi-node-space/ns_timer";
-import * as ns_term from "jopi-node-space/ns_term";
+import * as ns_app from "jopi-toolkit/ns_app";
+import * as ns_timer from "jopi-toolkit/ns_timer";
+import * as ns_term from "jopi-toolkit/ns_term";
 
 import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";

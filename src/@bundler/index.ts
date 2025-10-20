@@ -1,5 +1,5 @@
-import * as ns_fs from "jopi-node-space/ns_fs";
-import *as ns_events from "jopi-node-space/ns_events";
+import * as ns_fs from "jopi-toolkit/ns_fs";
+import *as ns_events from "jopi-toolkit/ns_events";
 import type {CreateBundleEvent} from "jopi-rewrite";
 import {launchEsBuildProcess} from "./launcher.ts";
 
@@ -7,7 +7,7 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
     const config = params.config;
 
     let replaceRules: Record<string, string> = {
-        "jopi-node-space-server": "jopi-node-space-browser",
+        "jopi-toolkit-server": "jopi-toolkit-browser",
         "jBundler_ifServer": "jBundler_ifBrowser"
     };
 

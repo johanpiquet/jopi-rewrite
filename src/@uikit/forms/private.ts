@@ -1,5 +1,5 @@
 import React from "react";
-import * as ns_schema from "jopi-node-space/ns_schema";
+import * as ns_schema from "jopi-toolkit/ns_schema";
 import type {
     JMessage,
     JFieldController,
@@ -7,7 +7,7 @@ import type {
     JFormController,
     SubmitFunction
 } from "./interfaces.ts";
-import type {ValidationErrors} from "jopi-node-space/ns_schema";
+import type {ValidationErrors} from "jopi-toolkit/ns_schema";
 import {sendFormData, sendJsonData} from "../helpers/tools.ts";
 
 type Listener = () => void;

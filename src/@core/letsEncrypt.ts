@@ -1,8 +1,8 @@
 import * as acme from 'acme-client';
 import {type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 import path from "node:path";
-import * as ns_timer from "jopi-node-space/ns_timer";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_timer from "jopi-toolkit/ns_timer";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 
 export type OnTimeoutError = (webSite: WebSite, isRenew: boolean) => void;
 

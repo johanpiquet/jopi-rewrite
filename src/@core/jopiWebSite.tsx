@@ -30,8 +30,8 @@ import {getInMemoryCache} from "./caches/InMemoryCache.ts";
 import {ModulesManager} from "./modulesManager.ts";
 import {installBundleServer} from "./bundler/server.ts";
 import {createBundle} from "./bundler/bundler.ts";
-import * as ns_webSocket from "jopi-node-space/ns_webSocket";
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_webSocket from "jopi-toolkit/ns_webSocket";
+import * as ns_events from "jopi-toolkit/ns_events";
 import {isBrowserRefreshEnabled, installBrowserRefreshSseEvent} from "../@loader-client/index.ts";
 
 export interface WebSite {

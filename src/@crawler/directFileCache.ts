@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import type {CrawlerCache} from "./common.ts";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 
 export class DirectFileCache implements CrawlerCache {
     public readonly rootDir: string;

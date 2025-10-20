@@ -1,6 +1,6 @@
 import esbuild, {type BuildResult} from "esbuild";
-import * as ns_fs from "jopi-node-space/ns_fs";
-import * as n_what from "jopi-node-space/ns_what";
+import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as n_what from "jopi-toolkit/ns_what";
 import type {CreateBundleEvent} from "../@core/index.ts";
 import {jopiReplaceText, jopiLoaderPlugin, jopiDetectRebuild} from "./plugins.ts";
 

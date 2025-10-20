@@ -1,5 +1,5 @@
 import type {UiText} from "../helpers/tools";
-import {type Schema, type ValidationErrors} from "jopi-node-space/ns_schema";
+import {type Schema, type ValidationErrors} from "jopi-toolkit/ns_schema";
 import React from "react";
 
 //region Core

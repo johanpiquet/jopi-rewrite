@@ -1,13 +1,13 @@
 import path from "node:path";
-import * as ns_app from "jopi-node-space/ns_app";
-import {isServerSide} from "jopi-node-space/ns_what";
+import * as ns_app from "jopi-toolkit/ns_app";
+import {isServerSide} from "jopi-toolkit/ns_what";
 
 import React from "react";
 import {setHandler_bundleExternalCss, setHandler_mustHydrate, useCssModule} from "jopi-rewrite/ui";
 import {fileURLToPath, pathToFileURL} from "node:url";
 import {addExtraCssToBundle} from "./bundler/extraContent.ts";
-import * as ns_crypto from "jopi-node-space/ns_crypto";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_crypto from "jopi-toolkit/ns_crypto";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 
 export function hasHydrateComponents() {
     return gHasComponents;

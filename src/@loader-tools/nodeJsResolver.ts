@@ -1,5 +1,5 @@
-import * as ns_app from "jopi-node-space/ns_app";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_app from "jopi-toolkit/ns_app";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 import {supportedExtensions} from "./rules.ts";

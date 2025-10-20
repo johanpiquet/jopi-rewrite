@@ -1,6 +1,6 @@
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.js";
 import path from "node:path";
-import * as ns_app from "jopi-node-space/ns_app";
+import * as ns_app from "jopi-toolkit/ns_app";
 
 export function getBundleDirPath(webSite: WebSite) {
     // To known: the loader uses jopi.webSiteUrl from "package.json".

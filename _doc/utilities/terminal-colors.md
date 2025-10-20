@@ -1,6 +1,6 @@
 # Terminal Colors
 
-> TODO: is now migrated to Jopi-Node-Space. Doc must be updated.
+> TODO: is now migrated to jopi-toolkit. Doc must be updated.
 
 Jopi Rewrite provides a set of tools to write colored text in the terminal.
 

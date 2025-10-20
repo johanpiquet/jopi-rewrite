@@ -4,9 +4,9 @@ import fs from "node:fs/promises";
 import fss from "node:fs";
 import type {CacheEntry, PageCache} from "./cache.ts";
 import {cacheEntryToResponse, makeIterable, responseToCacheEntry} from "../internalTools.ts";
-import * as ns_compress from "jopi-node-space/ns_compress";
-import * as ns_fs from "jopi-node-space/ns_fs";
-import * as ns_crypto from "jopi-node-space/ns_crypto";
+import * as ns_compress from "jopi-toolkit/ns_compress";
+import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as ns_crypto from "jopi-toolkit/ns_crypto";
 
 export class SimpleFileCache implements PageCache {
     public readonly rootDir: string;

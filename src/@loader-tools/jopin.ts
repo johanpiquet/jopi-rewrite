@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import {type ChildProcess, spawn} from "node:child_process";
 import path from "node:path";
-import * as ns_app from "jopi-node-space/ns_app";
-import * as ns_fs from "jopi-node-space/ns_fs";
-import * as ns_os from "jopi-node-space/ns_os";
-import * as ns_term from "jopi-node-space/ns_term";
+import * as ns_app from "jopi-toolkit/ns_app";
+import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as ns_os from "jopi-toolkit/ns_os";
+import * as ns_term from "jopi-toolkit/ns_term";
 
 // *************************
 const FORCE_LOG = false;

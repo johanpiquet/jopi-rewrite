@@ -1,5 +1,5 @@
-import * as ns_app from "jopi-node-space/ns_app";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_app from "jopi-toolkit/ns_app";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 import {pathToFileURL} from "node:url";
 import {getAllUiComposites, getGlobalUiInitFiles, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
 import {getBundlerConfig} from "./config.ts";

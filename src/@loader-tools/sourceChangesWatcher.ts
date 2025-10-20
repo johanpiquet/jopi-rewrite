@@ -1,7 +1,7 @@
 import path from "node:path";
 import {spawn, ChildProcess} from "node:child_process";
 import chokidar from "chokidar";
-import * as ns_timer from "jopi-node-space/ns_timer";
+import * as ns_timer from "jopi-toolkit/ns_timer";
 
 export interface SourceChangesWatcherParams {
     watchDirs: string[];

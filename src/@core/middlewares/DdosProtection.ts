@@ -1,8 +1,8 @@
 import {JopiRequest} from "../jopiRequest.tsx";
 import type {JopiMiddleware} from "../jopiWebSite.tsx";
 import {getServerStartOptions} from "../jopiServer.ts";
-import * as ns_tools from "jopi-node-space/ns_tools";
-import * as ns_timer from "jopi-node-space/ns_timer";
+import * as ns_tools from "jopi-toolkit/ns_tools";
+import * as ns_timer from "jopi-toolkit/ns_timer";
 
 const newInterval = ns_timer.newInterval;
 const applyDefaults = ns_tools.applyDefaults;

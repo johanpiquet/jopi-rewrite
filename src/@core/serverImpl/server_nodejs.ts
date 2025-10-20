@@ -9,7 +9,7 @@ import type {
     StartServerOptions
 } from "../jopiServer.ts";
 import {WebSocketServer} from "ws";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 import {SBPE_MustReturnWithoutResponseException} from "../jopiWebSite.tsx";
 
 class NodeServer implements ServerInstance {

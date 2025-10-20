@@ -9,12 +9,12 @@ import {mustHydrate} from "jopi-rewrite/ui";
 import {getBrowserComponentKey} from "./hydrate.ts";
 import {StaticRouter} from "react-router";
 import {JopiRequest} from "./jopiRequest.ts";
-import * as ns_app from "jopi-node-space/ns_app";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_app from "jopi-toolkit/ns_app";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
 import {addGenerateScriptPlugin, loadCodeGenTemplate} from "./bundler/scripts.ts";
-import {isBunJS} from "jopi-node-space/ns_what";
+import {isBunJS} from "jopi-toolkit/ns_what";
 import {getBundlerConfig} from "./bundler/config.ts";
 
 interface RouteInfo {

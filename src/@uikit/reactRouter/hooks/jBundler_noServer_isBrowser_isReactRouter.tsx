@@ -2,7 +2,7 @@
 
 import React, {useEffect} from "react";
 import {Link, useLocation, useNavigate, useParams as rrUserParams, useSearchParams} from "react-router";
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-toolkit/ns_events";
 
 export function useRouterNavigate() {
     let f = useNavigate();

@@ -9,8 +9,8 @@ It's useful if you have resource to clean.
  
 ```typescript
 import {getServer, jopiApp} from "jopi-rewrite";
-import * as ns_timer from "jopi-node-space/ns_timer";
-import * as ns_app from "jopi-node-space/ns_app";
+import * as ns_timer from "jopi-toolkit/ns_timer";
+import * as ns_app from "jopi-toolkit/ns_app";
 
 ns_app.onAppExiting(async () => {
     console.log("App exiting...");

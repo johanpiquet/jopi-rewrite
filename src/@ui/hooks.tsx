@@ -3,7 +3,7 @@
 import React, {useEffect} from "react";
 import {PageContext, PageController, PageController_ExposePrivate} from "./page.tsx";
 import {CssModule, type UseCssModuleContextProps} from "./cssModules.tsx";
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-toolkit/ns_events";
 
 /**
  * Allows getting the page object and alter it.

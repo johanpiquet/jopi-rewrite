@@ -2,7 +2,7 @@ import type { ResolveHook, ResolveFnOutput } from 'node:module';
 import nodeModule from 'node:module';
 
 import {pathToFileURL} from "node:url";
-import * as ns_app from "jopi-node-space/ns_app";
+import * as ns_app from "jopi-toolkit/ns_app";
 import {getPathAliasInfo, type PathAliasInfo} from "./tools.js";
 import fs from "node:fs/promises";
 import path from "node:path";

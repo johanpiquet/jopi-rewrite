@@ -12,10 +12,10 @@ import {
     type WebSiteMap
 } from "./jopiWebSite.tsx";
 
-import * as ns_app from "jopi-node-space/ns_app";
-import * as ns_fs from "jopi-node-space/ns_fs";
-import * as ns_os from "jopi-node-space/ns_os";
-import {isBunJS} from "jopi-node-space/ns_what";
+import * as ns_app from "jopi-toolkit/ns_app";
+import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as ns_os from "jopi-toolkit/ns_os";
+import {isBunJS} from "jopi-toolkit/ns_what";
 
 import bunJsServer, {onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.js";
 import nodeJsServer, {onSseEvent as NodeSseEvent} from "./serverImpl/server_nodejs.js";

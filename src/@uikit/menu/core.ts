@@ -1,5 +1,5 @@
 import {HierarchyBuilder} from "./internal.ts";
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-toolkit/ns_events";
 
 import {ucFirst} from "../helpers/tools.ts";
 import type {MenuItem} from "./interfaces.ts";

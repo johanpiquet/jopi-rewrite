@@ -18,7 +18,7 @@ It will start at the time of the first request, then automatically shut down aft
 
 ```typescript
 import {jopiApp} from "jopi-rewrite";
-import * as ns_timer from "jopi-node-space/ns_timer";
+import * as ns_timer from "jopi-toolkit/ns_timer";
 
 jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.new_webSite("http://127.0.0.1")

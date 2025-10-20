@@ -3,7 +3,7 @@ import { lazy } from 'react';
 import React from "react";
 import ReactDOM from 'react-dom/client';
 import {ModuleInitContext_UI} from "jopi-rewrite/ui";
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-toolkit/ns_events";
 //[IMPORT]
 
 const jopiComposites = {};

@@ -1,5 +1,5 @@
-import * as ns_app from "jopi-node-space/ns_app";
-import * as ns_timer from "jopi-node-space/ns_timer";
+import * as ns_app from "jopi-toolkit/ns_app";
+import * as ns_timer from "jopi-toolkit/ns_timer";
 
 const ONE_MINUTE = ns_timer.ONE_MINUTE;
 const newInterval = ns_timer.newInterval;

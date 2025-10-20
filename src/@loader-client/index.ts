@@ -1,6 +1,6 @@
 import process from 'node:process';
 import type {WebSite} from "../@core";
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-toolkit/ns_events";
 
 let gIsBrowserRefreshEnabled: boolean|undefined;
 

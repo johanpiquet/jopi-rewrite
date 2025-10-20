@@ -1,4 +1,4 @@
-import {isBunJS} from "jopi-node-space/ns_what";
+import {isBunJS} from "jopi-toolkit/ns_what";
 
 function toFlatList(rec: Record<string, string[]>): string[] {
     let res: string[] = [];

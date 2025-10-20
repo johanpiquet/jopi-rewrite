@@ -1,5 +1,5 @@
 import path from "node:path";
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 import fs from "node:fs/promises";
 import {makeIterable} from "../internalTools.js";
 

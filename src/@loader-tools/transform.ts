@@ -3,7 +3,7 @@ import {supportedExtensionToType} from "./rules.ts";
 import path from "node:path";
 import fs from "node:fs/promises";
 
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 import {getImportTransformConfig, INLINE_MAX_SIZE_KO} from "./config.ts";
 import {getVirtualUrlForFile} from "./virtualUrl.ts";
 

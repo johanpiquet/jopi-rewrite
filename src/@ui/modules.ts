@@ -1,9 +1,9 @@
 // noinspection JSUnusedGlobalSymbols
 
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_events from "jopi-toolkit/ns_events";
 import {type UiUserInfos} from "./tools.ts";
 import React from "react";
-import {isServerSide} from "jopi-node-space/ns_what";
+import {isServerSide} from "jopi-toolkit/ns_what";
 import {type IsObjectRegistry} from "./objectRegistry.ts";
 import {getDefaultPageController} from "./internal.ts";
 

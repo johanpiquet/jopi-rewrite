@@ -1,5 +1,5 @@
 import type {CacheEntry} from "./caches/cache.ts";
-import * as ns_timer from "jopi-node-space/ns_timer";
+import * as ns_timer from "jopi-toolkit/ns_timer";
 
 export const serverInitChronos = ns_timer.chrono(false);
 

@@ -1,7 +1,7 @@
 import {type WebSite, WebSiteImpl} from "../jopiWebSite.tsx";
 import {serverInitChronos} from "../internalTools.ts";
-import * as ns_fs from "jopi-node-space/ns_fs";
-import * as ns_events from "jopi-node-space/ns_events";
+import * as ns_fs from "jopi-toolkit/ns_fs";
+import * as ns_events from "jopi-toolkit/ns_events";
 import {getHydrateComponents} from "../hydrate.tsx";
 import {generateScript} from "./scripts.ts";
 import {getBundleDirPath} from "./common.ts";

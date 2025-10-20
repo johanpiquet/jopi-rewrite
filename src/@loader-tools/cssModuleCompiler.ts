@@ -4,10 +4,10 @@ import fs from "node:fs/promises";
 import postcssModules from "postcss-modules";
 import postcss from "postcss";
 import postcssUrl from "postcss-url";
-import * as ns_crypto from "jopi-node-space/ns_crypto";
-import * as ns_app from "jopi-node-space/ns_app";
+import * as ns_crypto from "jopi-toolkit/ns_crypto";
+import * as ns_app from "jopi-toolkit/ns_app";
 
-import * as ns_fs from "jopi-node-space/ns_fs";
+import * as ns_fs from "jopi-toolkit/ns_fs";
 import {getVirtualUrlForFile} from "./virtualUrl.js";
 
 /**

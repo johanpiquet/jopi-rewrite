@@ -1,7 +1,7 @@
 import {getImportTransformConfig} from "./config.js";
 import path from "node:path";
-import * as ns_events from "jopi-node-space/ns_events";
-import * as ns_crypto from "jopi-node-space/ns_crypto";
+import * as ns_events from "jopi-toolkit/ns_events";
+import * as ns_crypto from "jopi-toolkit/ns_crypto";
 
 export interface VirtualUrlEntry {
     url: string;
