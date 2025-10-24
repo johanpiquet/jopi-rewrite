@@ -1,7 +1,7 @@
-import {type InstallFunction, loadServerInstall, getBrowserInstallFunction, InstallFileType, setInstallerTemplate, init, compile, getBrowserInstallScript} from "jopi-toolkit/jk_linker";
+import {type InstallFunction, loadServerInstall, getBrowserInstallFunction, InstallFileType, setInstallerTemplate, compile, getBrowserInstallScript} from "jopi-rewrite/linker";
 import {ModuleInitContext_UI} from "jopi-rewrite/ui";
 
-let gBrowserInstallFunction: InstallFunction;
+let gBrowserInstallFunction: InstallFunction<ModuleInitContext_UI>;
 let gIsInit = false;
 
 function installTemplates() {
@@ -15,10 +15,8 @@ __FOOTER
     `);
 
     setInstallerTemplate(InstallFileType.server, `
-import {globalRegistry} from "jopi-toolkit/jk_registry";
 __HEADER
 export default function() {
-const registry = globalRegistry;
 __BODY
 __FOOTER
 }

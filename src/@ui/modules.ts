@@ -6,7 +6,6 @@ import React from "react";
 import {isServerSide} from "jopi-toolkit/jk_what";
 import {type IsObjectRegistry} from "./objectRegistry.ts";
 import {getDefaultPageController} from "./internal.ts";
-import {Registry} from "jopi-toolkit/jk_registry";
 
 export interface ModuleInitContext_Host {
     objectRegistry: IsObjectRegistry;
@@ -34,15 +33,13 @@ type UiInitializer = () => void;
  * * On server-side, it's executed for each page.
  * * On browser-side, it's executed for each browser refresh.
  */
-export class ModuleInitContext_UI extends Registry {
+export class ModuleInitContext_UI {
     public readonly objectRegistry: IsObjectRegistry;
     public readonly events: jk_events.EventGroup;
     public readonly isBrowserSide: boolean = !isServerSide;
     protected readonly host: ModuleInitContext_Host;
 
     constructor(host?: ModuleInitContext_Host) {
-        super();
-
         if (!host) host = getDefaultPageController();
         this.host = host;
 
