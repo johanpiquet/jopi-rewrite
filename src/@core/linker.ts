@@ -9,10 +9,9 @@ function installTemplates() {
 import {ModuleInitContext_UI} from "jopi-rewrite/ui";
 __HEADER
 export default function(registry: ModuleInitContext_UI) {
-debugger;
 __BODY
-}
 __FOOTER
+}
     `);
 
     setInstallerTemplate(InstallFileType.server, `
@@ -21,8 +20,8 @@ __HEADER
 export default function() {
 const registry = globalRegistry;
 __BODY
-}
 __FOOTER
+}
     `);
 }
 
