@@ -27,16 +27,16 @@ export async function initLinker(webSite: WebSite) {
     if (gIsInit) return;
     gIsInit = true;
 
-    // TODO : détecter si changement en calculant un MD5 sur chaque fichier généré et chaque lien créé.
-    //        Si modifié, alors message + exit
     installTemplates();
 
     let hasChanges = await compile();
 
     if (hasChanges) {
-        console.error("⚠️⚠️  Jopi Linker has detected changes and rebuild.")
-        console.error("⚠️⚠️  You must restart the application.")
-        process.exit(10);
+        console.error("⚠️⚠️  Jopi Linker has detected changes and rebuild.");
+        console.error("⚠️⚠️  You must restart the application.");
+
+        // This code allows the launcher to know that a restart is required.
+        process.exit(450);
     }
 
     gBrowserInstallFunction = await getBrowserInstallFunction();
