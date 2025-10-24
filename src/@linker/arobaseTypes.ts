@@ -6,8 +6,9 @@ import {
     declareError, genWriteFile, getRegistryItem,
     getSortedDirItem,
     type TransformParams, PriorityLevel, type RegistryItem, requireRegistryItem, applyTypeRulesOnChildDir,
-    applyTypeRulesOnDir, mustSkip_expectDir, ArobaseType, type RulesFor_Collection, genCreateDirSymlink
+    applyTypeRulesOnDir, ArobaseType, type RulesFor_Collection, genCreateDirSymlink
 } from "./engine.ts";
+import * as jk_tools from "jopi-toolkit/jk_tools";
 
 // region ArobaseList
 
@@ -79,7 +80,19 @@ export class Type_ArobaseList extends ArobaseType {
         };
 
         for (let dirItem of dirItems) {
-            if (await mustSkip_expectDir(dirItem)) continue;
+            if (!dirItem.isDirectory) continue;
+
+            if (dirItem.name === "_") {
+                let uid = jk_tools.generateUUIDv4();
+                let newPath = jk_fs.join(jk_fs.dirname(dirItem.fullPath), uid);
+                await jk_fs.rename(dirItem.fullPath, newPath);
+
+                dirItem.name = uid;
+                dirItem.fullPath = newPath;
+            }
+
+            if ((dirItem.name[0] === "_") || (dirItem.name[0] === ".")) continue;
+
             await applyTypeRulesOnChildDir(params, dirItem);
         }
 

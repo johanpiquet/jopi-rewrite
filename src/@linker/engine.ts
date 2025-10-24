@@ -9,6 +9,15 @@ const LOG = false;
 
 //region Helpers
 
+export interface AnalizeDirResult {
+    dirItems: jk_fs.DirItem[];
+
+    myUid?: string;
+    priority?: PriorityLevel;
+    refTarget?: string;
+    conditionsFound?: Set<string>;
+}
+
 export async function resolve(dirToSearch: string, fileNames: string[]): Promise<string|undefined> {
     for (let fileName of fileNames) {
         let filePath = jk_fs.join(dirToSearch, fileName);
@@ -33,16 +42,7 @@ export async function getSortedDirItem(dirPath: string): Promise<jk_fs.DirItem[]
     return items.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export interface NormalizeDirResult {
-    dirItems: jk_fs.DirItem[];
-
-    myUid?: string;
-    priority?: PriorityLevel;
-    refTarget?: string;
-    conditionsFound?: Set<string>;
-}
-
-export async function analizeDirContent(dirPath: string, rules: DirAnalizingRules, useThisUid?: string | undefined): Promise<NormalizeDirResult> {
+export async function analizeDirContent(dirPath: string, rules: DirAnalizingRules, useThisUid?: string | undefined): Promise<AnalizeDirResult> {
     function decodeCond(condName: string) {
         // Remove .cond at the end.
         condName = condName.slice(0, -5);
@@ -152,7 +152,7 @@ export async function analizeDirContent(dirPath: string, rules: DirAnalizingRule
         }
     }
 
-    let result: NormalizeDirResult = { dirItems: [] };
+    let result: AnalizeDirResult = { dirItems: [] };
 
     const items = await getSortedDirItem(dirPath);
 
@@ -162,25 +162,6 @@ export async function analizeDirContent(dirPath: string, rules: DirAnalizingRule
     }
 
     return result;
-}
-
-export function doesDirItemBeExclude(item: jk_fs.DirItem) {
-    return (item.name[0] === ".") || (item.name[0] === "_");
-}
-
-export async function mustSkip_expectDir(item: jk_fs.DirItem) {
-    if (!item.isDirectory) return true;
-
-    if (item.name==="_") {
-        let uid = jk_tools.generateUUIDv4();
-        let newPath = jk_fs.join(jk_fs.dirname(item.fullPath), uid);
-        await jk_fs.rename(item.fullPath, newPath);
-
-        item.name = uid;
-        item.fullPath = newPath;
-    }
-
-    return ((item.name[0] === "_") || (item.name[0] === "."));
 }
 
 //endregion
@@ -441,7 +422,7 @@ export async function applyTypeRulesOnDir(p: RulesFor_Collection) {
     const dirItems = await jk_fs.listDir(p.dirToScan);
 
     for (let entry of dirItems) {
-        if (doesDirItemBeExclude(entry)) continue;
+        if ((entry.name[0] === ".") || (entry.name[0] === "_")) continue;
 
         if (p.expectFsType === "file") {
             if (entry.isFile) {
