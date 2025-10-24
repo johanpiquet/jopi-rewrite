@@ -5,22 +5,20 @@ let gBrowserInstallFunction: InstallFunction<ModuleInitContext_UI>;
 let gIsInit = false;
 
 function installTemplates() {
-    setInstallerTemplate(InstallFileType.browser, `
-import {ModuleInitContext_UI} from "jopi-rewrite/ui";
+    setInstallerTemplate(InstallFileType.browser,
+        `import {ModuleInitContext_UI} from "jopi-rewrite/ui";
 __HEADER
-export default function(registry: ModuleInitContext_UI) {
-__BODY
-__FOOTER
-}
-    `);
 
-    setInstallerTemplate(InstallFileType.server, `
-__HEADER
+export default function(registry: ModuleInitContext_UI) {
+__BODY__FOOTER
+}`);
+
+    setInstallerTemplate(InstallFileType.server,
+        `__HEADER
+        
 export default function() {
-__BODY
-__FOOTER
-}
-    `);
+__BODY__FOOTER
+}`);
 }
 
 export async function initLinker() {

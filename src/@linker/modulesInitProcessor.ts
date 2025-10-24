@@ -30,7 +30,7 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
 
             let relPath = jk_fs.getRelativePath(genDir, uiInitFile);
             genAddToInstallFile(InstallFileType.browser, FilePart.imports, `import modUiInit${i} from "${relPath}";`);
-            genAddToInstallFile(InstallFileType.browser, FilePart.footer, `// @ts-ignore\nmodUiInit${i}(registry);`)
+            genAddToInstallFile(InstallFileType.browser, FilePart.footer, `// @ts-ignore\n    modUiInit${i}(registry);`)
         }
 
         i = 0;
@@ -40,7 +40,7 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
 
             let relPath = jk_fs.getRelativePath(genDir, serverInitFile);
             genAddToInstallFile(InstallFileType.server, FilePart.imports, `import modServerInit${i} from "${relPath}";`);
-            genAddToInstallFile(InstallFileType.server, FilePart.footer, `// @ts-ignore\nmodServerInit${i}(registry);`)
+            genAddToInstallFile(InstallFileType.server, FilePart.footer, `// @ts-ignore\nmodServerInit${i}();`)
         }
 
         return Promise.resolve();
