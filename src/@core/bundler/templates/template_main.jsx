@@ -42,24 +42,12 @@ window["_JOPI_COMPOSITE_RENDERER_"] = function(name) {
 let gHydrateAllHook;
 
 function createModuleInitContext() {
+    debugger;
     if (window["_JOPI_CREATE_MODULE_INIT_CONTEXT_"]) {
         return window["_JOPI_CREATE_MODULE_INIT_CONTEXT_"]();
     }
 
     return new ModuleInitContext_UI();
-}
-
-async function mod_initializeMod(exportDefault) {
-    try {
-        if (exportDefault && typeof exportDefault === "function") {
-            let res = exportDefault(createModuleInitContext());
-            if (res instanceof Promise) await res;
-        }
-    }
-    catch (e) {
-        console.error(`Error while initializing module`);
-        throw e;
-    }
 }
 
 async function mod_onAllModInitialized() {
@@ -69,6 +57,8 @@ async function mod_onAllModInitialized() {
 
 async function process() {
 //[ON_INIT]
+
+    await mod_onAllModInitialized();
 }
 
 //[PLUGINS]

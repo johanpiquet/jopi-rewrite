@@ -3,11 +3,9 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import {pathToFileURL} from "node:url";
 import {getBundlerConfig} from "./config.ts";
 import {generateLoaderJsxCode} from "../linker.ts";
+import {getScriptPlugins, loadCodeGenTemplate, type LoaderScriptPluginsParams} from "./plugins.ts";
 
 const isWin32 = process.platform == "win32";
-
-const gGenerateScriptPlugins: GeneratedScriptPlugin[] = [];
-type GeneratedScriptPlugin = (script: string, outDir: string) => Promise<string>;
 
 export async function generateScript(genDir: string, components: {[key: string]: string}, extraCssToBundle: string[]): Promise<string> {
     const config = getBundlerConfig();
@@ -53,9 +51,18 @@ export async function generateScript(genDir: string, components: {[key: string]:
 
         //region Load plugins
 
-        for (let plugin of gGenerateScriptPlugins) {
-            tplPlugins = await plugin(tplPlugins, genDir);
+        let pluginParams: LoaderScriptPluginsParams = {
+            tplPlugins, tplInit, tplImport, tplDeclarations, outDir: genDir,
         }
+
+        for (let plugin of getScriptPlugins()) {
+            await plugin(pluginParams);
+        }
+
+        tplInit = pluginParams.tplInit;
+        tplPlugins = pluginParams.tplPlugins;
+        tplImport = pluginParams.tplImport;
+        tplDeclarations = pluginParams.tplDeclarations;
 
         //endregion
 
@@ -76,15 +83,3 @@ export async function generateScript(genDir: string, components: {[key: string]:
     }
 }
 
-export function addGenerateScriptPlugin(plugin: GeneratedScriptPlugin) {
-    gGenerateScriptPlugins.push(plugin);
-}
-
-export async function loadCodeGenTemplate(name: string): Promise<string> {
-    let resolvedPath = jk_fs.join(import.meta.dirname, "templates", name);
-    let toSearch = jk_fs.join("dist", "@core", "bundler");
-    let replaceBy = jk_fs.join("src", "@core", "bundler");
-    if (resolvedPath.includes(toSearch)) resolvedPath = resolvedPath.replace(toSearch, replaceBy);
-
-    return await jk_fs.readTextFromFile(resolvedPath);
-}

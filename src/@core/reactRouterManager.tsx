@@ -13,7 +13,7 @@ import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
 import React from "react";
-import {addGenerateScriptPlugin, loadCodeGenTemplate} from "./bundler/scripts.ts";
+import {addLoaderScriptPlugin, loadCodeGenTemplate, type LoaderScriptPluginsParams} from "./bundler/plugins.ts";
 import {isBunJS} from "jopi-toolkit/jk_what";
 import {getBundlerConfig} from "./bundler/config.ts";
 
@@ -30,9 +30,9 @@ export class ReactRouterManager {
 
     constructor(private readonly webSite: WebSite) {
         // Will allow adding content to the JavaScript file.
-        // Here the goal of the script addon, is to bind the pages to ReactRouter.
+        // Here the goal of the script addon is to bind the pages to ReactRouter.
         //
-        addGenerateScriptPlugin((script, outDir) => this.scriptPlugin(script, outDir));
+        addLoaderScriptPlugin(params => this.scriptPlugin(params));
     }
 
     async initialize(routesDir: string = "routes") {
@@ -107,10 +107,10 @@ export class ReactRouterManager {
         this.pageToPath = {};
     }
 
-    private async scriptPlugin(script: string, _outDir: string) {
+    private async scriptPlugin(params: LoaderScriptPluginsParams): Promise<void> {
         const config = getBundlerConfig();
         let enableReactRouter = config.reactRouter.disable!==true;
-        if (!enableReactRouter) return "";
+        if (!enableReactRouter) return;
 
         let template = await loadCodeGenTemplate("template_router.jsx");
         let reactRoutes: any[] = [];
@@ -135,7 +135,7 @@ export class ReactRouterManager {
 
         template = template.replace("//[ROUTES]", JSON.stringify(reactRoutes, null, 4));
 
-        return script + template;
+        params.tplPlugins += template;
     }
 
     private async registerRoute(isServer: boolean, fileFullPath: string, fileUrl: string, route: string) {
