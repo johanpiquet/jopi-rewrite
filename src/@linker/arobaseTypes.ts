@@ -6,7 +6,7 @@ import {
     declareError, genWriteFile, getRegistryItem,
     getSortedDirItem,
     type TransformParams, PriorityLevel, type RegistryItem, requireRegistryItem, applyTypeRulesOnChildDir,
-    applyTypeRulesOnDir, mustSkip_expectDir, ArobaseType, type RulesFor_Collection, createDirSymlink
+    applyTypeRulesOnDir, mustSkip_expectDir, ArobaseType, type RulesFor_Collection, genCreateDirSymlink
 } from "./engine.ts";
 
 // region ArobaseList
@@ -242,7 +242,7 @@ export class Type_ArobaseChunk extends ArobaseType {
         const item = rItem as ArobaseChunk;
         let outDir = this.getGenOutputDir(infos.genDir, item);
         let fileName = key.substring(key.indexOf("!") + 1);
-        await createDirSymlink(jk_fs.join(outDir, fileName), jk_fs.dirname(item.entryPoint));
+        await genCreateDirSymlink(jk_fs.join(outDir, fileName), jk_fs.dirname(item.entryPoint));
     }
 
     protected getGenOutputDir(genDir: string, _chunk: ArobaseChunk) {

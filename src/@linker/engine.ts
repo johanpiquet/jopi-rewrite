@@ -3,16 +3,11 @@ import * as jk_tools from "jopi-toolkit/jk_tools";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_what from "jopi-toolkit/jk_what";
-import {calculateDirectoryProof} from "./changeProof.ts";
+import * as jk_crypto from "jopi-toolkit/jk_crypto";
 
 const LOG = false;
 
 //region Helpers
-
-export async function createDirSymlink(newFilePath: string, targetFilePath: string) {
-    await jk_fs.mkDir(jk_fs.dirname(newFilePath));
-    await jk_fs.symlink(targetFilePath, newFilePath, "dir");
-}
 
 export async function resolve(dirToSearch: string, fileNames: string[]): Promise<string|undefined> {
     for (let fileName of fileNames) {
@@ -271,7 +266,22 @@ let gServerInstallFileTemplate = gDefaultInstallTemplate;
 let gBrowserInstallFile: Record<string, string> = {};
 let gBrowserInstallFileTemplate = gDefaultInstallTemplate;
 
+function calRelativePath(from: string) {
+    return jk_fs.getRelativePath(gGenRootDir, from);
+}
+
+let gWriteReport: string[] = [];
+
+export async function genCreateDirSymlink(newFilePath: string, targetFilePath: string) {
+    gWriteReport.push(`genCreateDirSymlink|${calRelativePath(newFilePath)}|${calRelativePath(targetFilePath)}`);
+
+    await jk_fs.mkDir(jk_fs.dirname(newFilePath));
+    await jk_fs.symlink(targetFilePath, newFilePath, "dir");
+}
+
 export async function genWriteFile(filePath: string, fileContent: string): Promise<void> {
+    gWriteReport.push(`genWriteFile|${calRelativePath(filePath)}|${jk_crypto.md5(fileContent)}`);
+
     await jk_fs.mkDir(jk_fs.dirname(filePath));
     return jk_fs.writeTextToFile(filePath, fileContent);
 }
@@ -692,18 +702,15 @@ export async function compile(rootDir?: string): Promise<boolean> {
     let jopiLinkerScript = await searchLinkerScript();
     if (jopiLinkerScript) await import(jopiLinkerScript);
 
-    let proofFilePath = jk_fs.join(gProjectRootDir, "jopiLinkerProof.md5");
+    let proofFilePath = jk_fs.join(gGenRootDir, "changeProof.md5");
 
     let oldProofString;
-    try { oldProofString = await jk_fs.readTextFromFile(proofFilePath) }
+    try { oldProofString = await jk_fs.readTextFromFile(proofFilePath); }
     catch { oldProofString = ""; }
 
     await processProject();
 
-    // Calculate a string which is a signature of the directory.
-    // Allow knowing if some changes have occurred since.
-    //
-    let newProofString = await calculateDirectoryProof(gGenRootDir);
+    let newProofString = jk_crypto.md5(gWriteReport.sort().join("\n"));
     await jk_fs.writeTextToFile(proofFilePath, newProofString);
 
     return oldProofString !== newProofString;
