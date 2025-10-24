@@ -33,6 +33,7 @@ import {createBundle} from "./bundler/bundler.ts";
 import * as jk_webSocket from "jopi-toolkit/jk_webSocket";
 import * as jk_events from "jopi-toolkit/jk_events";
 import {isBrowserRefreshEnabled, installBrowserRefreshSseEvent} from "../@loader-client/index.ts";
+import {executeBrowserInstall} from "./linker.ts";
 
 export interface WebSite {
     data: any;
@@ -482,10 +483,12 @@ export class WebSiteImpl implements WebSite {
     }
 
     initializeUiModules(req: JopiRequest, pageController: PageController) {
+        const modInit = this._instancierFor_uiInit(pageController);
+        executeBrowserInstall(modInit);
         if (!this._uiModules) return;
 
         // Initialize all the ui-modules.
-        const modInit = this._instancierFor_uiInit(pageController);
+
         this._uiModules.forEach(i => i(modInit));
 
         // Declare the init done.

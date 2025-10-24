@@ -41,6 +41,7 @@ import type {PageCache} from "./caches/cache.js";
 import {getServer, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
 import {getImportTransformConfig} from "jopi-rewrite/loader-tools";
+import {initLinker} from "./linker.ts";
 
 serverInitChronos.start("jopiEasy lib");
 
@@ -549,6 +550,8 @@ class WebSite_UserModules {
                     this.moduleDir = path.join(jk_app.getSourceCodeDir(), this.moduleDir);
                 }
             }
+
+            await initLinker();
 
             const modulesManager = (webSite as WebSiteImpl).getModulesManager();
             modulesManager.addModules(this.moduleDir , this.modules);

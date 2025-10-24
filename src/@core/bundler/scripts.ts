@@ -3,6 +3,7 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import {pathToFileURL} from "node:url";
 import {getAllUiComposites, getGlobalUiInitFiles, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
 import {getBundlerConfig} from "./config.ts";
+import {generateLoaderJsxCode} from "../linker.ts";
 
 const isWin32 = process.platform == "win32";
 
@@ -81,6 +82,12 @@ export async function generateScript(genDir: string, components: {[key: string]:
         tplModulesInit += "\n]).then(mod_onAllModInitialized)";
 
         tplInit += tplModulesInit;
+
+        //endregion
+
+        //region Jopi Linker
+
+        tplInit += generateLoaderJsxCode();
 
         //endregion
 
