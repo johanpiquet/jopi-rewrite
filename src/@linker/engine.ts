@@ -3,6 +3,7 @@ import * as jk_tools from "jopi-toolkit/jk_tools";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_what from "jopi-toolkit/jk_what";
+import {calculateDirectoryProof} from "./changeProof.ts";
 
 const LOG = false;
 
@@ -670,8 +671,8 @@ export function init(rootDir?: string) {
     gGenRootDir = jk_fs.join(gSrcRootDir, "_jopiLinkerGen");
 }
 
-export async function compile(rootDir?: string) {
-    if (gIsCompiled) return;
+export async function compile(rootDir?: string): Promise<boolean> {
+    if (gIsCompiled) return false;
     gIsCompiled = true;
 
     async function searchLinkerScript(): Promise<string|undefined> {
@@ -691,7 +692,21 @@ export async function compile(rootDir?: string) {
     let jopiLinkerScript = await searchLinkerScript();
     if (jopiLinkerScript) await import(jopiLinkerScript);
 
+    let proofFilePath = jk_fs.join(gProjectRootDir, "jopiLinkerProof.md5");
+
+    let oldProofString;
+    try { oldProofString = await jk_fs.readTextFromFile(proofFilePath) }
+    catch { oldProofString = ""; }
+
     await processProject();
+
+    // Calculate a string which is a signature of the directory.
+    // Allow knowing if some changes have occurred since.
+    //
+    let newProofString = await calculateDirectoryProof(gGenRootDir);
+    await jk_fs.writeTextToFile(proofFilePath, newProofString);
+
+    return oldProofString !== newProofString;
 }
 
 let gIsInit = false;
