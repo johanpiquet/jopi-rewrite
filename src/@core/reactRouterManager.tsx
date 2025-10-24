@@ -36,9 +36,6 @@ export class ReactRouterManager {
     }
 
     async initialize(routesDir: string = "routes") {
-        await this.scanRoutesFrom(
-            path.join(jk_app.getSourceCodeDir(), routesDir)
-        );
     }
 
     async scanRoutesFrom(dirToScan: string) {

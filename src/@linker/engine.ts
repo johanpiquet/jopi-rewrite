@@ -655,6 +655,10 @@ export function getProjectGenDir() {
     return gGenRootDir;
 }
 
+export function getProjectSourceDir() {
+    return gSrcRootDir;
+}
+
 export function init(rootDir?: string) {
     if (gIsInit) return;
     gIsInit = true;

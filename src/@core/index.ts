@@ -14,12 +14,8 @@ export * from "./routeServerContext.ts";
 export * from "./jopiRequest.ts";
 export * from "./jopiWebSite.tsx";
 export * from "./jopiServer.ts";
-export * from "./modulesManager.ts";
 
 export * from "./bundler/config.ts";
 
 export {type CreateBundleEvent} from "./bundler/bundler.ts";
 export {type BundlerConfig} from "./bundler/config.ts";
-
-// Will initialize things.
-import "./composites.tsx";

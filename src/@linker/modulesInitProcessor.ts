@@ -1,7 +1,7 @@
 import {
     FilePart,
     genAddToInstallFile,
-    getProjectGenDir,
+    getProjectGenDir, getProjectSourceDir,
     InstallFileType,
     ModuleDirProcessor,
     resolve
@@ -11,6 +11,7 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 export class ModulesInitProcessor extends ModuleDirProcessor {
     private uiInitFiles: string[] = [];
     private serverInitFiles: string[] = [];
+    private routesDir?: string;
 
     override async onBeginModuleProcessing(moduleDir: string): Promise<void> {
         let uiInitFile = await resolve(moduleDir, ["uiInit.tsx", "uiInit.ts"]);
@@ -18,9 +19,12 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
 
         let serverInitFile = await resolve(moduleDir, ["serverInit.tsx", "serverInit.ts"]);
         if (serverInitFile) this.serverInitFiles.push(serverInitFile);
+
+        let routesDir = jk_fs.join(moduleDir, "routes");
+        if (await jk_fs.isDirectory(routesDir)) this.routesDir = routesDir;
     }
 
-    override generateCode(): Promise<void> {
+    override async generateCode(): Promise<void> {
         let i = 0;
 
         const genDir = getProjectGenDir();
@@ -40,9 +44,11 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
 
             let relPath = jk_fs.getRelativePath(genDir, serverInitFile);
             genAddToInstallFile(InstallFileType.server, FilePart.imports, `import modServerInit${i} from "${relPath}";`);
-            genAddToInstallFile(InstallFileType.server, FilePart.footer, `// @ts-ignore\nmodServerInit${i}();`)
+            genAddToInstallFile(InstallFileType.server, FilePart.body, `    // @ts-ignore\n    await modServerInit${i}(registry);`)
         }
 
-        return Promise.resolve();
+        if (this.routesDir) {
+            genAddToInstallFile(InstallFileType.server, FilePart.body, `\n    await registry.getReactRouterManager().scanRoutesFrom("${this.routesDir}");`);
+        }
     }
 }

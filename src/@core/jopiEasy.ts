@@ -454,14 +454,6 @@ class JopiEasyWebSite {
         return jopiApp;
     }
 
-    enable_automaticRoutes(reactPageDir = "routes") {
-        this.internals.afterHook.push(async webSite => {
-            await webSite.getReactRouterManager().initialize(reactPageDir);
-        });
-
-        return this;
-    }
-
     enable_automaticCache() {
         return new WebSite_AutomaticCacheBuilder(this, this.internals);
     }
@@ -532,41 +524,16 @@ class JopiEasyWebSite {
         return this;
     }
 
-    use_modules(): WebSite_UserModules {
-        return new WebSite_UserModules(this, this.internals);
+    use_modules(): WebSite_UseModules {
+        return new WebSite_UseModules(this, this.internals);
     }
 }
 
-class WebSite_UserModules {
-    private readonly modules: string[] = [];
-    private moduleDir?: string;
-
+class WebSite_UseModules {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
         this.internals.afterHook.push(async webSite => {
-            if (!this.moduleDir) {
-                this.moduleDir = path.join(jk_app.getSourceCodeDir(), "modules");
-            } else {
-                if (!path.isAbsolute(this.moduleDir)) {
-                    this.moduleDir = path.join(jk_app.getSourceCodeDir(), this.moduleDir);
-                }
-            }
-
-            await initLinker();
-
-            const modulesManager = (webSite as WebSiteImpl).getModulesManager();
-            modulesManager.addModules(this.moduleDir , this.modules);
-            await modulesManager.initializeModules();
+            await initLinker(webSite);
         });
-    }
-
-    set_moduleDir(dirName: string): WebSite_UserModules {
-        this.moduleDir = dirName;
-        return this;
-    }
-
-    add_module(moduleName: string): WebSite_UserModules {
-        this.modules.push(moduleName);
-        return this;
     }
 
     END_use_modules(): JopiEasyWebSite {

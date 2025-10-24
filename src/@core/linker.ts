@@ -1,5 +1,6 @@
 import {type InstallFunction, loadServerInstall, getBrowserInstallFunction, InstallFileType, setInstallerTemplate, compile, getBrowserInstallScript} from "jopi-rewrite/linker";
 import {ModuleInitContext_UI} from "jopi-rewrite/ui";
+import type { WebSite } from "./jopiWebSite.ts";
 
 let gBrowserInstallFunction: InstallFunction<ModuleInitContext_UI>;
 let gIsInit = false;
@@ -14,14 +15,15 @@ __BODY__FOOTER
 }`);
 
     setInstallerTemplate(InstallFileType.server,
-        `__HEADER
+        `import type {WebSite} from "jopi-rewrite";
+__HEADER
         
-export default function() {
+export default async function(registry: WebSite) {
 __BODY__FOOTER
 }`);
 }
 
-export async function initLinker() {
+export async function initLinker(webSite: WebSite) {
     if (gIsInit) return;
     gIsInit = true;
 
@@ -30,8 +32,9 @@ export async function initLinker() {
     installTemplates();
     await compile();
 
-    await loadServerInstall();
     gBrowserInstallFunction = await getBrowserInstallFunction();
+
+    await loadServerInstall(webSite);
 }
 
 export function executeBrowserInstall(ctx: ModuleInitContext_UI) {

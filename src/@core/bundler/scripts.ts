@@ -1,7 +1,6 @@
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import {pathToFileURL} from "node:url";
-import {getAllUiComposites, getGlobalUiInitFiles, getUiCompositeItems, getUiInitFiles} from "../modulesManager.js";
 import {getBundlerConfig} from "./config.ts";
 import {generateLoaderJsxCode} from "../linker.ts";
 
@@ -43,45 +42,6 @@ export async function generateScript(genDir: string, components: {[key: string]:
 
             tplDeclarations += `\njopiHydrate.components["${componentKey}"] = lazy(() => import("${componentPath}"));`;
         }
-
-        //endregion
-
-        //region Add composite components
-
-        for (const compositeName in getAllUiComposites()) {
-            const items = getUiCompositeItems(compositeName);
-
-            tplDeclarations += `\n\njopiComposites["${compositeName}"] = [`
-
-            for (let item of items) {
-                tplDeclarations += `\n    lazy(() => import("${item.filePath}")),`;
-            }
-
-            tplDeclarations += `\n];`
-        }
-
-        //endregion
-
-        //region Add global UI init
-
-        for (const globalScript of getGlobalUiInitFiles()) {
-            tplImport += `\nimport "${globalScript}";`;
-        }
-
-        //endregion
-
-        //region Add initialisation steps
-
-        let tplModulesInit = "Promise.all([";
-
-        // Module init scripts.
-        for (const uiInit of getUiInitFiles()) {
-            tplModulesInit += `\nmod_initializeMod((await import("${uiInit}")).default),`;
-        }
-
-        tplModulesInit += "\n]).then(mod_onAllModInitialized)";
-
-        tplInit += tplModulesInit;
 
         //endregion
 

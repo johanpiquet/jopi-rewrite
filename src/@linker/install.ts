@@ -2,7 +2,7 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import {getProjectGenDir} from "./engine.ts";
 import * as jk_app from "jopi-toolkit/jk_app";
 
-export async function loadServerInstall() {
+export async function loadServerInstall<T>(value: T) {
     let genDir = getProjectGenDir();
     let installFilePath = jk_fs.join(genDir, "installServer.ts");
     if (!await jk_fs.isFile(installFilePath)) return;
@@ -13,7 +13,7 @@ export async function loadServerInstall() {
     let v = await import(installFilePath);
     if (!v.default) return;
 
-    await v.default();
+    await v.default(value);
 }
 
 export type InstallFunction<T> = (registry: T) => void;

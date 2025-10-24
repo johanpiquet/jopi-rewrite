@@ -27,13 +27,13 @@ import {VoidPageCache} from "./caches/cache.ts";
 import {ONE_DAY} from "./publicTools.ts";
 
 import {getInMemoryCache} from "./caches/InMemoryCache.ts";
-import {ModulesManager} from "./modulesManager.ts";
 import {installBundleServer} from "./bundler/server.ts";
 import {createBundle} from "./bundler/bundler.ts";
 import * as jk_webSocket from "jopi-toolkit/jk_webSocket";
 import * as jk_events from "jopi-toolkit/jk_events";
 import {isBrowserRefreshEnabled, installBrowserRefreshSseEvent} from "../@loader-client/index.ts";
 import {executeBrowserInstall} from "./linker.ts";
+import type {EventGroup} from "jopi-toolkit/jk_events";
 
 export interface WebSite {
     data: any;
@@ -137,6 +137,8 @@ export interface WebSite {
     enableCors(allows?: string[]): void;
 
     getReactRouterManager(): ReactRouterManager;
+
+    readonly events: EventGroup;
 }
 
 type PageRenderInitializer = (uiInit: ModuleInitContext_UI) => void;
@@ -162,6 +164,8 @@ export class WebSiteImpl implements WebSite {
     public readonly data: any = {};
 
     public readonly loadBalancer = new LoadBalancer();
+
+    public readonly events: EventGroup = jk_events.defaultEventGroup;
 
     constructor(url: string, options?: WebSiteOptions) {
         if (!options) options = {};
@@ -781,20 +785,6 @@ export class WebSiteImpl implements WebSite {
     }
 
     //endregion
-
-    //endregion
-
-    //region Modules processing
-
-    private modulesManager?: ModulesManager;
-
-    getModulesManager(): ModulesManager {
-        if (!this.modulesManager) {
-            this.modulesManager = new ModulesManager(this);
-        }
-
-        return this.modulesManager;
-    }
 
     //endregion
 }
