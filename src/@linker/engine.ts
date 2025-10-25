@@ -233,16 +233,24 @@ export enum FilePart {
 
 export enum InstallFileType {server, browser, both}
 
-const gDefaultInstallTemplate = `__HEADER
+let gServerInstallFile: Record<string, string> = {};
+
+// Here it's ASYNC.
+let gServerInstallFileTemplate = `__HEADER
+
 export default async function(registry) {
 __BODY__FOOTER
 }`;
 
-let gServerInstallFile: Record<string, string> = {};
-let gServerInstallFileTemplate = gDefaultInstallTemplate;
-
 let gBrowserInstallFile: Record<string, string> = {};
-let gBrowserInstallFileTemplate = gDefaultInstallTemplate;
+
+// Here it's not async.
+let gBrowserInstallFileTemplate = `__HEADER
+
+export default function(registry) {
+__BODY__FOOTER
+}`;
+
 let gWriteReport: string[] = [];
 
 async function generateAll() {

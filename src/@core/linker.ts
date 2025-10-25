@@ -5,29 +5,9 @@ import type { WebSite } from "./jopiWebSite.ts";
 let gBrowserInstallFunction: InstallFunction<ModuleInitContext_UI>;
 let gIsInit = false;
 
-function installTemplates() {
-    // Here it's NOT async.
-    setInstallerTemplate(InstallFileType.browser,
-`__HEADER
-
-export default function(registry) {
-__BODY__FOOTER
-}`);
-
-    // Here it's ASYNC.
-    setInstallerTemplate(InstallFileType.server,
-`__HEADER
-
-export default async function(registry) {
-__BODY__FOOTER
-}`);
-}
-
 export async function initLinker(webSite: WebSite) {
     if (gIsInit) return;
     gIsInit = true;
-
-    installTemplates();
 
     let hasChanges = await compile();
 
