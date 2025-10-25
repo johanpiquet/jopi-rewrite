@@ -1,23 +1,15 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
-import * as jk_app from "jopi-toolkit/jk_app";
 
 import {
-    addToRegistry,
     type TypeRules_CollectionItem,
-    declareError,
-    getRegistryItem,
     getSortedDirItem,
     type TransformParams,
     PriorityLevel,
     type RegistryItem,
-    requireRegistryItem,
-    applyTypeRulesOnChildDir,
-    applyTypeRulesOnDir,
     ArobaseType,
     type RulesFor_Collection,
     CodeGenWriter,
-    getProjectSourceGenDir,
-    getProjectDistGenDir
+    getProjectSourceGenDir
 } from "./engine.ts";
 import * as jk_tools from "jopi-toolkit/jk_tools";
 
@@ -44,7 +36,7 @@ export class Type_ArobaseList extends ArobaseType {
     }
 
     protected async processList(listDirPath: string) {
-        await applyTypeRulesOnDir(this.hookRootDirConstraints({
+        await this.rules_applyRulesOnDir(this.hookRootDirConstraints({
             dirToScan: listDirPath,
             expectFsType: "dir",
 
@@ -78,7 +70,7 @@ export class Type_ArobaseList extends ArobaseType {
 
             transform: async (item) => {
                 if (item.refTarget && item.resolved.entryPoint) {
-                    throw declareError("The list item can't have both an index file and a .ref file", item.itemPath);
+                    throw this.declareError("The list item can't have both an index file and a .ref file", item.itemPath);
                 }
 
                 listItems.push({
@@ -104,12 +96,12 @@ export class Type_ArobaseList extends ArobaseType {
 
             if ((dirItem.name[0] === "_") || (dirItem.name[0] === ".")) continue;
 
-            await applyTypeRulesOnChildDir(params, dirItem);
+            await this.rules_applyRulesOnChildDir(params, dirItem);
         }
 
         // > Add the list.
 
-        let current = getRegistryItem<ArobaseList>(listId, this);
+        let current = this.registry_getItem<ArobaseList>(listId, this);
 
         if (!current) {
             const newItem: ArobaseList = {
@@ -118,7 +110,7 @@ export class Type_ArobaseList extends ArobaseType {
                 items: listItems, itemsType: p.parentDirName, allDirPath: [p.itemPath]
             };
 
-            addToRegistry(listId, newItem);
+            this.registry_addItem(listId, newItem);
             return;
         } else {
             if (p.conditions) {
@@ -135,7 +127,7 @@ export class Type_ArobaseList extends ArobaseType {
         }
 
         if (current.itemsType !== p.parentDirName) {
-            throw declareError(`The list ${listId} is already defined and has a different type: ${current.itemsType}`, p.itemPath);
+            throw this.declareError(`The list ${listId} is already defined and has a different type: ${current.itemsType}`, p.itemPath);
         }
 
         current.allDirPath.push(p.itemPath);
@@ -185,13 +177,13 @@ export class Type_ArobaseList extends ArobaseType {
         let entryPoint = item.entryPoint!;
 
         if (!entryPoint) {
-            let d = requireRegistryItem<ArobaseChunk>(item.ref!);
+            let d = this.registry_requireItem<ArobaseChunk>(item.ref!);
             if (d.itemType!==list.itemsType) {
-                throw declareError(`Type mismatch. Expect ${list.itemsType}`, d.itemPath)
+                throw this.declareError(`Type mismatch. Expect ${list.itemsType}`, d.itemPath)
             }
 
             if (!d.entryPoint) {
-                throw declareError(`Item if missing index.ts/index.tsx file`, d.itemPath)
+                throw this.declareError(`Item if missing index.ts/index.tsx file`, d.itemPath)
             }
 
             entryPoint = d.entryPoint;
@@ -237,7 +229,7 @@ export interface ArobaseChunk extends RegistryItem {
 
 export class Type_ArobaseChunk extends ArobaseType {
     async processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }) {
-        await applyTypeRulesOnDir({
+        await this.rules_applyRulesOnDir({
             dirToScan: p.arobaseDir,
             expectFsType: "dir",
 
@@ -253,7 +245,7 @@ export class Type_ArobaseChunk extends ArobaseType {
 
                 transform: async (props) => {
                     if (!props.resolved?.entryPoint) {
-                        throw declareError("No 'index.ts' or 'index.tsx' file found", props.itemPath);
+                        throw this.declareError("No 'index.ts' or 'index.tsx' file found", props.itemPath);
                     }
 
                     const newItem: ArobaseChunk = {
@@ -263,7 +255,7 @@ export class Type_ArobaseChunk extends ArobaseType {
                         itemPath: props.itemPath,
                     };
 
-                    addToRegistry(this.typeName + "!" + props.itemName, newItem);
+                    this.registry_addItem(this.typeName + "!" + props.itemName, newItem);
                 }
             }
         });

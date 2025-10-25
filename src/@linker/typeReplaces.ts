@@ -1,5 +1,5 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
-import {applyTypeRulesOnDir, addReplace, ArobaseType, declareError} from "./engine.ts";
+import {ArobaseType} from "./engine.ts";
 
 export default class TypeReplaces extends ArobaseType {
     async processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }): Promise<void> {
@@ -8,7 +8,7 @@ export default class TypeReplaces extends ArobaseType {
         for (let itemType of itemTypes) {
             if ((itemType.name[0]==='_') || (itemType.name[0]==='.')) continue;
 
-            await applyTypeRulesOnDir({
+            await this.rules_applyRulesOnDir({
                 dirToScan: itemType.fullPath,
                 expectFsType: "dir",
 
@@ -23,7 +23,7 @@ export default class TypeReplaces extends ArobaseType {
                         let mustReplaceWith = props.refTarget!;
 
                         let idx = itemToReplace.indexOf("!");
-                        if (idx===-1) throw declareError("The type is missing in the name. Should be 'type!elementId'", props.itemPath);
+                        if (idx===-1) throw this.declareError("The type is missing in the name. Should be 'type!elementId'", props.itemPath);
 
                         let type = itemToReplace.substring(0, idx);
                         idx = mustReplaceWith.indexOf("!");
@@ -35,11 +35,11 @@ export default class TypeReplaces extends ArobaseType {
                             let type2 = mustReplaceWith.substring(0, idx);
                             if (type!==type2) {
                                 let expected = type2 + mustReplaceWith.substring(idx);
-                                throw declareError(`Type mismatch. Must be ${expected}`, props.itemPath);
+                                throw this.declareError(`Type mismatch. Must be ${expected}`, props.itemPath);
                             }
                         }
 
-                        addReplace(itemToReplace, mustReplaceWith, props.priority, props.itemPath);
+                        this.registry_addReplaceRule(itemToReplace, mustReplaceWith, props.priority, props.itemPath);
                     }
                 }
             });
