@@ -42,7 +42,6 @@ window["_JOPI_COMPOSITE_RENDERER_"] = function(name) {
 let gHydrateAllHook;
 
 function createModuleInitContext() {
-    debugger;
     if (window["_JOPI_CREATE_MODULE_INIT_CONTEXT_"]) {
         return window["_JOPI_CREATE_MODULE_INIT_CONTEXT_"]();
     }
