@@ -1,7 +1,6 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_tools from "jopi-toolkit/jk_tools";
 import * as jk_term from "jopi-toolkit/jk_term";
-import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_what from "jopi-toolkit/jk_what";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
 
@@ -127,17 +126,6 @@ async function generateAll() {
     installerFile = applyTemplate(gBrowserInstallFileTemplate, gBrowserInstallFile[FilePart.imports], gBrowserInstallFile[FilePart.body], gBrowserInstallFile[FilePart.footer]);
     await jk_fs.writeTextToFile(getBrowserInstallScript(), installerFile);
     gBrowserInstallFile = {};
-}
-
-export function setInstallerTemplate(type: InstallFileType, template: string) {
-    if (type === InstallFileType.both) {
-        gServerInstallFileTemplate = template;
-        gBrowserInstallFileTemplate = template;
-    } else if (type === InstallFileType.server) {
-        gServerInstallFileTemplate = template;
-    } else if (type === InstallFileType.browser) {
-        gBrowserInstallFileTemplate = template;
-    }
 }
 
 export class CodeGenWriter {
@@ -289,58 +277,6 @@ async function processModule(moduleDir: string) {
 //endregion
 
 //region Extensions
-
-export interface DirAnalizingRules {
-    requireRefFile?: boolean;
-    allowConditions?: boolean;
-    requirePriority?: boolean
-}
-
-export interface RulesFor_Collection {
-    dirToScan: string;
-    expectFsType: "file"|"dir"|"fileOrDir";
-    itemDefRules: RulesFor_CollectionItem;
-}
-
-export interface RulesFor_CollectionItem extends DirAnalizingRules {
-    rootDirName: string;
-    filesToResolve?: Record<string, string[]>;
-    nameConstraint: "canBeUid"|"mustNotBeUid"|"mustBeUid";
-
-    transform: (props: TransformItemParams) => Promise<void>;
-}
-
-export interface TransformItemParams {
-    itemName: string;
-    itemPath: string;
-    isFile: boolean;
-
-    uid?: string;
-    refTarget?: string;
-    conditions?: Set<string>;
-
-    parentDirName: string;
-    priority: PriorityLevel;
-
-    resolved: Record<string, string|undefined>;
-}
-
-export enum PriorityLevel {
-    veryLow = -200,
-    low = -100,
-    default = 0,
-    high = 100,
-    veryHigh = 200,
-}
-
-export interface AnalizeDirResult {
-    dirItems: jk_fs.DirItem[];
-
-    myUid?: string;
-    priority?: PriorityLevel;
-    refTarget?: string;
-    conditionsFound?: Set<string>;
-}
 
 export abstract class ArobaseType {
     constructor(public readonly typeName: string, public readonly position?: "root"|undefined) {
@@ -660,6 +596,58 @@ export abstract class ArobaseType {
     //endregion
 }
 
+export interface DirAnalizingRules {
+    requireRefFile?: boolean;
+    allowConditions?: boolean;
+    requirePriority?: boolean
+}
+
+export interface RulesFor_Collection {
+    dirToScan: string;
+    expectFsType: "file"|"dir"|"fileOrDir";
+    itemDefRules: RulesFor_CollectionItem;
+}
+
+export interface RulesFor_CollectionItem extends DirAnalizingRules {
+    rootDirName: string;
+    filesToResolve?: Record<string, string[]>;
+    nameConstraint: "canBeUid"|"mustNotBeUid"|"mustBeUid";
+
+    transform: (props: TransformItemParams) => Promise<void>;
+}
+
+export interface TransformItemParams {
+    itemName: string;
+    itemPath: string;
+    isFile: boolean;
+
+    uid?: string;
+    refTarget?: string;
+    conditions?: Set<string>;
+
+    parentDirName: string;
+    priority: PriorityLevel;
+
+    resolved: Record<string, string|undefined>;
+}
+
+export enum PriorityLevel {
+    veryLow = -200,
+    low = -100,
+    default = 0,
+    high = 100,
+    veryHigh = 200,
+}
+
+export interface AnalizeDirResult {
+    dirItems: jk_fs.DirItem[];
+
+    myUid?: string;
+    priority?: PriorityLevel;
+    refTarget?: string;
+    conditionsFound?: Set<string>;
+}
+
 export class ModuleDirProcessor {
     onBeginModuleProcessing(writer: CodeGenWriter, moduleDir: string): Promise<void> {
         return Promise.resolve();
@@ -674,14 +662,6 @@ export class ModuleDirProcessor {
     }
 }
 
-export function addArobaseType(type: ArobaseType) {
-    return gArobaseHandler[type.typeName] = type;
-}
-
-export function addModuleDirProcess(p: ModuleDirProcessor) {
-    gModuleDirProcessors.push(p);
-}
-
 let gArobaseHandler: Record<string, ArobaseType> = {};
 let gModuleDirProcessors: ModuleDirProcessor[] = [];
 
@@ -690,12 +670,10 @@ let gModuleDirProcessors: ModuleDirProcessor[] = [];
 //region Bootstrap
 
 let gDir_ProjectRoot: string;
-
-let gDir_outputSrc: string;
 let gDir_ProjectSrc: string;
-
-let gDir_outputDst: string;
 let gDir_ProjectDist: string;
+let gDir_outputSrc: string;
+let gDir_outputDst: string;
 
 export function getBrowserInstallScript() {
     return jk_fs.join(gDir_outputDst, "installBrowser.js");
@@ -714,13 +692,20 @@ export interface Directories {
     output_dist: string;
 }
 
-export function init(rootDir?: string) {
-    if (gIsInit) return;
-    gIsInit = true;
+export async function compile(config: LinkerConfig): Promise<void> {
+    async function searchLinkerScript(): Promise<string|undefined> {
+        let jopiLinkerScript = jk_fs.join(gDir_ProjectRoot, "dist", "jopi-linker.js");
+        if (await jk_fs.isFile(jopiLinkerScript)) return jopiLinkerScript;
 
-    if (!rootDir) rootDir = jk_app.findPackageJsonDir()
+        if (jk_what.isBunJS) {
+            jopiLinkerScript = jk_fs.join(gDir_ProjectSrc, "jopi-linker.ts");
+            if (await jk_fs.isFile(jopiLinkerScript)) return jopiLinkerScript;
+        }
 
-    gDir_ProjectRoot = rootDir;
+        return undefined;
+    }
+
+    gDir_ProjectRoot = config.projectRootDir;
     gDir_ProjectSrc = jk_fs.join(gDir_ProjectRoot, "src");
     gDir_ProjectDist = jk_fs.join(gDir_ProjectRoot, "dist");
 
@@ -735,45 +720,34 @@ export function init(rootDir?: string) {
         output_src: gDir_outputSrc,
         output_dist: gDir_outputDst
     });
-}
-
-export async function compile(rootDir?: string): Promise<boolean> {
-    if (gIsCompiled) return false;
-    gIsCompiled = true;
-
-    async function searchLinkerScript(): Promise<string|undefined> {
-        let jopiLinkerScript = jk_fs.join(gDir_ProjectRoot, "dist", "jopi-linker.js");
-        if (await jk_fs.isFile(jopiLinkerScript)) return jopiLinkerScript;
-
-        if (jk_what.isBunJS) {
-            jopiLinkerScript = jk_fs.join(gDir_ProjectSrc, "jopi-linker.ts");
-            if (await jk_fs.isFile(jopiLinkerScript)) return jopiLinkerScript;
-        }
-
-        return undefined;
-    }
-
-    init(rootDir);
 
     let jopiLinkerScript = await searchLinkerScript();
     if (jopiLinkerScript) await import(jopiLinkerScript);
 
-    //let proofFilePath = jk_fs.join(gSrcGenDir, "changeProof.md5");
+    gServerInstallFileTemplate = config.templateForServer;
+    gBrowserInstallFileTemplate = config.templateForBrowser;
 
-    //let oldProofString;
-    //try { oldProofString = await jk_fs.readTextFromFile(proofFilePath); }
-    //catch { oldProofString = ""; }
+    gArobaseHandler = {};
+
+    for (let aType of config.arobaseTypes) {
+        gArobaseHandler[aType.typeName] = aType;
+    }
+
+    gModuleDirProcessors = [];
+
+    for (let p of config.modulesProcess) {
+        gModuleDirProcessors.push(p);
+    }
 
     await processProject();
-
-    //let newProofString = jk_crypto.md5(gWriteReport.sort().join("\n"));
-    //await jk_fs.writeTextToFile(proofFilePath, newProofString);
-
-    //return oldProofString !== newProofString;
-    return false;
 }
 
-let gIsInit = false;
-let gIsCompiled = false;
+export interface LinkerConfig {
+    projectRootDir: string;
+    templateForBrowser: string;
+    templateForServer: string;
+    arobaseTypes: ArobaseType[];
+    modulesProcess: ModuleDirProcessor[];
+}
 
 //endregion

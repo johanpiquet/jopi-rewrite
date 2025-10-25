@@ -1,6 +1,8 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import {getBrowserInstallScript, getServerInstallScript} from "./engine.ts";
 
+export type InstallFunction<T> = (registry: T) => void;
+
 export async function loadServerInstall<T>(value: T) {
     let installFilePath = getServerInstallScript();
     if (!await jk_fs.isFile(installFilePath)) return;
@@ -15,8 +17,6 @@ export async function loadServerInstall<T>(value: T) {
         throw error;
     }
 }
-
-export type InstallFunction<T> = (registry: T) => void;
 
 export async function getBrowserInstallFunction<T>(): Promise<InstallFunction<T>> {
     let installFilePath = getBrowserInstallScript();
