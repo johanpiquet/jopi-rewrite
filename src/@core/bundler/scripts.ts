@@ -1,5 +1,7 @@
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_events from "jopi-toolkit/jk_events";
+
 import {pathToFileURL} from "node:url";
 import {getBundlerConfig} from "./config.ts";
 import {generateLoaderJsxCode} from "../linker.ts";
@@ -7,7 +9,7 @@ import {getScriptPlugins, loadCodeGenTemplate, type LoaderScriptPluginsParams} f
 
 const isWin32 = process.platform == "win32";
 
-export async function generateScript(genDir: string, components: {[key: string]: string}, extraCssToBundle: string[]): Promise<string> {
+export async function generateScript_loaderJsx(genDir: string, components: {[key: string]: string}, extraCssToBundle: string[]): Promise<string> {
     const config = getBundlerConfig();
     let enableReactRouter = config.reactRouter.disable!==true;
 
@@ -58,6 +60,8 @@ export async function generateScript(genDir: string, components: {[key: string]:
         for (let plugin of getScriptPlugins()) {
             await plugin(pluginParams);
         }
+
+        await jk_events.sendAsyncEvent("jopi.bundler.creatingScript", pluginParams);
 
         tplInit = pluginParams.tplInit;
         tplPlugins = pluginParams.tplPlugins;

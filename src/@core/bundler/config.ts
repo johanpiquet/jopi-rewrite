@@ -25,13 +25,16 @@ export interface BundlerConfig {
     reactRouter: {
         disable?: boolean;
     }
+
+    entryPoints: string[];
 }
 
 const gBundlerConfig: BundlerConfig = {
     tailwind: {},
     postCss: {},
     embed: {},
-    reactRouter: {}
+    reactRouter: {},
+    entryPoints: []
 }
 
 export function getBundlerConfig(): BundlerConfig {

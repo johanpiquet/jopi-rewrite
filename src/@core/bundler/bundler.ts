@@ -3,15 +3,16 @@ import {serverInitChronos} from "../internalTools.ts";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_events from "jopi-toolkit/jk_events";
 import {getHydrateComponents} from "../hydrate.tsx";
-import {generateScript} from "./scripts.ts";
+import {generateScript_loaderJsx} from "./scripts.ts";
 import {getBundleDirPath} from "./common.ts";
 import {type BundlerConfig, getBundlerConfig} from "./config.ts";
 import {getExtraCssToBundle} from "./extraContent.ts";
 import {configureServer} from "./server.ts";
 import {getVirtualUrlMap, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
+import "./pagesGenerator.ts";
 
 export interface CreateBundleEvent {
-    entryPoint: string;
+    entryPoints: string[];
     outputDir: string;
     genDir: string;
     publicUrl: string;
@@ -43,18 +44,23 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     await jk_fs.mkDir(genDir);
 
     const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
+
     // noinspection PointlessBooleanExpressionJS
     const requireTailwind: boolean = (getBundlerConfig().tailwind.disable) !== true;
 
     const cssToImport = [...getExtraCssToBundle()];
+
     if (requireTailwind) cssToImport.push("./tailwind.css");
 
-    const entryPoint = await generateScript(genDir, reactComponentFiles, cssToImport);
+    const entryPoint = await generateScript_loaderJsx(genDir, reactComponentFiles, cssToImport);
 
     const enableUiWatch = process.env.JOPI_DEV_UI === "1";
 
+    const config = getBundlerConfig();
+
     const data: CreateBundleEvent = {
-        entryPoint, outputDir, genDir, publicUrl, webSite,
+        entryPoints: [entryPoint, ...config.entryPoints],
+        outputDir, genDir, publicUrl, webSite,
         reactComponentFiles: Object.values(reactComponentFiles),
         config: getBundlerConfig(),
         requireTailwind,

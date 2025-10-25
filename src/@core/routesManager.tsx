@@ -27,7 +27,6 @@ interface RouteInfo {
 export class RoutesManager {
     private readonly routes: Record<string, RouteInfo> = {};
     private routeToPagePath: Record<string, string> = {};
-    private pagePathToRoute: Record<string, string> = {};
     private serverToPath: Record<string, string> = {};
 
     constructor(private readonly webSite: WebSite) {
@@ -38,8 +37,6 @@ export class RoutesManager {
 
         let enableReactRouter = bundlerConfig.reactRouter.disable!==true;
         if (enableReactRouter) addLoaderScriptPlugin(params => this.scriptPlugin_reactRouter(params));
-
-        this.watchCssDependencies();
     }
 
     //region React Router
@@ -161,7 +158,7 @@ export class RoutesManager {
                 process.exit(1);
             } else {
                 this.routeToPagePath[route] = fileFullPath;
-                this.pagePathToRoute[fileSourceFullPath] = route;
+                await jk_events.sendAsyncEvent("jopi.route.newPage", {route, filePath: fileSourceFullPath});
             }
         }
 
@@ -255,19 +252,6 @@ export class RoutesManager {
                 };
             }
         }
-    }
-
-    //endregion
-
-    //region CSS import resolving
-
-    private watchCssDependencies() {
-        jk_events.addListener("jopi.bundler.resolve.css", async (data: {resolveDir: string, path: string, importer: string}) => {
-            let cssFilePath = jk_fs.join(data.resolveDir, data.path);
-
-            let route = this.pagePathToRoute[data.importer];
-            if (route) console.log(`🔥  Route [${route}] is using CSS`, data.path);
-        });
     }
 
     //endregion

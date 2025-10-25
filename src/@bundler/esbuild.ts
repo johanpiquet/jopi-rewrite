@@ -14,9 +14,9 @@ export async function esBuildBundle(params: EsBuildParams) {
     // To know: will generate:
     // * A file out/loader.js   with the JS include by loader.jsx
     // * A file out/loader.css  with the CSS include by loader.jsx
-
+debugger;
     const buildOptions: esbuild.BuildOptions = {
-        entryPoints: [params.entryPoint],
+        entryPoints: params.entryPoints,
 
         bundle: true,
         outdir: params.outputDir,
