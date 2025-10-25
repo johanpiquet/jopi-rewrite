@@ -1,12 +1,23 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
 
 import {
     addToRegistry,
     type TypeRules_CollectionItem,
-    declareError, genWriteFile, getRegistryItem,
+    declareError,
+    getRegistryItem,
     getSortedDirItem,
-    type TransformParams, PriorityLevel, type RegistryItem, requireRegistryItem, applyTypeRulesOnChildDir,
-    applyTypeRulesOnDir, ArobaseType, type RulesFor_Collection, genCreateDirSymlink
+    type TransformParams,
+    PriorityLevel,
+    type RegistryItem,
+    requireRegistryItem,
+    applyTypeRulesOnChildDir,
+    applyTypeRulesOnDir,
+    ArobaseType,
+    type RulesFor_Collection,
+    CodeGenWriter,
+    getProjectSourceGenDir,
+    getProjectDistGenDir
 } from "./engine.ts";
 import * as jk_tools from "jopi-toolkit/jk_tools";
 
@@ -135,11 +146,11 @@ export class Type_ArobaseList extends ArobaseType {
         return p;
     }
 
-    protected getGenOutputDir(genDir: string, list: ArobaseList) {
-        return jk_fs.join(genDir, this.typeName);
+    protected getGenOutputDir(_list: ArobaseList) {
+        return this.typeName;
     }
 
-    async generateCodeForItem(key: string, rItem: RegistryItem, infos: { genDir: string; }) {
+    async generateCodeForItem(writer: CodeGenWriter, key: string, rItem: RegistryItem) {
         function sortByPriority(items: ArobaseListItem[]): ArobaseListItem[] {
             function addPriority(priority: PriorityLevel) {
                 let e = byPriority[priority];
@@ -167,10 +178,10 @@ export class Type_ArobaseList extends ArobaseType {
         const list = rItem as ArobaseList;
         list.items = sortByPriority(list.items);
 
-        await this.generateCodeForList(key, list, infos.genDir);
+        await this.generateCodeForList(writer, key, list);
     }
 
-    protected resolveEntryPointFor(list: ArobaseList, item: ArobaseListItem, outDir: string): string {
+    protected resolveEntryPointFor(list: ArobaseList, item: ArobaseListItem): string {
         let entryPoint = item.entryPoint!;
 
         if (!entryPoint) {
@@ -186,27 +197,34 @@ export class Type_ArobaseList extends ArobaseType {
             entryPoint = d.entryPoint;
         }
 
-        return jk_fs.getRelativePath(outDir, entryPoint);
+        return entryPoint;
     }
 
-    protected async generateCodeForList(key: string, list: ArobaseList, genDir: string): Promise<void> {
-        let source = "";
+    protected async generateCodeForList(writer: CodeGenWriter, key: string, list: ArobaseList): Promise<void> {
+        let tsSource = "";
+        let jsSource = "";
         let count = 1;
 
-        let outDir = this.getGenOutputDir(genDir, list);
+        let outDir_innerPath = this.getGenOutputDir(list);
+        let outDir_fullPath = jk_fs.join(getProjectSourceGenDir(), outDir_innerPath);
 
         for (let item of list.items) {
-            let entryPoint = this.resolveEntryPointFor(list, item, outDir);
-            source += `import I${count++} from "${entryPoint}";\n`;
+            let entryPoint = this.resolveEntryPointFor(list, item);
+            let relPath = jk_fs.getRelativePath(outDir_fullPath, entryPoint);
+
+            tsSource += `import I${count++} from "${relPath}";\n`;
+            jsSource += `import I${count++} from "${writer.toJavascriptFileName(relPath)}";\n`;
         }
 
         let max = list.items.length;
-        source += "\nexport default [";
-        for (let i = 1; i <= max; i++) source += `I${i},`;
-        source += "];";
+        tsSource += "\nexport default [";
+        for (let i = 1; i <= max; i++) tsSource += `I${i},`;
+        tsSource += "];";
 
         let fileName = key.substring(key.indexOf("!") + 1) + ".ts";
-        await genWriteFile(jk_fs.join(outDir, fileName), source);
+
+        // Here TypeScript and javascript are the same.
+        await writer.writeCodeFile(jk_fs.join(outDir_innerPath, fileName), tsSource, jsSource);
     }
 }
 
@@ -251,14 +269,14 @@ export class Type_ArobaseChunk extends ArobaseType {
         });
     }
 
-    async generateCodeForItem(key: string, rItem: RegistryItem, infos: { genDir: string; }) {
+    async generateCodeForItem(writer: CodeGenWriter, key: string, rItem: RegistryItem) {
         const item = rItem as ArobaseChunk;
-        let outDir = this.getGenOutputDir(infos.genDir, item);
-        let fileName = key.substring(key.indexOf("!") + 1);
-        await genCreateDirSymlink(jk_fs.join(outDir, fileName), jk_fs.dirname(item.entryPoint));
+        let outDir = this.getGenOutputDir(item);
+        let targetName = key.substring(key.indexOf("!") + 1);
+        await writer.symlinkDir(jk_fs.join(outDir, targetName), item.itemPath);
     }
 
-    protected getGenOutputDir(genDir: string, _chunk: ArobaseChunk) {
-        return jk_fs.join(genDir, this.typeName);
+    protected getGenOutputDir(_chunk: ArobaseChunk) {
+        return this.typeName;
     }
 }

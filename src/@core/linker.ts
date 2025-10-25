@@ -6,19 +6,19 @@ let gBrowserInstallFunction: InstallFunction<ModuleInitContext_UI>;
 let gIsInit = false;
 
 function installTemplates() {
+    // Here it's NOT async.
     setInstallerTemplate(InstallFileType.browser,
-        `import {ModuleInitContext_UI} from "jopi-rewrite/ui";
-__HEADER
+`__HEADER
 
-export default function(registry: ModuleInitContext_UI) {
+export default function(registry) {
 __BODY__FOOTER
 }`);
 
+    // Here it's ASYNC.
     setInstallerTemplate(InstallFileType.server,
-        `import type {WebSite} from "jopi-rewrite";
-__HEADER
-        
-export default async function(registry: WebSite) {
+`__HEADER
+
+export default async function(registry) {
 __BODY__FOOTER
 }`);
 }

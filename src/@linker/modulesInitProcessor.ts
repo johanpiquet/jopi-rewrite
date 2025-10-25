@@ -1,7 +1,7 @@
 import {
+    CodeGenWriter,
     FilePart,
-    genAddToInstallFile,
-    getProjectGenDir, getProjectSourceDir,
+    getProjectSourceGenDir,
     InstallFileType,
     ModuleDirProcessor,
     resolve
@@ -13,7 +13,7 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
     private serverInitFiles: string[] = [];
     private routesDir?: string;
 
-    override async onBeginModuleProcessing(moduleDir: string): Promise<void> {
+    override async onBeginModuleProcessing(writer: CodeGenWriter, moduleDir: string): Promise<void> {
         let uiInitFile = await resolve(moduleDir, ["uiInit.tsx", "uiInit.ts"]);
         if (uiInitFile) this.uiInitFiles.push(uiInitFile);
 
@@ -24,17 +24,17 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
         if (await jk_fs.isDirectory(routesDir)) this.routesDir = routesDir;
     }
 
-    override async generateCode(): Promise<void> {
+    override async generateCode(writer: CodeGenWriter): Promise<void> {
         let i = 0;
 
-        const genDir = getProjectGenDir();
+        const genDir = getProjectSourceGenDir();
 
         for (let uiInitFile of this.uiInitFiles) {
             i++;
 
-            let relPath = jk_fs.getRelativePath(genDir, uiInitFile);
-            genAddToInstallFile(InstallFileType.browser, FilePart.imports, `import modUiInit${i} from "${relPath}";`);
-            genAddToInstallFile(InstallFileType.browser, FilePart.footer, `// @ts-ignore\n    modUiInit${i}(registry);`)
+            let relPath = writer.toJavascriptFileName(jk_fs.getRelativePath(genDir, uiInitFile));
+            writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.imports, `import modUiInit${i} from "${relPath}";`);
+            writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.footer, `    modUiInit${i}(registry);`)
         }
 
         i = 0;
@@ -42,13 +42,13 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
         for (let serverInitFile of this.serverInitFiles) {
             i++;
 
-            let relPath = jk_fs.getRelativePath(genDir, serverInitFile);
-            genAddToInstallFile(InstallFileType.server, FilePart.imports, `import modServerInit${i} from "${relPath}";`);
-            genAddToInstallFile(InstallFileType.server, FilePart.body, `    // @ts-ignore\n    await modServerInit${i}(registry);`)
+            let relPath = writer.toJavascriptFileName(jk_fs.getRelativePath(genDir, serverInitFile));
+            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.imports, `import modServerInit${i} from "${relPath}";`);
+            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `    await modServerInit${i}(registry);`)
         }
 
         if (this.routesDir) {
-            genAddToInstallFile(InstallFileType.server, FilePart.body, `\n    await registry.getReactRouterManager().scanRoutesFrom("${this.routesDir}");`);
+            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `\n    await registry.getReactRouterManager().scanRoutesFrom("${this.routesDir}");`);
         }
     }
 }

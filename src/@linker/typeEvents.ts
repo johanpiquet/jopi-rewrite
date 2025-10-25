@@ -1,8 +1,8 @@
 import {type ArobaseList, Type_ArobaseList} from "./arobaseTypes.ts";
-import {FilePart, genAddToInstallFile, InstallFileType, type RegistryItem} from "./engine.ts";
+import {CodeGenWriter, FilePart, InstallFileType, type RegistryItem} from "./engine.ts";
 
 export default class TypeEvents extends Type_ArobaseList {
-    async endGeneratingCode(items: RegistryItem[]): Promise<void> {
+    async endGeneratingCode(writer: CodeGenWriter, items: RegistryItem[]): Promise<void> {
         let count = 0;
 
         for (let item of items) {
@@ -22,8 +22,8 @@ export default class TypeEvents extends Type_ArobaseList {
                 installFileType = InstallFileType.both;
             }
 
-            let source = `    registry.events.addProvider("${list.listName}", async () => { const R = await import("@/events/${list.listName}"); return R.default; });`;
-            genAddToInstallFile(installFileType, FilePart.body, source);
+            let jsSources = `    registry.events.addProvider("${list.listName}", async () => { const R = await import("@/events/${list.listName}"); return R.default; });`;
+            writer.genAddToInstallFile_JS(installFileType, FilePart.body, jsSources);
         }
     }
 }

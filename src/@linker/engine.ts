@@ -233,55 +233,17 @@ export enum FilePart {
 
 export enum InstallFileType {server, browser, both}
 
-const gDefaultInstallTemplate = `
-__HEADER
-export default function() {
-__BODY
-__FOOTER
-}
-    `;
+const gDefaultInstallTemplate = `__HEADER
+export default async function(registry) {
+__BODY__FOOTER
+}`;
 
 let gServerInstallFile: Record<string, string> = {};
 let gServerInstallFileTemplate = gDefaultInstallTemplate;
 
 let gBrowserInstallFile: Record<string, string> = {};
 let gBrowserInstallFileTemplate = gDefaultInstallTemplate;
-
-function calRelativePath(from: string) {
-    return jk_fs.getRelativePath(gGenRootDir, from);
-}
-
 let gWriteReport: string[] = [];
-
-export async function genCreateDirSymlink(newFilePath: string, targetFilePath: string) {
-    gWriteReport.push(`genCreateDirSymlink|${calRelativePath(newFilePath)}|${calRelativePath(targetFilePath)}`);
-
-    await jk_fs.mkDir(jk_fs.dirname(newFilePath));
-    await jk_fs.symlink(targetFilePath, newFilePath, "dir");
-}
-
-export async function genWriteFile(filePath: string, fileContent: string): Promise<void> {
-    gWriteReport.push(`genWriteFile|${calRelativePath(filePath)}|${jk_crypto.md5(fileContent)}`);
-
-    await jk_fs.mkDir(jk_fs.dirname(filePath));
-    return jk_fs.writeTextToFile(filePath, fileContent);
-}
-
-export function genAddToInstallFile(who: InstallFileType, where: FilePart, text: string) {
-    function addTo(group: Record<string, string>) {
-        let part = group[where] || "";
-        group[where] = part + text;
-    }
-
-    if (who===InstallFileType.both) {
-        addTo(gServerInstallFile);
-        addTo(gBrowserInstallFile);
-    } else if (who===InstallFileType.server) {
-        addTo(gServerInstallFile);
-    } else if (who===InstallFileType.browser) {
-        addTo(gBrowserInstallFile);
-    }
-}
 
 async function generateAll() {
     function applyTemplate(template: string, header: string, body: string, footer: string): string {
@@ -322,10 +284,10 @@ async function generateAll() {
 
     applyReplaces();
 
-    const infos = {genDir: gGenRootDir};
+    const writer = new CodeGenWriter();
 
     for (let arobaseType of Object.values(gArobaseHandler)) {
-        await arobaseType.beginGeneratingCode();
+        await arobaseType.beginGeneratingCode(writer);
 
         let items: RegistryItem[] = [];
 
@@ -333,23 +295,23 @@ async function generateAll() {
             const entry = gRegistry[key];
             if (entry.arobaseType === arobaseType) {
                 items.push(entry);
-                await entry.arobaseType.generateCodeForItem(key, entry, infos);
+                await entry.arobaseType.generateCodeForItem(writer, key, entry);
             }
         }
 
-        await arobaseType.endGeneratingCode(items);
+        await arobaseType.endGeneratingCode(writer, items);
     }
 
     for (let p of gModuleDirProcessors) {
-        await p.generateCode();
+        await p.generateCode(writer);
     }
 
     let installerFile = applyTemplate(gServerInstallFileTemplate, gServerInstallFile[FilePart.imports], gServerInstallFile[FilePart.body], gServerInstallFile[FilePart.footer]);
-    await jk_fs.writeTextToFile(jk_fs.join(gGenRootDir, "installServer.ts"), installerFile);
+    await jk_fs.writeTextToFile(getServerInstallScript(), installerFile);
     gServerInstallFile = {};
 
     installerFile = applyTemplate(gBrowserInstallFileTemplate, gBrowserInstallFile[FilePart.imports], gBrowserInstallFile[FilePart.body], gBrowserInstallFile[FilePart.footer]);
-    await jk_fs.writeTextToFile(jk_fs.join(gGenRootDir, "installBrowser.ts"), installerFile);
+    await jk_fs.writeTextToFile(getBrowserInstallScript(), installerFile);
     gBrowserInstallFile = {};
 }
 
@@ -361,6 +323,63 @@ export function setInstallerTemplate(type: InstallFileType, template: string) {
         gServerInstallFileTemplate = template;
     } else if (type === InstallFileType.browser) {
         gBrowserInstallFileTemplate = template;
+    }
+}
+
+export class CodeGenWriter {
+    toJavascriptFileName(filePath: string): string {
+        let idx = filePath.lastIndexOf(".");
+        if (idx!==-1) return filePath.substring(0, idx) + ".js";
+        return filePath;
+    }
+
+    async writeCodeFile(innerPath: string, typeScriptContent: string, javaScriptContent: string) {
+        gWriteReport.push(`writeSourceFile|${innerPath}|${jk_crypto.md5(typeScriptContent)}`);
+        await jk_fs.writeTextToFile(jk_fs.join(gSrcGenDir, innerPath), typeScriptContent);
+        await jk_fs.writeTextToFile(jk_fs.join(gDistGenDir, innerPath), javaScriptContent);
+    }
+
+    async symlinkDir(innerPath: string, targetDirPath_src: string) {
+        if (!targetDirPath_src.startsWith(gSrcRootDir)) {
+            throw declareError("The target directory must be inside the source directory", targetDirPath_src);
+        }
+
+        let relPath = targetDirPath_src.substring(gSrcRootDir.length);
+        let targetDirPath_dist = gDistGenDir + relPath;
+
+        if (!await jk_fs.isDirectory(targetDirPath_dist)) {
+            await jk_fs.mkDir(jk_fs.dirname(targetDirPath_dist));
+        }
+
+        let srcNewDir = jk_fs.join(gSrcGenDir, innerPath);
+        let distNewDir = jk_fs.join(gDistGenDir, innerPath);
+
+        // The parent dir must exist for symlink.
+        await jk_fs.mkDir(jk_fs.dirname(srcNewDir));
+        await jk_fs.mkDir(jk_fs.dirname(distNewDir));
+
+        await jk_fs.unlink(distNewDir);
+
+        await jk_fs.symlink(targetDirPath_src, srcNewDir, "dir");
+        await jk_fs.symlink(targetDirPath_dist, distNewDir, "dir");
+
+        gWriteReport.push(`symlinkDir|${innerPath}|${relPath}`);
+    }
+
+    genAddToInstallFile_JS(who: InstallFileType, where: FilePart, javascriptContent: string) {
+        function addTo(group: Record<string, string>) {
+            let part = group[where] || "";
+            group[where] = part + javascriptContent;
+        }
+
+        if (who===InstallFileType.both) {
+            addTo(gServerInstallFile);
+            addTo(gBrowserInstallFile);
+        } else if (who===InstallFileType.server) {
+            addTo(gServerInstallFile);
+        } else if (who===InstallFileType.browser) {
+            addTo(gBrowserInstallFile);
+        }
     }
 }
 
@@ -530,26 +549,29 @@ export async function applyTypeRulesOnChildDir(p: TypeRules_CollectionItem, dirI
 //region Processing project
 
 async function processProject() {
-    await jk_fs.rmDir(gGenRootDir);
+    // Note: here we don't destroy the dist dir.
+    await jk_fs.rmDir(gSrcGenDir);
+
     await processModules();
     await generateAll();
 }
 
 async function processModules() {
     let modules = await jk_fs.listDir(gSrcRootDir);
+    const writer = new CodeGenWriter();
 
     for (let module of modules) {
         if (!module.isDirectory) continue;
         if (!module.name.startsWith("mod_")) continue;
 
         for (let p of gModuleDirProcessors) {
-            await p.onBeginModuleProcessing(module.fullPath);
+            await p.onBeginModuleProcessing(writer, module.fullPath);
         }
 
         await processModule(module.fullPath);
 
         for (let p of gModuleDirProcessors) {
-            await p.onEndModuleProcessing(module.fullPath);
+            await p.onEndModuleProcessing(writer, module.fullPath);
         }
     }
 }
@@ -568,7 +590,7 @@ async function processModule(moduleDir: string) {
         if (!arobaseType) throw declareError("Unknown arobase type: " + name, dirItem.fullPath);
 
         if (arobaseType.position !== "root") continue;
-        await arobaseType.processDir({moduleDir, arobaseDir: dirItem.fullPath, genDir: gGenRootDir});
+        await arobaseType.processDir({moduleDir, arobaseDir: dirItem.fullPath, genDir: gSrcGenDir});
     }
 
     if (arobaseDir) {
@@ -582,7 +604,7 @@ async function processModule(moduleDir: string) {
             if (!arobaseType) throw declareError("Unknown arobase type: " + name, dirItem.fullPath);
 
             if (arobaseType.position === "root") continue;
-            await arobaseType.processDir({moduleDir, arobaseDir: dirItem.fullPath, genDir: gGenRootDir});
+            await arobaseType.processDir({moduleDir, arobaseDir: dirItem.fullPath, genDir: gSrcGenDir});
         }
     }
 }
@@ -597,29 +619,29 @@ export abstract class ArobaseType {
 
     abstract processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }): Promise<void>;
 
-    generateCodeForItem(key: string, rItem: RegistryItem, infos: { genDir: string; }): Promise<void> {
+    generateCodeForItem(writer: CodeGenWriter, key: string, rItem: RegistryItem): Promise<void> {
         return Promise.resolve();
     }
 
-    beginGeneratingCode(): Promise<void> {
+    beginGeneratingCode(writer: CodeGenWriter): Promise<void> {
         return Promise.resolve();
     }
 
-    endGeneratingCode(items: RegistryItem[]): Promise<void> {
+    endGeneratingCode(writer: CodeGenWriter, items: RegistryItem[]): Promise<void> {
         return Promise.resolve();
     }
 }
 
 export class ModuleDirProcessor {
-    onBeginModuleProcessing(moduleDir: string): Promise<void> {
+    onBeginModuleProcessing(writer: CodeGenWriter, moduleDir: string): Promise<void> {
         return Promise.resolve();
     }
 
-    onEndModuleProcessing(moduleDir: string): Promise<void> {
+    onEndModuleProcessing(writer: CodeGenWriter, moduleDir: string): Promise<void> {
         return Promise.resolve();
     }
 
-    generateCode(): Promise<void> {
+    generateCode(writer: CodeGenWriter): Promise<void> {
         return Promise.resolve();
     }
 }
@@ -640,11 +662,27 @@ let gModuleDirProcessors: ModuleDirProcessor[] = [];
 //region Bootstrap
 
 let gProjectRootDir: string;
-let gGenRootDir: string;
+
+let gSrcGenDir: string;
 let gSrcRootDir: string;
 
-export function getProjectGenDir() {
-    return gGenRootDir;
+let gDistGenDir: string;
+let gDistRootDir: string;
+
+export function getProjectSourceGenDir() {
+    return gSrcGenDir;
+}
+
+export function getProjectDistGenDir() {
+    return gDistGenDir;
+}
+
+export function getBrowserInstallScript() {
+    return jk_fs.join(gDistGenDir, "installBrowser.js");
+}
+
+export function getServerInstallScript() {
+    return jk_fs.join(gDistGenDir, "installServer.js");
 }
 
 export function getProjectSourceDir() {
@@ -659,7 +697,10 @@ export function init(rootDir?: string) {
 
     gProjectRootDir = rootDir;
     gSrcRootDir = jk_fs.join(gProjectRootDir, "src");
-    gGenRootDir = jk_fs.join(gSrcRootDir, "_jopiLinkerGen");
+    gSrcGenDir = jk_fs.join(gSrcRootDir, "_jopiLinkerGen");
+
+    gDistRootDir = jk_fs.join(gProjectRootDir, "dist");
+    gDistGenDir = jk_fs.join(gDistRootDir, "_jopiLinkerGen");
 }
 
 export async function compile(rootDir?: string): Promise<boolean> {
@@ -683,18 +724,19 @@ export async function compile(rootDir?: string): Promise<boolean> {
     let jopiLinkerScript = await searchLinkerScript();
     if (jopiLinkerScript) await import(jopiLinkerScript);
 
-    let proofFilePath = jk_fs.join(gGenRootDir, "changeProof.md5");
+    //let proofFilePath = jk_fs.join(gSrcGenDir, "changeProof.md5");
 
-    let oldProofString;
-    try { oldProofString = await jk_fs.readTextFromFile(proofFilePath); }
-    catch { oldProofString = ""; }
+    //let oldProofString;
+    //try { oldProofString = await jk_fs.readTextFromFile(proofFilePath); }
+    //catch { oldProofString = ""; }
 
     await processProject();
 
-    let newProofString = jk_crypto.md5(gWriteReport.sort().join("\n"));
-    await jk_fs.writeTextToFile(proofFilePath, newProofString);
+    //let newProofString = jk_crypto.md5(gWriteReport.sort().join("\n"));
+    //await jk_fs.writeTextToFile(proofFilePath, newProofString);
 
-    return oldProofString !== newProofString;
+    //return oldProofString !== newProofString;
+    return false;
 }
 
 let gIsInit = false;
