@@ -1,15 +1,14 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
 
 import {
-    type TypeRules_CollectionItem,
+    type RulesFor_CollectionItem,
     getSortedDirItem,
-    type TransformParams,
+    type TransformItemParams,
     PriorityLevel,
     type RegistryItem,
     ArobaseType,
     type RulesFor_Collection,
-    CodeGenWriter,
-    getProjectSourceGenDir
+    CodeGenWriter
 } from "./engine.ts";
 import * as jk_tools from "jopi-toolkit/jk_tools";
 
@@ -50,7 +49,7 @@ export class Type_ArobaseList extends ArobaseType {
         }));
     }
 
-    async processListItem(p: TransformParams) {
+    async processListItem(p: TransformItemParams) {
         let listId = this.typeName + "!" + p.itemName!;
         const listName = p.itemName;
 
@@ -59,7 +58,7 @@ export class Type_ArobaseList extends ArobaseType {
         const dirItems = await getSortedDirItem(p.itemPath);
         let listItems: ArobaseListItem[] = [];
 
-        const params: TypeRules_CollectionItem = {
+        const params: RulesFor_CollectionItem = {
             rootDirName: p.parentDirName,
             nameConstraint: "mustNotBeUid",
             requirePriority: true,
@@ -198,7 +197,7 @@ export class Type_ArobaseList extends ArobaseType {
         let count = 1;
 
         let outDir_innerPath = this.getGenOutputDir(list);
-        let outDir_fullPath = jk_fs.join(getProjectSourceGenDir(), outDir_innerPath);
+        let outDir_fullPath = jk_fs.join(writer.dir.output_src, outDir_innerPath);
 
         for (let item of list.items) {
             let entryPoint = this.resolveEntryPointFor(list, item);

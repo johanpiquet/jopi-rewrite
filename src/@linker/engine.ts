@@ -61,26 +61,6 @@ export enum FilePart {
 
 export enum InstallFileType {server, browser, both}
 
-let gServerInstallFile: Record<string, string> = {};
-
-// Here it's ASYNC.
-let gServerInstallFileTemplate = `__HEADER
-
-export default async function(registry) {
-__BODY__FOOTER
-}`;
-
-let gBrowserInstallFile: Record<string, string> = {};
-
-// Here it's not async.
-let gBrowserInstallFileTemplate = `__HEADER
-
-export default function(registry) {
-__BODY__FOOTER
-}`;
-
-let gWriteReport: string[] = [];
-
 async function generateAll() {
     function applyTemplate(template: string, header: string, body: string, footer: string): string {
         if (!header) header = "";
@@ -120,10 +100,8 @@ async function generateAll() {
 
     applyReplaces();
 
-    const writer = new CodeGenWriter();
-
     for (let arobaseType of Object.values(gArobaseHandler)) {
-        await arobaseType.beginGeneratingCode(writer);
+        await arobaseType.beginGeneratingCode(gCodeGenWriter);
 
         let items: RegistryItem[] = [];
 
@@ -131,15 +109,15 @@ async function generateAll() {
             const entry = gRegistry[key];
             if (entry.arobaseType === arobaseType) {
                 items.push(entry);
-                await entry.arobaseType.generateCodeForItem(writer, key, entry);
+                await entry.arobaseType.generateCodeForItem(gCodeGenWriter, key, entry);
             }
         }
 
-        await arobaseType.endGeneratingCode(writer, items);
+        await arobaseType.endGeneratingCode(gCodeGenWriter, items);
     }
 
     for (let p of gModuleDirProcessors) {
-        await p.generateCode(writer);
+        await p.generateCode(gCodeGenWriter);
     }
 
     let installerFile = applyTemplate(gServerInstallFileTemplate, gServerInstallFile[FilePart.imports], gServerInstallFile[FilePart.body], gServerInstallFile[FilePart.footer]);
@@ -163,6 +141,9 @@ export function setInstallerTemplate(type: InstallFileType, template: string) {
 }
 
 export class CodeGenWriter {
+    constructor(public readonly dir: Directories) {
+    }
+
     toJavascriptFileName(filePath: string): string {
         let idx = filePath.lastIndexOf(".");
         if (idx!==-1) return filePath.substring(0, idx) + ".js";
@@ -171,24 +152,24 @@ export class CodeGenWriter {
 
     async writeCodeFile(innerPath: string, typeScriptContent: string, javaScriptContent: string) {
         gWriteReport.push(`writeSourceFile|${innerPath}|${jk_crypto.md5(typeScriptContent)}`);
-        await jk_fs.writeTextToFile(jk_fs.join(gSrcGenDir, innerPath), typeScriptContent);
-        await jk_fs.writeTextToFile(jk_fs.join(gDistGenDir, innerPath), javaScriptContent);
+        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, innerPath), typeScriptContent);
+        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, innerPath), javaScriptContent);
     }
 
     async symlinkDir(innerPath: string, targetDirPath_src: string) {
-        if (!targetDirPath_src.startsWith(gSrcRootDir)) {
+        if (!targetDirPath_src.startsWith(gDir_ProjectSrc)) {
             throw declareLinkerError("The target directory must be inside the source directory", targetDirPath_src);
         }
 
-        let relPath = targetDirPath_src.substring(gSrcRootDir.length);
-        let targetDirPath_dist = gDistGenDir + relPath;
+        let relPath = targetDirPath_src.substring(gDir_ProjectSrc.length);
+        let targetDirPath_dist = gDir_outputDst + relPath;
 
         if (!await jk_fs.isDirectory(targetDirPath_dist)) {
             await jk_fs.mkDir(jk_fs.dirname(targetDirPath_dist));
         }
 
-        let srcNewDir = jk_fs.join(gSrcGenDir, innerPath);
-        let distNewDir = jk_fs.join(gDistGenDir, innerPath);
+        let srcNewDir = jk_fs.join(gDir_outputSrc, innerPath);
+        let distNewDir = jk_fs.join(gDir_outputDst, innerPath);
 
         // The parent dir must exist for symlink.
         await jk_fs.mkDir(jk_fs.dirname(srcNewDir));
@@ -219,9 +200,95 @@ export class CodeGenWriter {
     }
 }
 
+let gCodeGenWriter: CodeGenWriter;
+
+let gServerInstallFile: Record<string, string> = {};
+
+// Here it's ASYNC.
+let gServerInstallFileTemplate = `__HEADER
+
+export default async function(registry) {
+__BODY__FOOTER
+}`;
+
+let gBrowserInstallFile: Record<string, string> = {};
+
+// Here it's not async.
+let gBrowserInstallFileTemplate = `__HEADER
+
+export default function(registry) {
+__BODY__FOOTER
+}`;
+
+let gWriteReport: string[] = [];
+
 //endregion
 
-//region Processing dir
+//region Processing project
+
+async function processProject() {
+    // Note: here we don't destroy the dist dir.
+    await jk_fs.rmDir(gDir_outputSrc);
+
+    await processModules();
+    await generateAll();
+}
+
+async function processModules() {
+    let modules = await jk_fs.listDir(gDir_ProjectSrc);
+
+    for (let module of modules) {
+        if (!module.isDirectory) continue;
+        if (!module.name.startsWith("mod_")) continue;
+
+        for (let p of gModuleDirProcessors) {
+            await p.onBeginModuleProcessing(gCodeGenWriter, module.fullPath);
+        }
+
+        await processModule(module.fullPath);
+
+        for (let p of gModuleDirProcessors) {
+            await p.onEndModuleProcessing(gCodeGenWriter, module.fullPath);
+        }
+    }
+}
+
+async function processModule(moduleDir: string) {
+    let dirItems = await jk_fs.listDir(moduleDir);
+    let arobaseDir: jk_fs.DirItem|undefined;
+
+    for (let dirItem of dirItems) {
+        if (!dirItem.isDirectory) continue;
+        if (dirItem.name[0] !== "@") continue;
+        if (dirItem.name == "@") { arobaseDir = dirItem; continue; }
+
+        let name = dirItem.name.substring(1);
+        let arobaseType = gArobaseHandler[name];
+        if (!arobaseType) throw declareLinkerError("Unknown arobase type: " + name, dirItem.fullPath);
+
+        if (arobaseType.position !== "root") continue;
+        await arobaseType.processDir({moduleDir, arobaseDir: dirItem.fullPath, genDir: gDir_outputSrc});
+    }
+
+    if (arobaseDir) {
+        dirItems = await jk_fs.listDir(arobaseDir.fullPath);
+
+        for (let dirItem of dirItems) {
+            if (!dirItem.isDirectory) continue;
+
+            let name = dirItem.name;
+            let arobaseType = gArobaseHandler[name];
+            if (!arobaseType) throw declareLinkerError("Unknown arobase type: " + name, dirItem.fullPath);
+
+            if (arobaseType.position === "root") continue;
+            await arobaseType.processDir({moduleDir, arobaseDir: dirItem.fullPath, genDir: gDir_outputSrc});
+        }
+    }
+}
+
+//endregion
+
+//region Extensions
 
 export interface DirAnalizingRules {
     requireRefFile?: boolean;
@@ -229,21 +296,21 @@ export interface DirAnalizingRules {
     requirePriority?: boolean
 }
 
-export interface TypeRules_CollectionItem extends DirAnalizingRules {
+export interface RulesFor_Collection {
+    dirToScan: string;
+    expectFsType: "file"|"dir"|"fileOrDir";
+    itemDefRules: RulesFor_CollectionItem;
+}
+
+export interface RulesFor_CollectionItem extends DirAnalizingRules {
     rootDirName: string;
     filesToResolve?: Record<string, string[]>;
     nameConstraint: "canBeUid"|"mustNotBeUid"|"mustBeUid";
 
-    transform: (props: TransformParams) => Promise<void>;
+    transform: (props: TransformItemParams) => Promise<void>;
 }
 
-export interface RulesFor_Collection {
-    dirToScan: string;
-    expectFsType: "file"|"dir"|"fileOrDir";
-    itemDefRules: TypeRules_CollectionItem;
-}
-
-export interface TransformParams {
+export interface TransformItemParams {
     itemName: string;
     itemPath: string;
     isFile: boolean;
@@ -265,73 +332,6 @@ export enum PriorityLevel {
     high = 100,
     veryHigh = 200,
 }
-
-//region Processing project
-
-async function processProject() {
-    // Note: here we don't destroy the dist dir.
-    await jk_fs.rmDir(gSrcGenDir);
-
-    await processModules();
-    await generateAll();
-}
-
-async function processModules() {
-    let modules = await jk_fs.listDir(gSrcRootDir);
-    const writer = new CodeGenWriter();
-
-    for (let module of modules) {
-        if (!module.isDirectory) continue;
-        if (!module.name.startsWith("mod_")) continue;
-
-        for (let p of gModuleDirProcessors) {
-            await p.onBeginModuleProcessing(writer, module.fullPath);
-        }
-
-        await processModule(module.fullPath);
-
-        for (let p of gModuleDirProcessors) {
-            await p.onEndModuleProcessing(writer, module.fullPath);
-        }
-    }
-}
-
-async function processModule(moduleDir: string) {
-    let dirItems = await jk_fs.listDir(moduleDir);
-    let arobaseDir: jk_fs.DirItem|undefined;
-
-    for (let dirItem of dirItems) {
-        if (!dirItem.isDirectory) continue;
-        if (dirItem.name[0] !== "@") continue;
-        if (dirItem.name == "@") { arobaseDir = dirItem; continue; }
-
-        let name = dirItem.name.substring(1);
-        let arobaseType = gArobaseHandler[name];
-        if (!arobaseType) throw declareLinkerError("Unknown arobase type: " + name, dirItem.fullPath);
-
-        if (arobaseType.position !== "root") continue;
-        await arobaseType.processDir({moduleDir, arobaseDir: dirItem.fullPath, genDir: gSrcGenDir});
-    }
-
-    if (arobaseDir) {
-        dirItems = await jk_fs.listDir(arobaseDir.fullPath);
-
-        for (let dirItem of dirItems) {
-            if (!dirItem.isDirectory) continue;
-
-            let name = dirItem.name;
-            let arobaseType = gArobaseHandler[name];
-            if (!arobaseType) throw declareLinkerError("Unknown arobase type: " + name, dirItem.fullPath);
-
-            if (arobaseType.position === "root") continue;
-            await arobaseType.processDir({moduleDir, arobaseDir: dirItem.fullPath, genDir: gSrcGenDir});
-        }
-    }
-}
-
-//endregion
-
-//region Extensions
 
 export interface AnalizeDirResult {
     dirItems: jk_fs.DirItem[];
@@ -405,7 +405,7 @@ export abstract class ArobaseType {
      * ruleDir/itemType/newItem/...
      *                  ^-- we are here
      */
-    async rules_applyRulesOnChildDir(p: TypeRules_CollectionItem, dirItem: jk_fs.DirItem) {
+    async rules_applyRulesOnChildDir(p: RulesFor_CollectionItem, dirItem: jk_fs.DirItem) {
         const thisIsFile = dirItem.isFile;
         const thisFullPath = dirItem.fullPath;
         const thisName = dirItem.name;
@@ -652,7 +652,7 @@ export abstract class ArobaseType {
         gRegistry[uid] = item;
 
         if (LOG) {
-            const relPath = jk_fs.getRelativePath(gSrcRootDir, item.itemPath);
+            const relPath = jk_fs.getRelativePath(gDir_ProjectSrc, item.itemPath);
             console.log(`Add ${uid} to registry. Path: ${relPath}`);
         }
     }
@@ -689,32 +689,29 @@ let gModuleDirProcessors: ModuleDirProcessor[] = [];
 
 //region Bootstrap
 
-let gProjectRootDir: string;
+let gDir_ProjectRoot: string;
 
-let gSrcGenDir: string;
-let gSrcRootDir: string;
+let gDir_outputSrc: string;
+let gDir_ProjectSrc: string;
 
-let gDistGenDir: string;
-let gDistRootDir: string;
-
-export function getProjectSourceGenDir() {
-    return gSrcGenDir;
-}
-
-export function getProjectDistGenDir() {
-    return gDistGenDir;
-}
+let gDir_outputDst: string;
+let gDir_ProjectDist: string;
 
 export function getBrowserInstallScript() {
-    return jk_fs.join(gDistGenDir, "installBrowser.js");
+    return jk_fs.join(gDir_outputDst, "installBrowser.js");
 }
 
 export function getServerInstallScript() {
-    return jk_fs.join(gDistGenDir, "installServer.js");
+    return jk_fs.join(gDir_outputDst, "installServer.js");
 }
 
-export function getProjectSourceDir() {
-    return gSrcRootDir;
+export interface Directories {
+    project: string;
+    project_src: string;
+    project_dst: string;
+
+    output_src: string;
+    output_dist: string;
 }
 
 export function init(rootDir?: string) {
@@ -723,12 +720,21 @@ export function init(rootDir?: string) {
 
     if (!rootDir) rootDir = jk_app.findPackageJsonDir()
 
-    gProjectRootDir = rootDir;
-    gSrcRootDir = jk_fs.join(gProjectRootDir, "src");
-    gSrcGenDir = jk_fs.join(gSrcRootDir, "_jopiLinkerGen");
+    gDir_ProjectRoot = rootDir;
+    gDir_ProjectSrc = jk_fs.join(gDir_ProjectRoot, "src");
+    gDir_ProjectDist = jk_fs.join(gDir_ProjectRoot, "dist");
 
-    gDistRootDir = jk_fs.join(gProjectRootDir, "dist");
-    gDistGenDir = jk_fs.join(gDistRootDir, "_jopiLinkerGen");
+    gDir_outputSrc = jk_fs.join(gDir_ProjectSrc, "_jopiLinkerGen");
+    gDir_outputDst = jk_fs.join(gDir_ProjectDist, "_jopiLinkerGen");
+
+    gCodeGenWriter = new CodeGenWriter({
+        project: gDir_ProjectRoot,
+        project_src: gDir_ProjectSrc,
+        project_dst: gDir_ProjectDist,
+
+        output_src: gDir_outputSrc,
+        output_dist: gDir_outputDst
+    });
 }
 
 export async function compile(rootDir?: string): Promise<boolean> {
@@ -736,11 +742,11 @@ export async function compile(rootDir?: string): Promise<boolean> {
     gIsCompiled = true;
 
     async function searchLinkerScript(): Promise<string|undefined> {
-        let jopiLinkerScript = jk_fs.join(gProjectRootDir, "dist", "jopi-linker.js");
+        let jopiLinkerScript = jk_fs.join(gDir_ProjectRoot, "dist", "jopi-linker.js");
         if (await jk_fs.isFile(jopiLinkerScript)) return jopiLinkerScript;
 
         if (jk_what.isBunJS) {
-            jopiLinkerScript = jk_fs.join(gSrcRootDir, "jopi-linker.ts");
+            jopiLinkerScript = jk_fs.join(gDir_ProjectSrc, "jopi-linker.ts");
             if (await jk_fs.isFile(jopiLinkerScript)) return jopiLinkerScript;
         }
 

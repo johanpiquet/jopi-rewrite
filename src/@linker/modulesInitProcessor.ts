@@ -1,7 +1,6 @@
 import {
     CodeGenWriter,
     FilePart,
-    getProjectSourceGenDir,
     InstallFileType,
     ModuleDirProcessor,
     resolve
@@ -27,7 +26,7 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
     override async generateCode(writer: CodeGenWriter): Promise<void> {
         let i = 0;
 
-        const genDir = getProjectSourceGenDir();
+        const genDir = writer.dir.output_src;
 
         for (let uiInitFile of this.uiInitFiles) {
             i++;
