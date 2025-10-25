@@ -20,6 +20,10 @@ export function executeBrowserInstall(ctx: ModuleInitContext_UI) {
     gBrowserInstallFunction(ctx);
 }
 
+/**
+ * Generate a code section to add inside loader.jsx.
+ * The goal is to loader "installBrowser.js".
+ */
 export function generateLoaderJsxCode(): string {
     if (!gIsInit) return "";
     let installScript = getBrowserInstallScript();

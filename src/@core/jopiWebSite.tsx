@@ -2,7 +2,7 @@
 
 import {JopiRequest} from "./jopiRequest.ts";
 import {ServerFetch} from "./serverFetch.ts";
-import {ReactRouterManager} from "./reactRouterManager.ts";
+import {RoutesManager} from "./routesManager.tsx";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
 import {onSseEvent, type ServerInstance, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
@@ -136,7 +136,7 @@ export interface WebSite {
 
     enableCors(allows?: string[]): void;
 
-    getReactRouterManager(): ReactRouterManager;
+    getReactRouterManager(): RoutesManager;
 
     readonly events: EventGroup;
 }
@@ -154,7 +154,7 @@ export class WebSiteImpl implements WebSite {
     certificate?: SslCertificatePath;
     private middlewares?: JopiMiddleware[];
     private postMiddlewares?: JopiPostMiddleware[];
-    private reactRouterManager?: ReactRouterManager;
+    private reactRouterManager?: RoutesManager;
 
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
@@ -460,9 +460,9 @@ export class WebSiteImpl implements WebSite {
         return this.addWsRoute(path, handler);
     }
 
-    getReactRouterManager(): ReactRouterManager {
+    getReactRouterManager(): RoutesManager {
         if (!this.reactRouterManager) {
-            this.reactRouterManager = new ReactRouterManager(this);
+            this.reactRouterManager = new RoutesManager(this);
         }
 
         return this.reactRouterManager;

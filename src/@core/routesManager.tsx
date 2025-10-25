@@ -16,6 +16,7 @@ import React from "react";
 import {addLoaderScriptPlugin, loadCodeGenTemplate, type LoaderScriptPluginsParams} from "./bundler/plugins.ts";
 import {isBunJS} from "jopi-toolkit/jk_what";
 import {getBundlerConfig} from "./bundler/config.ts";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 interface RouteInfo {
     componentKey: string;
@@ -23,20 +24,56 @@ interface RouteInfo {
     component: React.FunctionComponent<any>;
 }
 
-export class ReactRouterManager {
+export class RoutesManager {
     private readonly routes: Record<string, RouteInfo> = {};
-    private pageToPath: Record<string, string> = {};
+    private routeToPagePath: Record<string, string> = {};
+    private pagePathToRoute: Record<string, string> = {};
     private serverToPath: Record<string, string> = {};
 
     constructor(private readonly webSite: WebSite) {
         // Will allow adding content to the JavaScript file.
         // Here the goal of the script addon is to bind the pages to ReactRouter.
         //
-        addLoaderScriptPlugin(params => this.scriptPlugin(params));
+        const bundlerConfig = getBundlerConfig();
+
+        let enableReactRouter = bundlerConfig.reactRouter.disable!==true;
+        if (enableReactRouter) addLoaderScriptPlugin(params => this.scriptPlugin_reactRouter(params));
+
+        this.watchCssDependencies();
     }
 
-    async initialize(routesDir: string = "routes") {
+    //region React Router
+
+    private async scriptPlugin_reactRouter(params: LoaderScriptPluginsParams): Promise<void> {
+        let template = await loadCodeGenTemplate("template_router.jsx");
+        let reactRoutes: any[] = [];
+
+        for (let route in this.routes) {
+            if (route==="*") {
+                continue;
+            }
+
+            reactRoutes.push({
+                path: route,
+                Component: this.routes[route].componentKey
+            });
+        }
+
+        if (this.routes["*"]) {
+            reactRoutes.push({
+                path: "*",
+                Component: this.routes["*"].componentKey
+            });
+        }
+
+        template = template.replace("//[ROUTES]", JSON.stringify(reactRoutes, null, 4));
+
+        params.tplPlugins += template;
     }
+
+    //endregion
+
+    //region Route scanning
 
     async scanRoutesFrom(dirToScan: string) {
         const scanRoutesFromAux = async (srcDirToScan: string, baseUrl: string, dstDirToCheck: string|undefined) => {
@@ -84,7 +121,7 @@ export class ReactRouterManager {
                         if (!route) route = "/";
 
                         // Register the route.
-                        await this.registerRoute(isServer, finalPath, pathToFileURL(finalPath).href, route);
+                        await this.registerRoute(isServer, finalPath, srcEntryFullPath, pathToFileURL(finalPath).href, route);
                     }
                 }
             }
@@ -92,53 +129,24 @@ export class ReactRouterManager {
 
         let srcDirToScan: string;
         let distDirToScan: string;
+        let distDir = jk_app.getCompiledCodeDir();
+        let srcDir = jk_app.getSourceCodeDir();
 
-        if (dirToScan.startsWith(jk_app.getCompiledCodeDir())) {
+        if (dirToScan.startsWith(distDir)) {
             distDirToScan = dirToScan;
-            srcDirToScan = path.join(jk_app.getSourceCodeDir(), dirToScan.substring(jk_app.getCompiledCodeDir().length));
+            srcDirToScan = path.join(srcDir, dirToScan.substring(distDir.length));
         } else {
             srcDirToScan = dirToScan;
-            distDirToScan = path.join(jk_app.getCompiledCodeDir(), dirToScan.substring(jk_app.getSourceCodeDir().length));
+            distDirToScan = path.join(distDir, dirToScan.substring(srcDir.length));
         }
 
         await scanRoutesFromAux(srcDirToScan, pathToFileURL(srcDirToScan).href, isBunJS ? undefined : distDirToScan);
 
         // Release memory.
-        this.pageToPath = {};
+        this.routeToPagePath = {};
     }
 
-    private async scriptPlugin(params: LoaderScriptPluginsParams): Promise<void> {
-        const config = getBundlerConfig();
-        let enableReactRouter = config.reactRouter.disable!==true;
-        if (!enableReactRouter) return;
-
-        let template = await loadCodeGenTemplate("template_router.jsx");
-        let reactRoutes: any[] = [];
-
-        for (let route in this.routes) {
-            if (route==="*") {
-                continue;
-            }
-
-            reactRoutes.push({
-                path: route,
-                Component: this.routes[route].componentKey
-            });
-        }
-
-        if (this.routes["*"]) {
-            reactRoutes.push({
-                path: "*",
-                Component: this.routes["*"].componentKey
-            });
-        }
-
-        template = template.replace("//[ROUTES]", JSON.stringify(reactRoutes, null, 4));
-
-        params.tplPlugins += template;
-    }
-
-    private async registerRoute(isServer: boolean, fileFullPath: string, fileUrl: string, route: string) {
+    private async registerRoute(isServer: boolean, fileFullPath: string, fileSourceFullPath: string, fileUrl: string, route: string) {
         if (isServer) {
             if (this.serverToPath[route]) {
                 console.error(`🚫 Server route ${route} already declared. See: ${fileFullPath}`);
@@ -148,11 +156,12 @@ export class ReactRouterManager {
             }
         }
         else {
-            if (this.pageToPath[route]) {
+            if (this.routeToPagePath[route]) {
                 console.error(`🚫 Page route ${route} already declared. See: ${fileFullPath}`);
                 process.exit(1);
             } else {
-                this.pageToPath[route] = fileFullPath;
+                this.routeToPagePath[route] = fileFullPath;
+                this.pagePathToRoute[fileSourceFullPath] = route;
             }
         }
 
@@ -247,4 +256,19 @@ export class ReactRouterManager {
             }
         }
     }
+
+    //endregion
+
+    //region CSS import resolving
+
+    private watchCssDependencies() {
+        jk_events.addListener("jopi.bundler.resolve.css", async (data: {resolveDir: string, path: string, importer: string}) => {
+            let cssFilePath = jk_fs.join(data.resolveDir, data.path);
+
+            let route = this.pagePathToRoute[data.importer];
+            if (route) console.log(`🔥  Route [${route}] is using CSS`, data.path);
+        });
+    }
+
+    //endregion
 }

@@ -5,6 +5,7 @@ import path from "node:path";
 import fs from "node:fs";
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 // Note: Bun.js plugins are partially compatible with EsBuild modules.
 
@@ -87,6 +88,19 @@ export function installEsBuildPlugins(build: Bun.PluginBuilder) {
 
         //@ts-ignore
         return createJopiRawFile(result.path!, "cssmodule");
+    });
+
+    // The only role of this resolver is to be able to know who is importing a CSS/SCSS file.
+    //
+    build.onResolve({filter: /\.(css|scss)$/}, (args) => {
+        jk_events.sendEvent("jopi.bundler.resolve.css", {
+            resolveDir: args.resolveDir,
+            path: args.path,
+            importer: args.importer
+        });
+
+        // Avoid influencing the transformation.
+        return null;
     });
 
     // @ts-ignore

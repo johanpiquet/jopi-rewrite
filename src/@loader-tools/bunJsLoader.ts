@@ -8,7 +8,6 @@ export function installBunJsLoader() {
     Bun.plugin({
         name: "jopi-loader",
         setup(build) {
-
             // For module.css and imports with ?inline and ?raw
             installEsBuildPlugins(build);
 
