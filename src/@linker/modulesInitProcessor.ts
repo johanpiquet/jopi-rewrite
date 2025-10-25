@@ -3,7 +3,7 @@ import {
     FilePart,
     InstallFileType,
     ModuleDirProcessor,
-    resolve
+    resolveFile
 } from "./engine.ts";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 
@@ -12,11 +12,11 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
     private serverInitFiles: string[] = [];
     private routesDir?: string;
 
-    override async onBeginModuleProcessing(writer: CodeGenWriter, moduleDir: string): Promise<void> {
-        let uiInitFile = await resolve(moduleDir, ["uiInit.tsx", "uiInit.ts"]);
+    override async onBeginModuleProcessing(_writer: CodeGenWriter, moduleDir: string): Promise<void> {
+        let uiInitFile = await resolveFile(moduleDir, ["uiInit.tsx", "uiInit.ts"]);
         if (uiInitFile) this.uiInitFiles.push(uiInitFile);
 
-        let serverInitFile = await resolve(moduleDir, ["serverInit.tsx", "serverInit.ts"]);
+        let serverInitFile = await resolveFile(moduleDir, ["serverInit.tsx", "serverInit.ts"]);
         if (serverInitFile) this.serverInitFiles.push(serverInitFile);
 
         let routesDir = jk_fs.join(moduleDir, "routes");
@@ -26,12 +26,10 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
     override async generateCode(writer: CodeGenWriter): Promise<void> {
         let i = 0;
 
-        const genDir = writer.dir.output_src;
-
         for (let uiInitFile of this.uiInitFiles) {
             i++;
 
-            let relPath = writer.toJavascriptFileName(jk_fs.getRelativePath(genDir, uiInitFile));
+            let relPath = writer.toJavascriptFileName(writer.makePathRelatifToOutput(uiInitFile));
             writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.imports, `import modUiInit${i} from "${relPath}";`);
             writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.footer, `    modUiInit${i}(registry);`)
         }
@@ -41,7 +39,7 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
         for (let serverInitFile of this.serverInitFiles) {
             i++;
 
-            let relPath = writer.toJavascriptFileName(jk_fs.getRelativePath(genDir, serverInitFile));
+            let relPath = writer.toJavascriptFileName(writer.makePathRelatifToOutput(serverInitFile));
             writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.imports, `import modServerInit${i} from "${relPath}";`);
             writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `    await modServerInit${i}(registry);`)
         }

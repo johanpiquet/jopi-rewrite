@@ -2,13 +2,12 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_tools from "jopi-toolkit/jk_tools";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_what from "jopi-toolkit/jk_what";
-import * as jk_crypto from "jopi-toolkit/jk_crypto";
 
 const LOG = false;
 
 //region Helpers
 
-export async function resolve(dirToSearch: string, fileNames: string[]): Promise<string|undefined> {
+export async function resolveFile(dirToSearch: string, fileNames: string[]): Promise<string|undefined> {
     for (let fileName of fileNames) {
         let filePath = jk_fs.join(dirToSearch, fileName);
         if (await jk_fs.isFile(filePath)) return filePath;
@@ -129,6 +128,8 @@ async function generateAll() {
 }
 
 export class CodeGenWriter {
+    public readonly isTypeScriptOnly = gIsTypeScriptOnly;
+
     constructor(public readonly dir: Directories) {
     }
 
@@ -138,10 +139,16 @@ export class CodeGenWriter {
         return filePath;
     }
 
+    makePathRelatifToOutput(path: string) {
+        return jk_fs.getRelativePath(this.dir.output_src, path);
+    }
+
     async writeCodeFile(innerPath: string, typeScriptContent: string, javaScriptContent: string) {
-        gWriteReport.push(`writeSourceFile|${innerPath}|${jk_crypto.md5(typeScriptContent)}`);
         await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, innerPath), typeScriptContent);
-        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, innerPath), javaScriptContent);
+
+        if (!gIsTypeScriptOnly) {
+            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, innerPath), javaScriptContent);
+        }
     }
 
     async symlinkDir(innerPath: string, targetDirPath_src: string) {
@@ -150,25 +157,25 @@ export class CodeGenWriter {
         }
 
         let relPath = targetDirPath_src.substring(gDir_ProjectSrc.length);
-        let targetDirPath_dist = gDir_outputDst + relPath;
-
-        if (!await jk_fs.isDirectory(targetDirPath_dist)) {
-            await jk_fs.mkDir(jk_fs.dirname(targetDirPath_dist));
-        }
 
         let srcNewDir = jk_fs.join(gDir_outputSrc, innerPath);
-        let distNewDir = jk_fs.join(gDir_outputDst, innerPath);
 
         // The parent dir must exist for symlink.
         await jk_fs.mkDir(jk_fs.dirname(srcNewDir));
-        await jk_fs.mkDir(jk_fs.dirname(distNewDir));
-
-        await jk_fs.unlink(distNewDir);
-
         await jk_fs.symlink(targetDirPath_src, srcNewDir, "dir");
-        await jk_fs.symlink(targetDirPath_dist, distNewDir, "dir");
 
-        gWriteReport.push(`symlinkDir|${innerPath}|${relPath}`);
+        if (!gIsTypeScriptOnly) {
+            let targetDirPath_dist = gDir_outputDst + relPath;
+            let distNewDir = jk_fs.join(gDir_outputDst, innerPath);
+
+            if (!await jk_fs.isDirectory(targetDirPath_dist)) {
+                await jk_fs.mkDir(jk_fs.dirname(targetDirPath_dist));
+            }
+
+            await jk_fs.mkDir(jk_fs.dirname(distNewDir));
+            await jk_fs.unlink(distNewDir);
+            await jk_fs.symlink(targetDirPath_dist, distNewDir, "dir");
+        }
     }
 
     genAddToInstallFile_JS(who: InstallFileType, where: FilePart, javascriptContent: string) {
@@ -207,8 +214,6 @@ let gBrowserInstallFileTemplate = `__HEADER
 export default function(registry) {
 __BODY__FOOTER
 }`;
-
-let gWriteReport: string[] = [];
 
 //endregion
 
@@ -385,7 +390,7 @@ export abstract class ArobaseType {
         //
         if (p.filesToResolve) {
             for (let key in p.filesToResolve) {
-                resolved[key] = await resolve(thisFullPath, p.filesToResolve[key]);
+                resolved[key] = await resolveFile(thisFullPath, p.filesToResolve[key]);
             }
         }
 
@@ -692,7 +697,9 @@ export interface Directories {
     output_dist: string;
 }
 
-export async function compile(config: LinkerConfig): Promise<void> {
+let gIsTypeScriptOnly: boolean;
+
+export async function compile(importMeta: any, config: LinkerConfig): Promise<void> {
     async function searchLinkerScript(): Promise<string|undefined> {
         let jopiLinkerScript = jk_fs.join(gDir_ProjectRoot, "dist", "jopi-linker.js");
         if (await jk_fs.isFile(jopiLinkerScript)) return jopiLinkerScript;
@@ -711,6 +718,8 @@ export async function compile(config: LinkerConfig): Promise<void> {
 
     gDir_outputSrc = jk_fs.join(gDir_ProjectSrc, "_jopiLinkerGen");
     gDir_outputDst = jk_fs.join(gDir_ProjectDist, "_jopiLinkerGen");
+
+    gIsTypeScriptOnly = !importMeta.filename.endsWith(".js");
 
     gCodeGenWriter = new CodeGenWriter({
         project: gDir_ProjectRoot,
