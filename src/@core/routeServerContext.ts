@@ -4,6 +4,10 @@ import type {WebSite, WebSiteRoute} from "./jopiWebSite.tsx";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import {JopiRequest} from "./jopiRequest.js";
 
+/**
+ * Is used by the server page inside the route folder to bound the route to the url.
+ * Ex: /routes/product/index.server.tsx
+ */
 export class RouteServerContext {
     protected _hasGetHandler = false;
 
