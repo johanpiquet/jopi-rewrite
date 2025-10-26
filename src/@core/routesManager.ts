@@ -17,8 +17,6 @@ export class RoutesManager {
     constructor(private readonly webSite: WebSite) {
     }
 
-    //region Route scanning
-
     async scanRoutesFrom(dirToScan: string) {
         const scanRoutesFromAux = async (srcDirToScan: string, baseUrl: string, dstDirToCheck: string|undefined) => {
             const entries = await fs.readdir(srcDirToScan, {withFileTypes: true});
@@ -166,6 +164,4 @@ export class RoutesManager {
             }
         }
     }
-
-    //endregion
 }

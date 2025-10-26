@@ -487,22 +487,9 @@ export class WebSiteImpl implements WebSite {
         else this._uiModules.push(initializer);
     }
 
-    initializeUiModules2(pageController: PageController) {
+    initializeUiModules(pageController: PageController) {
         const modInit = this._instancierFor_uiInit(pageController);
         executeBrowserInstall(modInit);
-    }
-
-    initializeUiModules(req: JopiRequest, pageController: PageController) {
-        const modInit = this._instancierFor_uiInit(pageController);
-        executeBrowserInstall(modInit);
-        if (!this._uiModules) return;
-
-        // Initialize all the ui-modules.
-
-        this._uiModules.forEach(i => i(modInit));
-
-        // Declare the init done.
-        modInit.events.sendEvent("app.init.ui");
     }
 
     /**

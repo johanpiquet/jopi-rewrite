@@ -1,8 +1,7 @@
 import * as jk_events from "jopi-toolkit/jk_events";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
-import type {LoaderScriptPluginsParams} from "./plugins.ts";
-import {type BundlerConfig, getBundlerConfig} from "./config.ts";
+import {type BundlerConfig} from "./config.ts";
 import {getBrowserInstallScript} from "jopi-rewrite/linker";
 
 // *********************************************************************************************************************

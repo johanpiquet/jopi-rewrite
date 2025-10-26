@@ -6,14 +6,6 @@ import {CssModule, type UseCssModuleContextProps} from "./cssModules.tsx";
 import * as jk_events from "jopi-toolkit/jk_events";
 
 /**
- * Allows getting the page object and alter it.
- */
-export function useOnPageRendering<T = any>(f: (page: PageController<T>) => void) {
-    const page = React.useContext(PageContext) as PageController<T>;
-    if (page) f(page);
-}
-
-/**
  * Allows setting the page title.
  * @param title
  */
@@ -51,6 +43,9 @@ export function useCssModule(cssModule: undefined | Record<string, string>) {
     }
 }
 
+/**
+ * Is a subset of JopiRequest, with only browser-side compatible items.
+ */
 export interface ServerRequestInstance {
     urlParts?: Record<string, any>;
     urlInfos: URL;
