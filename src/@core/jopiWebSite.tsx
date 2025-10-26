@@ -13,12 +13,7 @@ import React from "react";
 import {
     ModuleInitContext_UI,
     type ModuleInitContext_Host,
-    Page,
-    PageContext,
     PageController,
-    PageController_ExposePrivate,
-    renderPage,
-    setPageRenderer,
     type UiUserInfos
 } from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
@@ -141,8 +136,6 @@ export interface WebSite {
     readonly events: EventGroup;
 }
 
-type PageRenderInitializer = (uiInit: ModuleInitContext_UI) => void;
-
 export class WebSiteImpl implements WebSite {
     readonly port: number;
     readonly host: string;
@@ -158,8 +151,6 @@ export class WebSiteImpl implements WebSite {
 
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
-
-    private _uiModules?: PageRenderInitializer[];
 
     public readonly data: any = {};
 
@@ -479,28 +470,20 @@ export class WebSiteImpl implements WebSite {
 
     //region UI Modules
 
-    /**
-     * Register a UI module
-     */
-    addUiModule(initializer: (uiInit: ModuleInitContext_UI) => void) {
-        if (!this._uiModules) this._uiModules = [initializer];
-        else this._uiModules.push(initializer);
-    }
-
-    initializeUiModules(pageController: PageController) {
-        const modInit = this._instancierFor_uiInit(pageController);
-        executeBrowserInstall(modInit);
+    executeBrowserInstall(pageController: PageController) {
+        executeBrowserInstall(this.createModuleInitInstance(pageController));
     }
 
     /**
      * Allow overriding the instance used by modules 'uiInit.tsx' files.
      * @param instancier
      */
-    setUiInitInstancier(instancier: (host: ModuleInitContext_Host) =>  ModuleInitContext_UI) {
-        this._instancierFor_uiInit = instancier;
+    setModuleInitClassInstancier(instancier: (host: ModuleInitContext_Host) =>  ModuleInitContext_UI) {
+        this.createModuleInitInstance = instancier;
     }
 
-    private _instancierFor_uiInit(pageController: ModuleInitContext_Host): ModuleInitContext_UI {
+    private createModuleInitInstance(pageController: ModuleInitContext_Host): ModuleInitContext_UI {
+        // Note: this function will be replaced.
         return new ModuleInitContext_UI(pageController);
     }
 
@@ -719,7 +702,7 @@ export class WebSiteImpl implements WebSite {
         //
         if ((this.cacheFor_404_NotFound === undefined) || (this.cacheFor_404_NotFound_ref!==G_Default404Template)) {
             if (G_Default404Template) {
-                this.cacheFor_404_NotFound = ReactServer.renderToStaticMarkup(renderPage(<G_Default404Template />));
+                this.cacheFor_404_NotFound = ReactServer.renderToStaticMarkup(<G_Default404Template />);
                 this.cacheFor_404_NotFound_ref = G_Default404Template;
             } else {
                 this.cacheFor_404_NotFound = "404 Not Found";
@@ -730,6 +713,9 @@ export class WebSiteImpl implements WebSite {
     }
 
     async return500(req: JopiRequest, error?: Error|string): Promise<Response> {
+        const accept = req.headers.get("accept");
+        if (!accept || !accept.startsWith("text/html")) return new Response("", {status: 500});
+
         if (this._on500_Error) {
             let res = this._on500_Error(req, error);
             if (res instanceof Promise) res = await res;
@@ -958,21 +944,5 @@ export interface LoginPassword {
     login: string;
     password: string;
 }
-
-// Hook the rendering of a page to a post-process it
-//  to avoid some server side pitfall.
-//
-setPageRenderer((children, hook, options) => {
-    const controller = new PageController_ExposePrivate<unknown>(false, options);
-    hook?.(controller);
-
-    // Allow forcing children rendering and by doing that, setting controller values.
-    // It's required, since in React SSR there is no back-propagation and components
-    // are never refreshed two times.
-    //
-    ReactServer.renderToStaticMarkup(<PageContext.Provider value={controller}>{children}</PageContext.Provider>);
-
-    return <Page controller={controller}>{children}</Page>;
-});
 
 const gVoidCache = new VoidPageCache();

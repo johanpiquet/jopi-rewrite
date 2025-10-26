@@ -10,7 +10,7 @@ import {usePage} from "jopi-rewrite/ui";
 import React from "react";
 
 export default function() {
-    const myPage = usePage();
+    const myPage = _usePage();
     myPage.setPageTitle("My page title");
     page.addToHeader("key-avoiding-double", <link key="1" href="my-custom-style.css" rel="stylesheet"/>);
     

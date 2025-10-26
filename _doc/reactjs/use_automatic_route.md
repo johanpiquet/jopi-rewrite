@@ -42,7 +42,7 @@ import {usePage} from "jopi-rewrite/ui";
 import React from "react";
 
 export default function() {
-    const page = usePage();
+    const page = _usePage();
     page.setPageTitle("My page title");
 
     return <div>My home page</div>;

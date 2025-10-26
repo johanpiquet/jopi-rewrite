@@ -6,15 +6,11 @@ import {CssModule, type UseCssModuleContextProps} from "./cssModules.tsx";
 import * as jk_events from "jopi-toolkit/jk_events";
 
 /**
- * Allows setting the page title.
- * @param title
+ * Allow getting a reference to the PageController.
+ * **USING IT MUST BE AVOIDED** since it's a technical item.
+ * It's the reason of the underscore.
  */
-export function usePageTitle(title: string) {
-    const page = React.useContext(PageContext) as PageController;
-    if (page) page.setPageTitle(title);
-}
-
-export function usePage<T = any>(): PageController<T> {
+export function _usePage<T = any>(): PageController<T> {
     let res = React.useContext(PageContext) as PageController<T>;
 
     // Not wrapped inside a PageContext?
@@ -25,13 +21,22 @@ export function usePage<T = any>(): PageController<T> {
     return res;
 }
 
+/**
+ * Allows setting the page title.
+ * @param title
+ */
+export function usePageTitle(title: string) {
+    const page = React.useContext(PageContext) as PageController;
+    if (page) page.setPageTitle(title);
+}
+
 export function useCssModule(cssModule: undefined | Record<string, string>) {
     if (!cssModule) return;
 
     const fileHash = cssModule.__FILE_HASH__;
     if (!cssModule.__FILE_HASH__) return;
 
-    const ctx = usePage<UseCssModuleContextProps>();
+    const ctx = _usePage<UseCssModuleContextProps>();
 
     if (!ctx.data.jopiUseCssModule) ctx.data.jopiUseCssModule = {};
 
@@ -59,7 +64,7 @@ export interface ServerRequestInstance {
 }
 
 export function useServerRequest(): ServerRequestInstance {
-    let page = usePage();
+    let page = _usePage();
     return (page as PageController_ExposePrivate).getServerRequest();
 }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import {usePage} from "./hooks.tsx";
+import {_usePage} from "./hooks.tsx";
 
 //region Composite
 
@@ -60,7 +60,7 @@ let gCompositeRenderer: CompositeRenderer|undefined;
  * `modInit.setComponentAlias({alias: "page.layout.admin", component: DefaultPageLayout});`
  */
 export function ComponentAlias({name, children}: {name: string, children?: React.ReactNode}) {
-    const page = usePage();
+    const page = _usePage();
     const alias = page.getComponentAlias(name);
 
     if (!alias) return <div className="text-red-500">Component alias not found: {name}</div>;

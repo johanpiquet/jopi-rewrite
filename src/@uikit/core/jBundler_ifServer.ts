@@ -13,6 +13,6 @@ export function registerUiKit() {
     //
     ns_event.addListener<WebSite>("jopi.webSite.created", (webSite) => {
         // @ts-ignore It doesn't correctly cast references.
-        (webSite as WebSiteImpl).setUiInitInstancier(host => new UiKitModule(host));
+        (webSite as WebSiteImpl).setModuleInitClassInstancier(host => new UiKitModule(host));
     });
 }

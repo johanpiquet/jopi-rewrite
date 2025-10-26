@@ -12,7 +12,7 @@ import {useLogOutUser, usePage} from "jopi-rewrite/ui";
 import React from "react";
 
 export default function() {
-    usePage().setPageTitle("My page title");
+    _usePage().setPageTitle("My page title");
     const logOutUser = useLogOutUser();
     
     // logOutUser has not effect on server-side.

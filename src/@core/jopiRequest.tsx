@@ -796,7 +796,7 @@ export class JopiRequest {
         // Allow faking the environment of the page.
         const controller = new PageController_ExposePrivate<unknown>(false, options);
         controller.setServerRequest(this);
-        (this.webSite as WebSiteImpl).initializeUiModules(controller);
+        (this.webSite as WebSiteImpl).executeBrowserInstall(controller);
 
         try {
             let html = ReactServer.renderToStaticMarkup(<Page controller={controller} ><C/></Page>);

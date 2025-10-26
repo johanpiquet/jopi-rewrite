@@ -1,9 +1,9 @@
-import {usePage, type UiUserInfos} from "jopi-rewrite/ui";
+import {_usePage, type UiUserInfos} from "jopi-rewrite/ui";
 import React, {useEffect} from "react";
 import {useRouterNavigate} from "../reactRouter/index.ts";
 
 export function useLogOutUser(): ()=>void {
-    const page = usePage();
+    const page = _usePage();
 
     return () => {
         page.logOutUser();
@@ -12,7 +12,7 @@ export function useLogOutUser(): ()=>void {
 }
 
 export function useUseStateRefresh() {
-    const page = usePage();
+    const page = _usePage();
 
     return () => {
         page.refreshUserInfos();
@@ -33,7 +33,7 @@ export function useUserHasRoles(roles: string[]): boolean {
 }
 
 export function useUserInfos(): UiUserInfos|undefined {
-    const page = usePage();
+    const page = _usePage();
     return page.getUserInfos();
 }
 

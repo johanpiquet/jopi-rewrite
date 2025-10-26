@@ -20,6 +20,10 @@ export interface PageOptions {
     headProps?: Record<string, any>;
 }
 
+/**
+ * Page controller is an object that can be accessed
+ * from any React component from the `_usePage`hook.
+ */
 export class PageController<T = any> implements ModuleInitContext_Host {
     private readonly isServerSide: boolean = isServerSide;
     private readonly usedKeys = new Set<String>();
@@ -37,18 +41,12 @@ export class PageController<T = any> implements ModuleInitContext_Host {
         this.state = {...options};
     }
 
+    /**
+     * Allow storing custom data inside the page context.
+     */
     data: T = {} as unknown as T;
 
-    protected pageTitle?: string;
-
-    private checkKey(key: string) {
-        if (this.usedKeys.has(key)) {
-            return false;
-        }
-
-        this.usedKeys.add(key);
-        return true;
-    }
+    //region ModuleInitContext_Host
 
     public setComponentAlias(aliasDef: ComponentAliasDef) {
         if (isServerSide) {
@@ -89,20 +87,11 @@ export class PageController<T = any> implements ModuleInitContext_Host {
         return this.userInfos;
     }
 
-    public refreshUserInfos() {
-        if (!isServerSide && isUserInfoCookieUpdated()) {
-            this.userInfos = decodeUserInfosFromCookie();
-            jk_events.sendEvent("user.infosUpdated")
-        }
-    }
+    //endregion
 
-    public logOutUser() {
-        if (!isServerSide) {
-            deleteCookie("authorization");
-        }
+    //region Page options (header/props/...)
 
-        this.refreshUserInfos();
-    }
+    protected pageTitle?: string;
 
     public addToHeader(key: string, entry: React.ReactNode) {
         if (this.isServerSide) {
@@ -180,6 +169,32 @@ export class PageController<T = any> implements ModuleInitContext_Host {
         return this;
     }
 
+    private checkKey(key: string) {
+        if (this.usedKeys.has(key)) {
+            return false;
+        }
+
+        this.usedKeys.add(key);
+        return true;
+    }
+
+    //endregion
+
+    public refreshUserInfos() {
+        if (!isServerSide && isUserInfoCookieUpdated()) {
+            this.userInfos = decodeUserInfosFromCookie();
+            jk_events.sendEvent("user.infosUpdated")
+        }
+    }
+
+    public logOutUser() {
+        if (!isServerSide) {
+            deleteCookie("authorization");
+        }
+
+        this.refreshUserInfos();
+    }
+
     onStateUpdated(_state: PageOptions) {
         // Will be dynamically replaced.
     }
@@ -187,6 +202,7 @@ export class PageController<T = any> implements ModuleInitContext_Host {
     onRequireRefresh() {
         // Will be dynamically replaced.
     }
+
 }
 
 export class PageController_ExposePrivate<T = any> extends PageController<T> {
@@ -207,17 +223,6 @@ export class PageController_ExposePrivate<T = any> extends PageController<T> {
 }
 
 export type PageHook = (controller: PageController_ExposePrivate<unknown>) => void;
-
-type PageRenderer = (children: React.ReactNode|React.ReactNode[], hook?: PageHook, options?: PageOptions) => React.ReactNode;
-
-export function setPageRenderer(value: PageRenderer) {
-    gPageRender = value;
-}
-
-export function renderPage(children: React.ReactNode|React.ReactNode[], hook?: PageHook, options?: PageOptions) {
-    if (gPageRender) return gPageRender(children, hook, options);
-    return <Page children={children} hook={hook} options={options} />
-}
 
 export const Page: React.FC<{
     children: React.ReactNode|React.ReactNode[],
@@ -273,5 +278,3 @@ export const Page: React.FC<{
 
 // Use undefined, otherwise the value is common for all requests when doing SSR.
 export const PageContext = React.createContext<PageController<unknown>|undefined>(undefined);
-
-let gPageRender: PageRenderer|undefined;

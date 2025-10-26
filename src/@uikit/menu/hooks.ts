@@ -1,11 +1,11 @@
 import {MenuManager} from "./core.ts";
 import {type MenuItem} from "./interfaces.ts";
 import {isServerSide} from "jopi-toolkit/jk_what";
-import {usePage, useEvent} from "jopi-rewrite/ui";
+import {_usePage, useEvent} from "jopi-rewrite/ui";
 import {useState} from "react";
 
 export function useMenuManager(): MenuManager {
-    return usePage().objectRegistry.getObject<MenuManager>("uikit.menuManager")!
+    return _usePage().objectRegistry.getObject<MenuManager>("uikit.menuManager")!
 }
 
 export function useMatchingMenuItem(): MenuItem|undefined {
