@@ -14,8 +14,10 @@ __BODY__FOOTER
 
 // Here it's not async.
 let gBrowserInstallFileTemplate = `__HEADER
+
 export default function(registry) {
 __BODY__FOOTER
+registry.events.sendEvent("app.init.ui", {myModule: registry});
 }`;
 
 export function getDefaultLinkerConfig(): LinkerConfig {
