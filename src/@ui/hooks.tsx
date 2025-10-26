@@ -33,13 +33,16 @@ export function usePageTitle(title: string) {
 export function useCssModule(cssModule: undefined | Record<string, string>) {
     if (!cssModule) return;
 
+    // Not a real CSS Module?
     const fileHash = cssModule.__FILE_HASH__;
-    if (!cssModule.__FILE_HASH__) return;
+    if (!fileHash) return;
 
     const ctx = _usePage<UseCssModuleContextProps>();
 
+    // Will allow knowing if the module is already inserted for this page.
     if (!ctx.data.jopiUseCssModule) ctx.data.jopiUseCssModule = {};
 
+    // Not already added? Then add it.
     if (fileHash && !ctx.data.jopiUseCssModule[fileHash]) {
         ctx.data.jopiUseCssModule![fileHash] = true;
 

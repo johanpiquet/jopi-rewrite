@@ -3,12 +3,10 @@ import * as sass from "sass";
 import fs from "node:fs/promises";
 import postcssModules from "postcss-modules";
 import postcss from "postcss";
-import postcssUrl from "postcss-url";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import * as jk_app from "jopi-toolkit/jk_app";
 
 import * as jk_fs from "jopi-toolkit/jk_fs";
-import {getVirtualUrlForFile} from "./virtualUrl.js";
 
 /**
  * Compile a CSS or SCSS file to a JavaScript file.
@@ -38,14 +36,15 @@ export default async function compileCssModule(filePath: string): Promise<string
     let knownClassNames: Record<string, string> = {};
 
     // Contains virtual urls for resources inside the CSS.
-    let virtualUrlSourceFiles: string[] = [];
+    //let virtualUrlSourceFiles: string[] = [];
 
     try {
         const plugins = [
             // Will allow detecting internal url and replace url with a virtual url
             // allowing to resolve the dependencies (from bundler or direct location).
             //
-            postcssUrl({
+            //import postcssUrl from "postcss-url";
+            /*postcssUrl({
                 url: (asset) => {
                     if (asset.url.startsWith('/') || asset.url.startsWith('./')) {
                         if (asset.absolutePath) {
@@ -57,7 +56,7 @@ export default async function compileCssModule(filePath: string): Promise<string
 
                     return asset.url;
                 }
-            }),
+            }),*/
 
             postcssModules({
                 // The format of the classnames.
@@ -85,18 +84,24 @@ export default async function compileCssModule(filePath: string): Promise<string
     // Here __TOKENS__ contain something like {myLocalStyle: "LocalStyleButton__myLocalStyle___n1l3e"}.
     // The goal is to resolve the computed class name and the original name.
 
-    // To known: we don't execute in the same process as the source code.
-    // It's why we can't directly call registerCssModule.
-
     if (process.env.JOPI_BUNLDER_ESBUILD) {
         return `export default ${JSON.stringify(knownClassNames)};`;
     }
 
-    return `
-        const virtualUrls = ${JSON.stringify(virtualUrlSourceFiles)};
-        if (global.jopiAddVirtualUrlFor) virtualUrls.forEach(global.jopiAddVirtualUrlFor);
+    // Note: here we have virtual url for resources inside the CSS.
+    //
+    /*return `
+        if (global.jopiAddVirtualUrlFor) {
+            const virtualUrls = ${JSON.stringify(virtualUrlSourceFiles)};
+            virtualUrls.forEach(global.jopiAddVirtualUrlFor);
+        }
+
         export default ${JSON.stringify(knownClassNames)};
-    `;
+    `;*/
+
+    return `
+    export default ${JSON.stringify(knownClassNames)};
+    `
 }
 
 export function scssToCss(filePath: string): any {
