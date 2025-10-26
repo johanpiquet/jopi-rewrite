@@ -48,7 +48,7 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {g
 const REACT_TEMPLATE = `
 import React from "react";
 import ReactDOM from "react-dom/client";
-import {Page, ModuleInitContext_UI} from "jopi-rewrite/ui";
+import {PageContext, PageController_ExposePrivate} from "jopi-rewrite/ui";
 import C from "__PATH__";
 import {UiKitModule} from "jopi-rewrite/uikit";
 import installer from "__INSTALL__";
@@ -58,7 +58,9 @@ installer(new UiKitModule());
 
 const root = document.body;
 const reactRoot = ReactDOM.createRoot(root);
-reactRoot.render(<React.StrictMode><Page><C /></Page></React.StrictMode>);
+
+reactRoot.render(<React.StrictMode><PageContext.Provider value={new PageController_ExposePrivate()}>
+                    <C/></PageContext.Provider></React.StrictMode>);
 `;
 
 /**

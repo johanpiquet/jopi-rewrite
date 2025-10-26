@@ -206,7 +206,7 @@ export class PageController<T = any> implements ModuleInitContext_Host {
 }
 
 export class PageController_ExposePrivate<T = any> extends PageController<T> {
-    exportState(): PageOptions {
+    getOptions(): PageOptions {
         return this.state;
     }
 
@@ -223,58 +223,6 @@ export class PageController_ExposePrivate<T = any> extends PageController<T> {
 }
 
 export type PageHook = (controller: PageController_ExposePrivate<unknown>) => void;
-
-export const Page: React.FC<{
-    children: React.ReactNode|React.ReactNode[],
-    controller?: PageController_ExposePrivate<unknown>,
-    hook?: PageHook,
-    options?: PageOptions}> = ({children, hook, options, controller}) => {
-    if (!controller) {
-        controller = new PageController_ExposePrivate<unknown>(false, options);
-        if (hook) hook(controller);
-    }
-
-    // On the server side we do a full render.
-    // On the browser side, we can't only render the body content
-    //      since React doesn't allow a full page replace.
-    //
-    if (isServerSide) {
-        const state = controller.exportState();
-
-        return <PageContext.Provider value={controller}>
-            <html {...state.htmlProps}>
-            <head {...state.headProps}>
-                {state.head}
-                <title>{state.pageTitle}</title>
-            </head>
-            <body {...state.bodyProps}>
-            {state.bodyBegin}
-            {children}
-            {state.bodyEnd}
-            </body>
-            </html>
-        </PageContext.Provider>;
-    } else {
-        // Using PageContent allows refreshing the body without losing the context.
-        function PageContent({children}: {children: React.ReactNode|React.ReactNode[]}) {
-            const [state, setState] = useState<PageOptions>(controller!.exportState());
-            const [_, setCounter] = useState(0);
-
-            controller!.onStateUpdated = (s) => setState({...s});
-            controller!.onRequireRefresh = () => setCounter(prev => prev + 1);
-
-            return <>
-                {state.bodyBegin}
-                {children}
-                {state.bodyEnd}
-            </>
-        }
-
-        return <PageContext.Provider value={controller}>
-            <PageContent>{children}</PageContent>
-        </PageContext.Provider>;
-    }
-}
 
 // Use undefined, otherwise the value is common for all requests when doing SSR.
 export const PageContext = React.createContext<PageController<unknown>|undefined>(undefined);

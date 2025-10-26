@@ -3,11 +3,12 @@
 import type {ServerInstance, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
-import {Page, PageController_ExposePrivate, type PageOptions} from "jopi-rewrite/ui";
+import {PageController_ExposePrivate, type PageOptions} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import * as ns_schema from "jopi-toolkit/ns_schema";
+import Page from "./PageComponent.tsx";
 
 import {initCheerio} from "./jQuery.ts";
 import {type CacheEntry, type PageCache, WebSiteMirrorCache} from "./caches/cache.ts";
