@@ -11,7 +11,7 @@ import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
 import {
-    ModuleInitContext_UI,
+    ModuleInitContext,
     type ModuleInitContext_Host,
     PageController,
     type UiUserInfos
@@ -478,13 +478,13 @@ export class WebSiteImpl implements WebSite {
      * Allow overriding the instance used by modules 'uiInit.tsx' files.
      * @param instancier
      */
-    setModuleInitClassInstancier(instancier: (host: ModuleInitContext_Host) =>  ModuleInitContext_UI) {
+    setModuleInitClassInstancier(instancier: (host: ModuleInitContext_Host) =>  ModuleInitContext) {
         this.createModuleInitInstance = instancier;
     }
 
-    private createModuleInitInstance(pageController: ModuleInitContext_Host): ModuleInitContext_UI {
+    private createModuleInitInstance(pageController: ModuleInitContext_Host): ModuleInitContext {
         // Note: this function will be replaced.
-        return new ModuleInitContext_UI(pageController);
+        return new ModuleInitContext(pageController);
     }
 
     //endregion

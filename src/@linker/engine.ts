@@ -169,7 +169,13 @@ export class CodeGenWriter {
             }
 
             await jk_fs.mkDir(jk_fs.dirname(distNewDir));
+
+            // The dir can be a link (through our own action)
+            // or be a directory (if TypeScript/tsc has compiled it).
+            //
             await jk_fs.unlink(distNewDir);
+            await jk_fs.rmDir(distNewDir);
+
             await jk_fs.symlink(targetDirPath_dist, distNewDir, "dir");
         }
 

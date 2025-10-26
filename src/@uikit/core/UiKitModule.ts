@@ -1,8 +1,8 @@
-import {ModuleInitContext_UI} from "jopi-rewrite/ui";
+import {ModuleInitContext} from "jopi-rewrite/ui";
 import {MenuManager} from "../menu/index.ts";
 import {getDefaultMenuManager} from "../menu/internal.ts";
 
-export class UiKitModule extends ModuleInitContext_UI {
+export class UiKitModule extends ModuleInitContext {
     protected override initialize() {
         this.objectRegistry.addObjectBuilder("uikit.menuManager", () => {
             if (this.isBrowserSide) {

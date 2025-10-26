@@ -33,7 +33,7 @@ type UiInitializer = () => void;
  * * On server-side, it's executed for each page.
  * * On browser-side, it's executed for each browser refresh.
  */
-export class ModuleInitContext_UI {
+export class ModuleInitContext {
     public readonly objectRegistry: IsObjectRegistry;
     public readonly events: jk_events.EventGroup;
     public readonly isBrowserSide: boolean = !isServerSide;
