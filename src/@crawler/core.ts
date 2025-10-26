@@ -484,7 +484,6 @@ export class WebSiteCrawler {
                 return sendSignal(ProcessUrlResult.OK);
             }
             catch (e: any) {
-                debugger;
                 console.error("Crawler - Error while fetching:", sourceUrl);
                 console.error("|--> Message:", getErrorMessage(e));
 

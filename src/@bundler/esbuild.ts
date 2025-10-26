@@ -12,8 +12,8 @@ export interface EsBuildParams extends CreateBundleEvent {
 
 export async function esBuildBundle(params: EsBuildParams) {
     // To know: will generate:
-    // * A file out/loader.js   with the JS include by loader.jsx
-    // * A file out/loader.css  with the CSS include by loader.jsx
+    // * Some files out/page_xxxx.js, where each page is an "index.page.tsx".
+    // * Some files out/page_xxxx.css with the CSS specific to this page.
 
     const buildOptions: esbuild.BuildOptions = {
         entryPoints: params.entryPoints,
@@ -66,8 +66,8 @@ export async function esBuildBundle(params: EsBuildParams) {
             '.md': 'text'
         },
 
-        //minify: true,
-        minify: false,
+        minify: true,
+        //minify: false,
         sourcemap: true,
 
         // Will trigger an error on collision detection.

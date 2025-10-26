@@ -7,7 +7,6 @@ import fs from "node:fs/promises";
 import {pathToFileURL} from "node:url";
 import {mustHydrate} from "jopi-rewrite/ui";
 import {getBrowserComponentKey} from "./hydrate.ts";
-import {StaticRouter} from "react-router";
 import {JopiRequest} from "./jopiRequest.ts";
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";

@@ -34,24 +34,8 @@ function addVirtualUrl(webSite: WebSite, entry: VirtualUrlEntry) {
     });
 }
 
-function getBundleUrl(_webSite: WebSite): string {
-    return "/_bundle";
-}
-
-export function getBundleEntryPointUrl_JS(_webSite: WebSite): string {
-    return '/_bundle/' + gJsEntryPointFileName;
-}
-
-export function getBundleEntryPointUrl_CSS(_webSite: WebSite): string {
-    return '/_bundle/' + gCssEntryPointFileName;
-}
-
-export function configureServer(dirPath: string, jsEntryPointFileName: string, cssEntryPointFileName?: string) {
+export function configureServer(dirPath: string) {
     gDirToServe = dirPath;
-    gJsEntryPointFileName = jsEntryPointFileName;
-    gCssEntryPointFileName = cssEntryPointFileName;
 }
 
 let gDirToServe: string|undefined;
-let gJsEntryPointFileName: string|undefined;
-let gCssEntryPointFileName: string|undefined;

@@ -12,7 +12,7 @@ export async function applyTailwindProcessor(params: CreateBundleEvent): Promise
     }
 
     // Prefer the sources if possible.
-    const sourceFiles = await Promise.all(params.reactComponentFiles.map(jk_app.requireSourceOf))
+    const sourceFiles = params.entryPoints;
 
     // >>> Tailwind transform
 

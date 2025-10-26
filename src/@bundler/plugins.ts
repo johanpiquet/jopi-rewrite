@@ -134,8 +134,6 @@ export function jopiDetectRebuild(params: EsBuildParams): Plugin {
             build.onEnd(async () => {
                 isFirstCall = false;
 
-                await calcHash(params);
-
                 if (params.enableUiWatch) {
                     await jk_events.sendAsyncEvent("jopi.bundler.watch.afterRebuild");
                 }
@@ -155,16 +153,3 @@ export const jopiLoaderPlugin: Plugin = {
         installEsBuildPlugins(build as unknown as Bun.PluginBuilder)
     },
 };
-
-async function calcHash(params: CreateBundleEvent) {
-    const loaderHash: any = params.webSite.data["jopiLoaderHash"] ?? {};
-    params.webSite.data["jopiLoaderHash"] = loaderHash;
-
-    let cssFilePath = path.join(params.outputDir, params.out_cssEntryPoint!);
-    if (!await jk_fs.isFile(cssFilePath)) await jk_fs.writeTextToFile(cssFilePath, "");
-    loaderHash.css = jk_crypto.md5(await jk_fs.readTextFromFile(cssFilePath));
-
-    let jsFilePath = path.join(params.outputDir, params.out_jsEntryPoint!);
-    if (!await jk_fs.isFile(jsFilePath)) await jk_fs.writeTextToFile(jsFilePath, "");
-    loaderHash.js = jk_crypto.md5(await jk_fs.readTextFromFile(jsFilePath));
-}

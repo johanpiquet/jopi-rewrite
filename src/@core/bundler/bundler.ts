@@ -2,8 +2,6 @@ import {type WebSite, WebSiteImpl} from "../jopiWebSite.tsx";
 import {serverInitChronos} from "../internalTools.ts";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_events from "jopi-toolkit/jk_events";
-import {getHydrateComponents} from "../hydrate.tsx";
-import {generateScript_loaderJsx} from "./scripts.ts";
 import {getBundleDirPath} from "./common.ts";
 import {type BundlerConfig, getBundlerConfig} from "./config.ts";
 import {getExtraCssToBundle} from "./extraContent.ts";
@@ -17,7 +15,6 @@ export interface CreateBundleEvent {
     genDir: string;
     publicUrl: string;
     webSite: WebSite;
-    reactComponentFiles: string[];
     config: BundlerConfig,
     requireTailwind: boolean;
     virtualUrlMap: VirtualUrlEntry[];
@@ -25,16 +22,10 @@ export interface CreateBundleEvent {
     enableUiWatch?: boolean;
 
     promise?: Promise<void>;
-
-    out_dirToServe?: string;
-    out_jsEntryPoint?: string;
-    out_cssEntryPoint?: string;
 }
 
 export async function createBundle(webSite: WebSite): Promise<void> {
     serverInitChronos.start("createBrowserBundle", "Time for building browser bundler")
-
-    const reactComponentFiles = getHydrateComponents();
 
     const genDir = getBundleDirPath(webSite);
     const outputDir = jk_fs.join(genDir, "out");
@@ -61,34 +52,19 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         tailwindCss: requireTailwind ? innerUrl + "tailwind.css" : undefined
     });
 
-    const entryPoint = await generateScript_loaderJsx(genDir, reactComponentFiles, cssToImport);
-
     const data: CreateBundleEvent = {
-        entryPoints: [entryPoint, ...config.entryPoints],
-        outputDir, genDir, publicUrl, webSite,
-        reactComponentFiles: Object.values(reactComponentFiles),
-        config: getBundlerConfig(),
-        requireTailwind,
-        virtualUrlMap: getVirtualUrlMap(),
-
-        enableUiWatch,
-
-        //Default values
-        out_dirToServe: outputDir,
-        out_jsEntryPoint: "loader.js",
-        out_cssEntryPoint: "loader.css"
+        outputDir, genDir, publicUrl, webSite, requireTailwind, enableUiWatch,
+        config: getBundlerConfig(), entryPoints: [...config.entryPoints],
+        virtualUrlMap: getVirtualUrlMap()
     };
 
-    // Set a default hash. Must be replaced by bundler.
-    webSite.data["jopiLoaderHash"] = {css: "", js: ""};
+    await executeBundler(data);
 
-    await execute(data);
-
-    configureServer(data.out_dirToServe!, data.out_jsEntryPoint!, data.out_cssEntryPoint!);
+    configureServer(outputDir);
     serverInitChronos.end();
 }
 
-async function execute(data: CreateBundleEvent, useFallback = true) {
+async function executeBundler(data: CreateBundleEvent, useFallback = true) {
     // Using an event allows replacing the bundler
     // through the use of event priority. The default
     // bundle has a very low priority.
@@ -104,7 +80,7 @@ async function execute(data: CreateBundleEvent, useFallback = true) {
         // inside the TypeScript compiler.
         //
         await import(FALLBACK_PACKAGE);
-        await execute(data, false);
+        await executeBundler(data, false);
     }
 }
 

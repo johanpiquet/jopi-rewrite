@@ -3,7 +3,7 @@
 import type {ServerInstance, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
-import {Page, PageController_ExposePrivate, type PageOptions, renderPage} from "jopi-rewrite/ui";
+import {Page, PageController_ExposePrivate, type PageOptions} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
@@ -25,11 +25,7 @@ import {
 import {parseCookies} from "./internalTools.ts";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_fs from "jopi-toolkit/jk_fs";
-import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
-import {hasHydrateComponents} from "./hydrate.ts";
-import {getBundleEntryPointUrl_JS, getBundleEntryPointUrl_CSS} from "./bundler/server.ts";
 import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
-import {Link} from "react-router";
 
 export class JopiRequest {
     public cache: PageCache;
@@ -775,47 +771,14 @@ export class JopiRequest {
 
     //region ReactJS
 
-    private isUsingReactPage = false;
-    private isUsingReact = false;
-
     /**
      * Allow rendering a document fully formed from a React component.
-     * This component will be automatically wrapped inside a <Page /> component.
      */
-    reactResponse(element: ReactNode, options?: PageOptions) {
-        this.isUsingReact = true;
-        this.isUsingReactPage = true;
-
-        // Will be called by the page renderer once the page controller initialized.
-        //
-        const hook = (controller: PageController_ExposePrivate) => {
-            // Allow bounding the controller to this http request.
-            controller.setServerRequest(this);
-
-            // Require injecting a CSS?
-            //
-            if (hasExternalCssToBundle() || hasHydrateComponents()) {
-                // Will inject the CSS.
-                const cssEntryPointUrl = getBundleEntryPointUrl_CSS(this.webSite);
-                const hash = this.webSite.data["jopiLoaderHash"];
-
-                controller.addToHeader("jopi-bundle-style",
-                    <link rel="stylesheet" key={hash.css}
-                          href={cssEntryPointUrl + "?" + hash.css}/>
-                );
-            }
-
-            // The module list is already created.
-            // But each module must be called when a page renders
-            // because the module is depending on things like the user identity.
-            (this.webSite as WebSiteImpl).initializeUiModules(this, controller);
-        }
-
-        return this.htmlResponse(ReactServer.renderToStaticMarkup(renderPage(element, hook, options)));
+    reactResponse(E: ReactNode) {
+        return this.htmlResponse(ReactServer.renderToStaticMarkup(E));
     }
 
     reactToString(element: ReactNode): string {
-        this.isUsingReact = true;
         return ReactServer.renderToStaticMarkup(element);
     }
 
@@ -868,23 +831,6 @@ export class JopiRequest {
     private postProcessHtml(html: string): string {
         if (isBrowserRefreshEnabled()) {
             html += getBrowserRefreshHtmlSnippet();
-        }
-
-        if (hasExternalCssToBundle() || this.isUsingReact && hasHydrateComponents()) {
-            const jsEntryPointUrl = getBundleEntryPointUrl_JS(this.webSite);
-            const cssEntryPointUrl = getBundleEntryPointUrl_CSS(this.webSite);
-            const hash = this.webSite.data["jopiLoaderHash"];
-
-            // If using a page, then this page already includes the CSS.
-            // This allows putting it in the head, which avoids content flicking.
-            //
-            if (!this.isUsingReactPage) {
-                html += `<link rel="stylesheet" href="${cssEntryPointUrl}/?${hash.css}" />`;
-            }
-
-            if (hasHydrateComponents()) {
-                html += `<script type="module" src="${jsEntryPointUrl}?${hash.js}"></script>`;
-            }
         }
 
         return html;
