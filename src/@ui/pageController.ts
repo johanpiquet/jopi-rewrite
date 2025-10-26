@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import React, {useState} from "react";
+import React from "react";
 import {type ServerRequestInstance} from "./hooks.tsx";
 import {decodeJwtToken, decodeUserInfosFromCookie, isUserInfoCookieUpdated, deleteCookie, type UiUserInfos} from "./tools.ts";
 import * as jk_events from "jopi-toolkit/jk_events";
@@ -104,10 +104,6 @@ export class PageController<T = any> implements ModuleInitContext_Host {
         }
 
         return this;
-    }
-
-    public addStyleLinkToHeader(key: string, url: string) {
-        return this.addToHeader(key, <link key={key} rel="stylesheet" href={url}/>);
     }
 
     public addToBodyBegin(key: string, entry: React.ReactNode) {

@@ -1,7 +1,7 @@
 // noinspection JSUnusedGlobalSymbols
 
 import React, {useEffect} from "react";
-import {PageContext, PageController, PageController_ExposePrivate} from "./page.tsx";
+import {PageContext, PageController, PageController_ExposePrivate} from "./pageController.ts";
 import {CssModule, type UseCssModuleContextProps} from "./cssModules.tsx";
 import * as jk_events from "jopi-toolkit/jk_events";
 

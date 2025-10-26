@@ -1,5 +1,5 @@
 import type {ComponentAliasDef} from "./modules.ts";
-import {PageContext, PageController} from "./page.ts";
+import {PageContext, PageController} from "./pageController.ts";
 import React from "react";
 
 export const gComponentAlias: Record<string, ComponentAliasDef> = {};
