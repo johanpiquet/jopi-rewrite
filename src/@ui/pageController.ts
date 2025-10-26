@@ -91,8 +91,6 @@ export class PageController<T = any> implements ModuleInitContext_Host {
 
     //region Page options (header/props/...)
 
-    protected pageTitle?: string;
-
     public addToHeader(key: string, entry: React.ReactNode) {
         if (this.isServerSide) {
             if (!this.checkKey("h" + key)) return this;
@@ -157,7 +155,7 @@ export class PageController<T = any> implements ModuleInitContext_Host {
 
     public setPageTitle(title: string) {
         if (this.isServerSide) {
-            this.pageTitle = title;
+            this.state.pageTitle = title;
         } else {
             document.title = title;
         }
