@@ -47,20 +47,16 @@ async function transform_cssModule(sourceFilePath: string) {
     return await cssModuleCompiler(sourceFilePath);
 }
 
+/**
+ * Allow getting the file path of the CSS.
+ * Here we mimic Bun.js behaviors.
+ *
+ * To know: Bun.js doesn't allow catching .css file anymore.
+ *          It's why here we are node.js only.
+ */
 async function transform_css(sourceFilePath: string) {
-    let virtualUrl = getVirtualUrlForFile(sourceFilePath);
-
-    if (!virtualUrl?.url) {
-        return `const __PATH__ = ${JSON.stringify(virtualUrl?.sourceFile)}; export default __PATH__;`
-    }
-
-    if (process.env.JOPI_BUNLDER_ESBUILD) {
-        return `const __URL__ = ${JSON.stringify(virtualUrl.url)}; export default __URL__;`
-    }
-
-    return `const __URL__ = ${JSON.stringify(virtualUrl.url)};
-if (global.jopiAddVirtualUrl) global.jopiAddVirtualUrl(${JSON.stringify(virtualUrl)}, true);
-export default __URL__;`
+    sourceFilePath = jk_fs.resolve(sourceFilePath);
+    return `export default ${JSON.stringify(sourceFilePath)};`;
 }
 
 async function transform_filePath(sourceFilePath: string) {
