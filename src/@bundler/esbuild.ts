@@ -14,7 +14,7 @@ export async function esBuildBundle(params: EsBuildParams) {
     // To know: will generate:
     // * A file out/loader.js   with the JS include by loader.jsx
     // * A file out/loader.css  with the CSS include by loader.jsx
-debugger;
+
     const buildOptions: esbuild.BuildOptions = {
         entryPoints: params.entryPoints,
 
@@ -66,7 +66,8 @@ debugger;
             '.md': 'text'
         },
 
-        minify: true,
+        //minify: true,
+        minify: false,
         sourcemap: true,
 
         // Will trigger an error on collision detection.

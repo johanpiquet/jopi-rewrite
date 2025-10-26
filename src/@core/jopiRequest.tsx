@@ -3,7 +3,7 @@
 import type {ServerInstance, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
-import {PageController_ExposePrivate, type PageOptions, renderPage} from "jopi-rewrite/ui";
+import {Page, PageController_ExposePrivate, type PageOptions, renderPage} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
@@ -28,7 +28,8 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import {hasExternalCssToBundle} from "./bundler/extraContent.ts";
 import {hasHydrateComponents} from "./hydrate.ts";
 import {getBundleEntryPointUrl_JS, getBundleEntryPointUrl_CSS} from "./bundler/server.ts";
-import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "../@loader-client/index.ts";
+import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
+import {Link} from "react-router";
 
 export class JopiRequest {
     public cache: PageCache;
@@ -816,6 +817,27 @@ export class JopiRequest {
     reactToString(element: ReactNode): string {
         this.isUsingReact = true;
         return ReactServer.renderToStaticMarkup(element);
+    }
+
+    // Tests
+    reactPage2(routeKey: string, C: React.FC<any>): Response {
+        let options: PageOptions = {
+            head: [<link rel="stylesheet" type="text/css" href={"/_bundle/" + routeKey + ".css"} />],
+            bodyEnd: [<script type="module" src={"/_bundle/" + routeKey + ".js"}></script>]
+        };
+
+        const controller = new PageController_ExposePrivate<unknown>(false, options);
+        controller.setServerRequest(this);
+        (this.webSite as WebSiteImpl).initializeUiModules2(controller);
+
+        try {
+            let html = ReactServer.renderToStaticMarkup(<Page controller={controller} ><C/></Page>);
+            return new Response(html, {status: 200, headers: {"content-type": "text/html;charset=utf-8"}});
+        }
+        catch (e) {
+            console.error(e);
+            return new Response("Error", {status: 500, headers: {"content-type": "text/html;charset=utf-8"}});
+        }
     }
 
     //endregion

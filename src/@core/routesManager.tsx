@@ -17,6 +17,7 @@ import {addLoaderScriptPlugin, loadCodeGenTemplate, type LoaderScriptPluginsPara
 import {isBunJS} from "jopi-toolkit/jk_what";
 import {getBundlerConfig} from "./bundler/config.ts";
 import * as jk_events from "jopi-toolkit/jk_events";
+import * as jk_crypto from "jopi-toolkit/jk_crypto";
 
 interface RouteInfo {
     componentKey: string;
@@ -237,13 +238,17 @@ export class RoutesManager {
                 routes.push(route);
             }
 
+            const routeKey = "page_" + jk_crypto.fastHash(route);
+
             const defaultHandler = async (req: JopiRequest) => {
                 // The StaticRouter allows using Link in our components.
-                return req.reactResponse(<StaticRouter location={req.webSite.getWelcomeUrl()}><Cpn/></StaticRouter>)
+                //return req.reactResponse(<StaticRouter location={req.webSite.getWelcomeUrl()}><Cpn/></StaticRouter>)
+
+                return req.reactPage2(routeKey, defaultValue);
             };
 
             for (const r of routes) {
-                this.webSite.onGET(r, defaultHandler);
+                let routeInfos = this.webSite.onGET(r, defaultHandler);
 
                 this.routes[r] = {
                     componentKey: getBrowserComponentKey(fileFullPath),
