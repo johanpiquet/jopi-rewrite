@@ -14,8 +14,9 @@ __BODY__FOOTER
 
 // Here it's not async.
 let gBrowserInstallFileTemplate = `__HEADER
-
+debugger;
 export default function(registry) {
+debugger;
 __BODY__FOOTER
 }`;
 

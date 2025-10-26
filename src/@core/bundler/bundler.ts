@@ -43,7 +43,8 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     await jk_fs.rmDir(genDir);
     await jk_fs.mkDir(genDir);
 
-    const publicUrl = (webSite as WebSiteImpl).welcomeUrl + '/_bundle/';
+    const innerUrl =  "/_bundle/";
+    const publicUrl = (webSite as WebSiteImpl).welcomeUrl + innerUrl;
 
     // noinspection PointlessBooleanExpressionJS
     const requireTailwind: boolean = (getBundlerConfig().tailwind.disable) !== true;
@@ -52,11 +53,15 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
     if (requireTailwind) cssToImport.push("./tailwind.css");
 
-    const entryPoint = await generateScript_loaderJsx(genDir, reactComponentFiles, cssToImport);
-
     const enableUiWatch = process.env.JOPI_DEV_UI === "1";
-
     const config = getBundlerConfig();
+
+    await jk_events.sendAsyncEvent("jopi.bundler.creatingBundle", {
+        webSite, genDir, config, publicUrl, innerUrl, enableUiWatch,
+        tailwindCss: requireTailwind ? innerUrl + "tailwind.css" : undefined
+    });
+
+    const entryPoint = await generateScript_loaderJsx(genDir, reactComponentFiles, cssToImport);
 
     const data: CreateBundleEvent = {
         entryPoints: [entryPoint, ...config.entryPoints],

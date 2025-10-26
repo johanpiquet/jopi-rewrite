@@ -30,8 +30,8 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
             i++;
 
             let relPath = writer.toJavascriptFileName(writer.makePathRelatifToOutput(uiInitFile));
-            writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.imports, `import modUiInit${i} from "${relPath}";`);
-            writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.footer, `    modUiInit${i}(registry);`)
+            writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.imports, `\nimport modUiInit${i} from "${relPath}";`);
+            writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.footer, `\n    modUiInit${i}(registry);`)
         }
 
         i = 0;
@@ -40,8 +40,8 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
             i++;
 
             let relPath = writer.toJavascriptFileName(writer.makePathRelatifToOutput(serverInitFile));
-            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.imports, `import modServerInit${i} from "${relPath}";`);
-            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `    await modServerInit${i}(registry);`)
+            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.imports, `\nimport modServerInit${i} from "${relPath}";`);
+            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `\n    await modServerInit${i}(registry);`)
         }
 
         if (this.routesDir) {

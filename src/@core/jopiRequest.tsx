@@ -819,13 +819,18 @@ export class JopiRequest {
         return ReactServer.renderToStaticMarkup(element);
     }
 
-    // Tests
+    /**
+     * The new render function.
+     * Used while refactoring the renderer.
+     */
     reactPage2(routeKey: string, C: React.FC<any>): Response {
+        // What we will include in our HTML.
         let options: PageOptions = {
-            head: [<link rel="stylesheet" type="text/css" href={"/_bundle/" + routeKey + ".css"} />],
-            bodyEnd: [<script type="module" src={"/_bundle/" + routeKey + ".js"}></script>]
+            head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + routeKey + ".css"} />],
+            bodyEnd: [<script key="jopi.mainSript" type="module" src={"/_bundle/" + routeKey + ".js"}></script>]
         };
 
+        // Allow faking the environment of the page.
         const controller = new PageController_ExposePrivate<unknown>(false, options);
         controller.setServerRequest(this);
         (this.webSite as WebSiteImpl).initializeUiModules2(controller);

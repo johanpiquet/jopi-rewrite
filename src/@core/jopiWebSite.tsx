@@ -243,6 +243,7 @@ export class WebSiteImpl implements WebSite {
     }
 
     async onBeforeServerStart() {
+        await jk_events.sendAsyncEvent("jopi.server.before.start", {webSite: this});
         await createBundle(this);
     }
 
