@@ -7,15 +7,8 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
     const config = params.config;
 
     let replaceRules: Record<string, string> = {
-        "jopi-toolkit-server": "jopi-toolkit-browser",
         "jBundler_ifServer": "jBundler_ifBrowser"
     };
-
-    if (config.reactRouter.disable!==true) {
-        replaceRules["jBundler_isServer_noBrowser_noReactRouter"] = "jBundler_noServer_isBrowser_isReactRouter";
-    } else {
-        replaceRules["jBundler_isServer_noBrowser_noReactRouter"] = "jBundler_noServer_isBrowser_noReactRouter";
-    }
 
     // Load the metadata generated.
     const metaDataFilePath = jk_fs.join(params.genDir, "esbuildMeta.json");

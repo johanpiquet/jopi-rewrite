@@ -160,10 +160,6 @@ export class CodeGenWriter {
 
         let srcNewDir = jk_fs.join(gDir_outputSrc, innerPath);
 
-        // The parent dir must exist for symlink.
-        await jk_fs.mkDir(jk_fs.dirname(srcNewDir));
-        await jk_fs.symlink(targetDirPath_src, srcNewDir, "dir");
-
         if (!gIsTypeScriptOnly) {
             let targetDirPath_dist = gDir_outputDst + relPath;
             let distNewDir = jk_fs.join(gDir_outputDst, innerPath);
@@ -176,6 +172,15 @@ export class CodeGenWriter {
             await jk_fs.unlink(distNewDir);
             await jk_fs.symlink(targetDirPath_dist, distNewDir, "dir");
         }
+
+        // Warning: must be put AFTER patching the dist.
+        //          otherwise tool like TypeScript (tsc --watch)
+        //          can create a conflit by generating the files
+        //          creating a cross-concurence case.
+        //
+        // The parent dir must exist for symlink.
+        await jk_fs.mkDir(jk_fs.dirname(srcNewDir));
+        await jk_fs.symlink(targetDirPath_src, srcNewDir, "dir");
     }
 
     genAddToInstallFile_JS(who: InstallFileType, where: FilePart, javascriptContent: string) {

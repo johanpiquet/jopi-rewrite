@@ -1,74 +1,21 @@
-import {
-    setDefaultPage404Template, setDefaultPage500Template, setDefaultPage401Template,
-    type WebSite, type JopiRouteHandler
-} from "./jopiWebSite.tsx";
+import {type WebSite} from "./jopiWebSite.tsx";
 import path from "node:path";
 import fs from "node:fs/promises";
 import {pathToFileURL} from "node:url";
-import {mustHydrate} from "jopi-rewrite/ui";
-import {getBrowserComponentKey} from "./hydrate.ts";
 import {JopiRequest} from "./jopiRequest.ts";
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
-import React from "react";
-import {addLoaderScriptPlugin, loadCodeGenTemplate, type LoaderScriptPluginsParams} from "./bundler/plugins.ts";
 import {isBunJS} from "jopi-toolkit/jk_what";
-import {getBundlerConfig} from "./bundler/config.ts";
 import * as jk_events from "jopi-toolkit/jk_events";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
 
-interface RouteInfo {
-    componentKey: string;
-    componentPath: string;
-    component: React.FunctionComponent<any>;
-}
-
 export class RoutesManager {
-    private readonly routes: Record<string, RouteInfo> = {};
     private routeToPagePath: Record<string, string> = {};
     private serverToPath: Record<string, string> = {};
 
     constructor(private readonly webSite: WebSite) {
-        // Will allow adding content to the JavaScript file.
-        // Here the goal of the script addon is to bind the pages to ReactRouter.
-        //
-        const bundlerConfig = getBundlerConfig();
-
-        let enableReactRouter = bundlerConfig.reactRouter.disable!==true;
-        if (enableReactRouter) addLoaderScriptPlugin(params => this.scriptPlugin_reactRouter(params));
     }
-
-    //region React Router
-
-    private async scriptPlugin_reactRouter(params: LoaderScriptPluginsParams): Promise<void> {
-        let template = await loadCodeGenTemplate("template_router.jsx");
-        let reactRoutes: any[] = [];
-
-        for (let route in this.routes) {
-            if (route==="*") {
-                continue;
-            }
-
-            reactRoutes.push({
-                path: route,
-                Component: this.routes[route].componentKey
-            });
-        }
-
-        if (this.routes["*"]) {
-            reactRoutes.push({
-                path: "*",
-                Component: this.routes["*"].componentKey
-            });
-        }
-
-        template = template.replace("//[ROUTES]", JSON.stringify(reactRoutes, null, 4));
-
-        params.tplPlugins += template;
-    }
-
-    //endregion
 
     //region Route scanning
 
@@ -165,28 +112,8 @@ export class RoutesManager {
         // Windows doesn't allow ":" in file name. So we use $ instead.
         route = route.replaceAll("/$", "/:");
 
-        let routes: string[] = [];
-
         if (isServer) {
-            let C: React.FunctionComponent<any>|undefined|null;
-
-            const defaultHandler: JopiRouteHandler = async req => {
-                if (!C) {
-                    if (C === undefined) {
-                        const r = this.routes[route];
-                        if (r) C = r.component;
-                        if (!C) C = null;
-                    }
-
-                    if (C === null) {
-                        return req.returnError404_NotFound();
-                    }
-                }
-
-                return req.reactResponse(<C />);
-            };
-
-            const sc = new RouteServerContext_ExposePrivate(this.webSite, fileUrl, route, defaultHandler);
+            const sc = new RouteServerContext_ExposePrivate(this.webSite, fileUrl, route);
 
             // Will call `await import(fileUrl)`
             //
@@ -206,54 +133,36 @@ export class RoutesManager {
             //       The only catch mechanism is for 404 support.
 
             let mod = await import(fileUrl);
+            let routes: string[] = [route];
 
-            const defaultValue = mod.default;
-            if (!defaultValue) throw new Error("A default export is required. File: " + fileUrl);
-
-            let Cpn = mustHydrate({filename: fileFullPath}, defaultValue);
+            const reactComponent = mod.default;
+            if (!reactComponent) throw new Error("A default export is required. File: " + fileUrl);
 
             if (isSpecialRoute) {
                 if (route === "/error404") {
-                    // Set the 404 template for the website.
-                    setDefaultPage404Template(Cpn);
-
-                    routes.push("/error404");
                     routes.push("/not-found");
                 } else if (route === "/error500") {
-                    setDefaultPage500Template(Cpn);
-
-                    routes.push("/error500");
                     routes.push("/error");
                 } else if (route === "/error401") {
-                    setDefaultPage401Template(Cpn);
-
                     // Will allows the router to redirect
                     // to one of these pages if a user is not authorized.
                     //
-                    routes.push("/error401");
                     routes.push("/not-authorized");
                 }
-            } else {
-                routes.push(route);
             }
 
             const routeKey = "page_" + jk_crypto.fastHash(route);
 
             const defaultHandler = async (req: JopiRequest) => {
-                // The StaticRouter allows using Link in our components.
-                //return req.reactResponse(<StaticRouter location={req.webSite.getWelcomeUrl()}><Cpn/></StaticRouter>)
-
-                return req.reactPage2(routeKey, defaultValue);
+                return req.reactPage2(routeKey, reactComponent);
             };
 
-            for (const r of routes) {
-                let routeInfos = this.webSite.onGET(r, defaultHandler);
-
-                this.routes[r] = {
-                    componentKey: getBrowserComponentKey(fileFullPath),
-                    componentPath: fileFullPath,
-                    component: Cpn
-                };
+            for (let route of routes) {
+                // We can have more than one route pointing on the same item,
+                // but here they have the same handle, avoiding us to generate
+                // more than one page.
+                //
+                this.webSite.onGET(route, defaultHandler);
             }
         }
     }

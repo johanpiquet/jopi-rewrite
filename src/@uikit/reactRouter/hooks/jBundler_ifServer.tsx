@@ -24,8 +24,7 @@ interface Path {
 }
 
 export function useRouterLocation(): Path {
-    let req = useServerRequest();
-    return req.urlInfos;
+    return useServerRequest().urlInfos;
 }
 
 export function useSendRouterLocationUpdateEvent(_eventName?: string) {
@@ -43,24 +42,12 @@ export function useSendRouterLocationUpdateEvent(_eventName?: string) {
  * then urlParts contains {product: "product-name"}
  */
 export function usePageParams(): any {
-    let req = useServerRequest();
-    return req.urlParts;
+    return useServerRequest().urlParts;
 }
 
 export function RouterLink({to, onClick, children, ...p}: React.ComponentProps<"a"> & {
     to: string, onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void,
     children?: React.ReactNode
-})
-{
-    if (gIsReactRouterEnabled===undefined) {
-        gIsReactRouterEnabled = getBundlerConfig().reactRouter.disable!==true;
-    }
-
-    if (gIsReactRouterEnabled) {
-        return <Link to={to} onClick={onClick} {...p}>{children}</Link>;
-    } else {
-        return <a href={to} onClick={onClick} {...p}>{children}</a>;
-    }
+}) {
+    return <a href={to} onClick={onClick} {...p}>{children}</a>;
 }
-
-let gIsReactRouterEnabled: boolean|undefined;

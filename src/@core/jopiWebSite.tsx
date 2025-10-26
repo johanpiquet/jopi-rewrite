@@ -2,7 +2,7 @@
 
 import {JopiRequest} from "./jopiRequest.ts";
 import {ServerFetch} from "./serverFetch.ts";
-import {RoutesManager} from "./routesManager.tsx";
+import {RoutesManager} from "./routesManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
 import {onSseEvent, type ServerInstance, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";

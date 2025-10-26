@@ -20,11 +20,7 @@ export interface BundlerConfig {
 
     embed: {
         dontEmbedThis?: string[];
-    }
-
-    reactRouter: {
-        disable?: boolean;
-    }
+    },
 
     entryPoints: string[];
 }
@@ -33,7 +29,6 @@ const gBundlerConfig: BundlerConfig = {
     tailwind: {},
     postCss: {},
     embed: {},
-    reactRouter: {},
     entryPoints: []
 }
 

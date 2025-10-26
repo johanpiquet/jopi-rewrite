@@ -13,13 +13,12 @@ export class RouteServerContext {
 
     constructor(protected readonly webSite: WebSite,
                 protected readonly serverFilePath: string,
-                protected readonly route: string,
-                protected readonly next: ((req: JopiRequest) => Promise<Response>)) {
+                protected readonly route: string) {
     }
 
-    onGET(handler: (req: JopiRequest, next: (req: JopiRequest) => Promise<Response>) => Promise<Response>) {
+    onGET(req: (req: JopiRequest) => Promise<Response>) {
         this._hasGetHandler = true;
-        let webSiteRoute = this.webSite.onGET(this.route, req => handler(req, this.next));
+        let webSiteRoute = this.webSite.onGET(this.route, req);
         return new RouteContext_NextStep(webSiteRoute);
     }
 

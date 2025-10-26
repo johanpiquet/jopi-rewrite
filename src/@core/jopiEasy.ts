@@ -1527,26 +1527,10 @@ class GlobalConfigBuilder {
                 return me;
             },
 
-            dontEmbed_ReactRouter: () => {
-                me.dontEmbedThis("react-router");
-                return me;
-            },
-
             dontEmbedThis: (...packages: string[]) => {
                 let config = getBundlerConfig();
                 if (!config.embed.dontEmbedThis) config.embed.dontEmbedThis = [];
                 config.embed.dontEmbedThis.push(...packages);
-                return me;
-            }
-        }
-
-        return me;
-    }
-
-    configure_reactRouter() {
-        const me = {
-            disableReactRouter: () => {
-                getBundlerConfig().reactRouter.disable = true;
                 return me;
             }
         }
