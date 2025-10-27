@@ -13,9 +13,11 @@ export function isBrowserRefreshEnabled(): boolean {
 }
 
 export function getBrowserRefreshHtmlSnippet() {
-    return `<script type="application/javascript">
-        new EventSource('/_jopirw_/bundler').addEventListener("change", () => window.location.reload());
-    </script>`;
+    return `<script type="application/javascript">${getBrowserRefreshScript()}</script>`;
+}
+
+export function getBrowserRefreshScript() {
+    return `new EventSource('/_jopirw_/bundler').addEventListener("change", () => window.location.reload());`;
 }
 
 export function installBrowserRefreshSseEvent(webSite: WebSite) {

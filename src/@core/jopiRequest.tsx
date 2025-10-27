@@ -379,7 +379,6 @@ export class JopiRequest {
     }
 
     htmlResponse(html: string, statusCode: number = 200): Response {
-        html = this.postProcessHtml(html);
         return new Response(html, {status: statusCode, headers: {"content-type": "text/html;charset=utf-8"}});
     }
 
@@ -823,18 +822,6 @@ export class JopiRequest {
         const res = cheerio.load(html);
         initCheerio(res);
         return res;
-    }
-
-    //endregion
-
-    //region Post processing
-
-    private postProcessHtml(html: string): string {
-        if (isBrowserRefreshEnabled()) {
-            html += getBrowserRefreshHtmlSnippet();
-        }
-
-        return html;
     }
 
     //endregion

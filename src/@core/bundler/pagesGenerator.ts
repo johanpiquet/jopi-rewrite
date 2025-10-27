@@ -3,6 +3,7 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import {type BundlerConfig} from "./config.ts";
 import {getBrowserInstallScript} from "jopi-rewrite/linker";
+import {getBrowserRefreshScript, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 
 // *********************************************************************************************************************
 // The goal of this file is to generate the individual pages required for each page found in the root (index.page.tsx).
@@ -37,6 +38,12 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {g
         txt = txt.replace("__PATH__", filePath);
         txt = txt.replace("__INSTALL__", installScript);
 
+        if (isBrowserRefreshEnabled()) {
+            txt = txt.replace("__SSE_EVENTS__", getBrowserRefreshScript());
+        } else {
+            txt = txt.replace("__SSE_EVENTS__", "");
+        }
+
         let outFilePath = jk_fs.join(genDir, fileName + ".jsx");
         await jk_fs.writeTextToFile(outFilePath, txt);
 
@@ -58,6 +65,8 @@ installer(new UiKitModule());
 
 const root = document.body;
 const reactRoot = ReactDOM.createRoot(root);
+
+__SSE_EVENTS__
 
 reactRoot.render(<React.StrictMode><PageContext.Provider value={new PageController_ExposePrivate()}>
                     <C/></PageContext.Provider></React.StrictMode>);
