@@ -11,7 +11,7 @@ export * from "./letsEncrypt.ts";
 export * from "./jopiEasy.ts";
 export * from "./routeServerContext.ts";
 
-export * from "./jopiRequest.ts";
+export * from "./jopiRequest.tsx";
 export * from "./jopiWebSite.tsx";
 export * from "./jopiServer.ts";
 

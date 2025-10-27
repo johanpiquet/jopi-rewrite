@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {JopiRequest} from "./jopiRequest.ts";
+import {JopiRequest} from "./jopiRequest.tsx";
 import {ServerFetch} from "./serverFetch.ts";
 import {RoutesManager} from "./routesManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";

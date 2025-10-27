@@ -7,7 +7,7 @@ import {PageController_ExposePrivate, type PageOptions} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
-import * as ns_schema from "jopi-toolkit/ns_schema";
+import * as jk_schema from "jopi-toolkit/jk_schema";
 import Page from "./PageComponent.tsx";
 
 import {initCheerio} from "./jQuery.ts";
@@ -144,7 +144,7 @@ export class JopiRequest {
      * - The search param (query string).
      * - The POST/PUT data if available.
      */
-    async getReqData<T>(options?: {ignoreUrl?: boolean, dataSchema?: ns_schema.Schema}): Promise<T> {
+    async getReqData<T>(options?: {ignoreUrl?: boolean, dataSchema?: jk_schema.Schema}): Promise<T> {
         let res: any = {};
 
         if (!(options && options.ignoreUrl)) {
@@ -192,7 +192,7 @@ export class JopiRequest {
     /**
      * Get the request body and decode it properly.
      */
-    async getBodyData<T>(options?: {dataSchema?: ns_schema.Schema}): Promise<T> {
+    async getBodyData<T>(options?: {dataSchema?: jk_schema.Schema}): Promise<T> {
         let res: any = {};
 
         if (this.isReqBodyJson) {
@@ -303,15 +303,15 @@ export class JopiRequest {
      * If invalid, throw a special exception allowing
      * to directly send a response to the caller.
      */
-    validateDataSchema(data: any, schema: ns_schema.Schema) {
-        let error = ns_schema.validateSchema(data, schema);
+    validateDataSchema(data: any, schema: jk_schema.Schema) {
+        let error = jk_schema.validateSchema(data, schema);
 
         if (error) {
             throw new SBPE_DirectSendThisResponseException(this.returnError400_BadRequest("Invalid data"));
         }
     }
 
-    async reqBodyAsJson<T = any>(dataSchema?: ns_schema.Schema): Promise<T> {
+    async reqBodyAsJson<T = any>(dataSchema?: jk_schema.Schema): Promise<T> {
         if (dataSchema) {
             const data = await this.reqBodyAsJson();
             this.validateDataSchema(data, dataSchema);

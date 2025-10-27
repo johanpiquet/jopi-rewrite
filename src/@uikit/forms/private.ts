@@ -1,5 +1,5 @@
 import React from "react";
-import * as ns_schema from "jopi-toolkit/ns_schema";
+import * as jk_schema from "jopi-toolkit/jk_schema";
 import type {
     JMessage,
     JFieldController,
@@ -7,7 +7,7 @@ import type {
     JFormController,
     SubmitFunction
 } from "./interfaces.ts";
-import type {ValidationErrors} from "jopi-toolkit/ns_schema";
+import type {ValidationErrors} from "jopi-toolkit/jk_schema";
 import {sendFormData, sendJsonData} from "../helpers/tools.ts";
 
 type Listener = () => void;
@@ -20,7 +20,7 @@ interface JFieldController_Private extends JFieldController {
 
 export class JFormControllerImpl implements JFormController {
     private readonly fields: Record<string, JFieldController_Private> = {};
-    private readonly jsonSchema: ns_schema.SchemaDescriptor;
+    private readonly jsonSchema: jk_schema.SchemaDescriptor;
     private readonly onStateChange: Listener[] = [];
     private readonly submitHandler?: SubmitFunction;
     private autoRevalidate = false;
@@ -32,7 +32,7 @@ export class JFormControllerImpl implements JFormController {
     formMessage?: JMessage;
     
     constructor(private props: JFormComponentProps, private readonly formRef: React.RefObject<HTMLFormElement|null>) {
-        this.jsonSchema = ns_schema.toJson(this.props.schema).desc;
+        this.jsonSchema = jk_schema.toJson(this.props.schema).desc;
         this.submitHandler = props.submit;
     }
 
@@ -193,7 +193,7 @@ export class JFormControllerImpl implements JFormController {
             field.errorMessage = undefined;
         }
 
-        const errors = ns_schema.validateSchema(data, this.props.schema);
+        const errors = jk_schema.validateSchema(data, this.props.schema);
 
         if (errors) {
             if (errors.fields) {
@@ -305,7 +305,7 @@ export class JFormControllerImpl implements JFormController {
     }
 }
 
-function calcDefault(fieldDef: ns_schema.SchemaFieldInfos|undefined): any {
+function calcDefault(fieldDef: jk_schema.SchemaFieldInfos|undefined): any {
     if (!fieldDef) return undefined;
 
     if (fieldDef.type === "string") return "";
