@@ -26,9 +26,12 @@ class JopiServer {
     private readonly servers: ServerInstance[] = [];
     private _isStarted = false;
 
+    private webSiteCount: number = 0;
+
     addWebsite(webSite: WebSite): WebSite {
         if (this._isStarted) throw new ServerAlreadyStartedError();
         this.webSites[(webSite as WebSiteImpl).welcomeUrl] = webSite;
+        this.webSiteCount++;
         return webSite;
     }
 
@@ -110,32 +113,61 @@ class JopiServer {
                 serverImpl.updateSslCertificate(myServerInstance, myServerOptions, certificate);
             });
 
-            const myServerOptions: StartServerOptions = {
-                ...gServerStartGlobalOptions,
+            let myServerOptions: StartServerOptions;
 
-                port,
-                tls: selectCertificate(certificates),
+            // Optimize if only one website.
+            //
+            if (this.webSiteCount == 1) {
+                const webSite = Object.values(hostNameMap)[0] as WebSiteImpl;
 
-                fetch: req => {
-                    const urlInfos = new URL(req.url);
-                    const webSite = hostNameMap[urlInfos.host];
-                    if (!webSite) return new Response("", {status: 404});
-                    return (webSite as WebSiteImpl).processRequest(urlInfos, req, myServerInstance)!;
-                },
+                myServerOptions = {
+                    ...gServerStartGlobalOptions,
 
-                async onWebSocketConnection(ws: WebSocket, infos: WebSocketConnectionInfos) {
-                    const urlInfos = new URL(infos.url);
-                    const webSite = hostNameMap[urlInfos.hostname];
+                    port,
+                    tls: selectCertificate(certificates),
+                    fetch: req => webSite.processRequest(new URL(req.url), req, myServerInstance)!,
 
-                    if (!webSite) {
-                        ws.close();
-                        return;
+                    async onWebSocketConnection(ws: WebSocket, infos: WebSocketConnectionInfos) {
+                        const urlInfos = new URL(infos.url);
+                        const webSite = hostNameMap[urlInfos.hostname];
+
+                        if (!webSite) {
+                            ws.close();
+                            return;
+                        }
+
+                        const jws = new JopiWebSocket(webSite, myServerInstance, ws);
+                        (webSite as WebSiteImpl).declareNewWebSocketConnection(jws, infos, urlInfos);
                     }
+                };
+            } else {
+                myServerOptions = {
+                    ...gServerStartGlobalOptions,
 
-                    const jws = new JopiWebSocket(webSite, myServerInstance, ws);
-                    (webSite as WebSiteImpl).declareNewWebSocketConnection(jws, infos, urlInfos);
-                }
-            };
+                    port,
+                    tls: selectCertificate(certificates),
+
+                    fetch: req => {
+                        const urlInfos = new URL(req.url);
+                        const webSite = hostNameMap[urlInfos.host];
+                        if (!webSite) return new Response("", {status: 404});
+                        return (webSite as WebSiteImpl).processRequest(urlInfos, req, myServerInstance)!;
+                    },
+
+                    async onWebSocketConnection(ws: WebSocket, infos: WebSocketConnectionInfos) {
+                        const urlInfos = new URL(infos.url);
+                        const webSite = hostNameMap[urlInfos.hostname];
+
+                        if (!webSite) {
+                            ws.close();
+                            return;
+                        }
+
+                        const jws = new JopiWebSocket(webSite, myServerInstance, ws);
+                        (webSite as WebSiteImpl).declareNewWebSocketConnection(jws, infos, urlInfos);
+                    }
+                };
+            }
 
             await Promise.all(Object.values(hostNameMap).map(webSite => (webSite as WebSiteImpl).onBeforeServerStart()));
 
