@@ -692,10 +692,12 @@ let gDir_outputSrc: string;
 let gDir_outputDst: string;
 
 export function getBrowserInstallScript() {
+    if (gIsTypeScriptOnly) return jk_fs.join(gDir_outputSrc, "installBrowser.js");
     return jk_fs.join(gDir_outputDst, "installBrowser.js");
 }
 
 export function getServerInstallScript() {
+    if (gIsTypeScriptOnly) return jk_fs.join(gDir_outputSrc, "installServer.js");
     return jk_fs.join(gDir_outputDst, "installServer.js");
 }
 

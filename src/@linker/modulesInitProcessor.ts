@@ -29,7 +29,9 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
         for (let uiInitFile of this.uiInitFiles) {
             i++;
 
-            let relPath = writer.toJavascriptFileName(writer.makePathRelatifToOutput(uiInitFile));
+            let relPath = writer.makePathRelatifToOutput(uiInitFile);
+            if (!writer.isTypeScriptOnly) relPath = writer.toJavascriptFileName(relPath);
+
             writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.imports, `\nimport modUiInit${i} from "${relPath}";`);
             writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.footer, `\n    modUiInit${i}(registry);`)
         }
@@ -39,7 +41,9 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
         for (let serverInitFile of this.serverInitFiles) {
             i++;
 
-            let relPath = writer.toJavascriptFileName(writer.makePathRelatifToOutput(serverInitFile));
+            let relPath = writer.makePathRelatifToOutput(serverInitFile);
+            if (!writer.isTypeScriptOnly) relPath = writer.toJavascriptFileName(relPath);
+
             writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.imports, `\nimport modServerInit${i} from "${relPath}";`);
             writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `\n    await modServerInit${i}(registry);`)
         }
