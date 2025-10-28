@@ -3,14 +3,7 @@
 import path from "node:path";
 
 import fs from "node:fs/promises";
-import {
-    JopiWebSocket,
-    ServerAlreadyStartedError,
-    type SslCertificatePath,
-    type WebSite,
-    WebSiteImpl,
-    type WebSiteMap
-} from "./jopiWebSite.tsx";
+import {JopiWebSocket, ServerAlreadyStartedError, type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
@@ -19,169 +12,11 @@ import {isBunJS} from "jopi-toolkit/jk_what";
 
 import bunJsServer, {onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.js";
 import nodeJsServer, {onSseEvent as NodeSseEvent} from "./serverImpl/server_nodejs.js";
-import {getImportTransformConfig} from "jopi-rewrite/loader-tools";
 
 class JopiServer {
-    private readonly webSites: WebSiteMap = {};
-    private readonly servers: ServerInstance[] = [];
+    private webSite?: WebSiteImpl;
+    private server?: ServerInstance;
     private _isStarted = false;
-
-    private webSiteCount: number = 0;
-
-    addWebsite(webSite: WebSite): WebSite {
-        if (this._isStarted) throw new ServerAlreadyStartedError();
-        this.webSites[(webSite as WebSiteImpl).welcomeUrl] = webSite;
-        this.webSiteCount++;
-        return webSite;
-    }
-
-    async stopServer(): Promise<void> {
-        if (!this._isStarted) return;
-
-        await Promise.all(this.servers.map(server => server.stop(false)));
-    }
-
-    async startServer() {
-        if (this._isStarted) return;
-        this._isStarted = true;
-
-        /**
-         * Allow avoiding a bug where returning an array with only one certificate throws an error.
-         */
-        function selectCertificate(certificates: any[]): any | any[] | undefined {
-            if (certificates.length === 0) return undefined;
-            if (certificates.length === 1) return certificates[0];
-            return certificates;
-        }
-
-        const byPorts: { [port: number]: WebSiteMap } = {};
-
-        // Check there is no mismatch between the config and the declarations.
-        //
-        let importTransformConfig = getImportTransformConfig();
-        //
-        if (importTransformConfig.webSiteUrl) {
-            if (
-                !importTransformConfig.webSiteListeningUrl ||
-                (importTransformConfig.webSiteListeningUrl===importTransformConfig.webSiteUrl)
-            ) {
-                let origin = new URL(importTransformConfig.webSiteUrl).origin;
-
-                if (!Object.keys(this.webSites).includes(origin)) {
-                    throw new Error(`The default website "${importTransformConfig.webSiteUrl}" is not defined.
-                Please add it to the server or update section jopi.defaultWebsite of your package.json file.`);
-                }
-            }
-        }
-
-        Object.values(this.webSites).forEach(e => {
-            const webSite = e as WebSiteImpl;
-            if (!byPorts[webSite.port]) byPorts[webSite.port] = {};
-            byPorts[webSite.port][webSite.host] = e;
-        });
-
-        for (let port in byPorts) {
-            function rebuildCertificates() {
-                certificates = [];
-
-                Object.values(hostNameMap).forEach(e => {
-                    const webSite = e as WebSiteImpl;
-
-                    if (webSite.certificate) {
-                        const keyFile = path.resolve(webSite.certificate.key);
-                        const certFile = path.resolve(webSite.certificate.cert);
-
-                        certificates.push({
-                            key: jk_fs.readTextSyncFromFile(keyFile),
-                            cert: jk_fs.readTextSyncFromFile(certFile),
-                            serverName: webSite.host
-                        });
-                    }
-                });
-            }
-
-            const hostNameMap = byPorts[port]!;
-            let certificates: any[] = [];
-
-            rebuildCertificates();
-            //
-            Object.values(hostNameMap).forEach(webSite => (webSite as WebSiteImpl)._onRebuildCertificate = () => {
-                rebuildCertificates();
-
-                let certificate = selectCertificate(certificates);
-                myServerOptions.tls = certificate;
-                serverImpl.updateSslCertificate(myServerInstance, myServerOptions, certificate);
-            });
-
-            let myServerOptions: StartServerOptions;
-
-            // Optimize if only one website.
-            //
-            if (this.webSiteCount == 1) {
-                const webSite = Object.values(hostNameMap)[0] as WebSiteImpl;
-
-                myServerOptions = {
-                    ...gServerStartGlobalOptions,
-
-                    port,
-                    tls: selectCertificate(certificates),
-                    fetch: req => webSite.processRequest(new URL(req.url), req, myServerInstance)!,
-
-                    async onWebSocketConnection(ws: WebSocket, infos: WebSocketConnectionInfos) {
-                        const urlInfos = new URL(infos.url);
-                        const webSite = hostNameMap[urlInfos.hostname];
-
-                        if (!webSite) {
-                            ws.close();
-                            return;
-                        }
-
-                        const jws = new JopiWebSocket(webSite, myServerInstance, ws);
-                        (webSite as WebSiteImpl).declareNewWebSocketConnection(jws, infos, urlInfos);
-                    }
-                };
-            } else {
-                myServerOptions = {
-                    ...gServerStartGlobalOptions,
-
-                    port,
-                    tls: selectCertificate(certificates),
-
-                    fetch: req => {
-                        const urlInfos = new URL(req.url);
-                        const webSite = hostNameMap[urlInfos.host];
-                        if (!webSite) return new Response("", {status: 404});
-                        return (webSite as WebSiteImpl).processRequest(urlInfos, req, myServerInstance)!;
-                    },
-
-                    async onWebSocketConnection(ws: WebSocket, infos: WebSocketConnectionInfos) {
-                        const urlInfos = new URL(infos.url);
-                        const webSite = hostNameMap[urlInfos.hostname];
-
-                        if (!webSite) {
-                            ws.close();
-                            return;
-                        }
-
-                        const jws = new JopiWebSocket(webSite, myServerInstance, ws);
-                        (webSite as WebSiteImpl).declareNewWebSocketConnection(jws, infos, urlInfos);
-                    }
-                };
-            }
-
-            await Promise.all(Object.values(hostNameMap).map(webSite => (webSite as WebSiteImpl).onBeforeServerStart()));
-
-            const myServerInstance = serverImpl.startServer(myServerOptions);
-
-            await Promise.all(Object.values(hostNameMap).map(webSite => (webSite as WebSiteImpl).onServerStarted()));
-            this.servers.push(myServerInstance);
-        }
-
-        // Stop the server if the exit signal is received.
-        jk_app.onAppExiting(() => {
-            this.stopServer().catch();
-        });
-    }
 
     /**
      * Generate a certificat for dev test.
@@ -205,6 +40,72 @@ class JopiServer {
         }
 
         return {key: keyFilePath, cert: certFilePath};
+    }
+
+    setWebsite(webSite: WebSite): WebSite {
+        if (this._isStarted) throw new ServerAlreadyStartedError();
+        this.webSite = webSite as WebSiteImpl;
+        return webSite;
+    }
+
+    async stopServer(): Promise<void> {
+        if (!this._isStarted) return;
+        await this.server!.stop(false);
+    }
+
+    async startServer() {
+        if (this._isStarted) return;
+        this._isStarted = true;
+
+        const webSite = this.webSite!;
+        let certificates: any[] = [];
+
+        function rebuildCertificates() {
+            certificates = [];
+
+            if (webSite.certificate) {
+                const keyFile = path.resolve(webSite.certificate.key);
+                const certFile = path.resolve(webSite.certificate.cert);
+
+                certificates.push({
+                    key: jk_fs.readTextSyncFromFile(keyFile),
+                    cert: jk_fs.readTextSyncFromFile(certFile),
+                    serverName: webSite.host
+                });
+            }
+        }
+
+        /**
+         * Allow avoiding a bug where returning an array with only one certificate throws an error.
+         */
+        function selectCertificate(certificates: any[]): any | any[] | undefined {
+            if (certificates.length === 0) return undefined;
+            if (certificates.length === 1) return certificates[0];
+            return certificates;
+        }
+
+        rebuildCertificates();
+
+        webSite._onRebuildCertificate = () => {
+            rebuildCertificates();
+
+            let certificate = selectCertificate(certificates);
+            webSite.routerBuilder.updateTlsCertificate(certificate);
+        };
+
+        await webSite.onBeforeServerStart();
+
+        this.server = webSite.routerBuilder.startServer({
+            port: webSite.port,
+            tls: selectCertificate(certificates)
+        });
+
+        await webSite.onServerStarted();
+
+        // Stop the server if the exit signal is received.
+        jk_app.onAppExiting(() => {
+            this.stopServer().catch();
+        });
     }
 }
 

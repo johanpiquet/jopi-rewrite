@@ -59,7 +59,7 @@ export const INLINE_MAX_SIZE_KO = 10;
 
 let gTransformConfig: PackageJson_jopi|undefined;
 
-export function getImportTransformConfig(): PackageJson_jopi {
+export function getPackageJsonConfig(): PackageJson_jopi {
     function urlToPath(url: string) {
         let urlInfos = new URL(url);
         let port = urlInfos.port;

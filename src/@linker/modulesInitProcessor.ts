@@ -49,7 +49,7 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
         }
 
         if (this.routesDir) {
-            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `\n    await registry.getReactRouterManager().scanRoutesFrom("${this.routesDir}");`);
+            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `\n    await registry.getRoutesManager().scanRoutesFrom("${this.routesDir}");`);
         }
     }
 }

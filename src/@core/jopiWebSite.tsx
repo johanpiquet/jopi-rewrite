@@ -5,17 +5,12 @@ import {ServerFetch} from "./serverFetch.ts";
 import {RoutesManager} from "./routesManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
-import {onSseEvent, type ServerInstance, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
+import {type ServerInstance, type SseEvent, type StartServerOptions, type WebSocketConnectionInfos} from "./jopiServer.ts";
 import {PostMiddlewares} from "./middlewares/index.ts";
 import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
-import {
-    ModuleInitContext,
-    type ModuleInitContext_Host,
-    PageController,
-    type UiUserInfos
-} from "jopi-rewrite/ui";
+import {ModuleInitContext, type ModuleInitContext_Host, PageController, type UiUserInfos} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
@@ -29,6 +24,12 @@ import * as jk_events from "jopi-toolkit/jk_events";
 import {isBrowserRefreshEnabled, installBrowserRefreshSseEvent} from "../@loader-client/index.ts";
 import {executeBrowserInstall} from "./linker.ts";
 import type {EventGroup} from "jopi-toolkit/jk_events";
+
+import bunJsServer, {onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.js";
+import nodeJsServer, {onSseEvent as nodeSseEvent} from "./serverImpl/server_nodejs.js";
+import {isBunJS} from "jopi-toolkit/jk_what";
+
+export type RouteHandler = (req: JopiRequest) => Promise<Response>;
 
 export interface WebSite {
     data: any;
@@ -131,7 +132,7 @@ export interface WebSite {
 
     enableCors(allows?: string[]): void;
 
-    getReactRouterManager(): RoutesManager;
+    getRoutesManager(): RoutesManager;
 
     readonly events: EventGroup;
 }
@@ -147,7 +148,7 @@ export class WebSiteImpl implements WebSite {
     certificate?: SslCertificatePath;
     private middlewares?: JopiMiddleware[];
     private postMiddlewares?: JopiPostMiddleware[];
-    private reactRouterManager?: RoutesManager;
+    private routesManager?: RoutesManager;
 
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
@@ -182,8 +183,7 @@ export class WebSiteImpl implements WebSite {
 
         this.host = urlInfos.host;
         this.mainCache = options.cache || gVoidCache;
-        this.router = createRouter<WebSiteRoute>();
-        this.wsRouter = createRouter<JopiWsRouteHandler>();
+        this.routerBuilder = new DefaultRouteBuilder(this);
 
         this._onWebSiteReady = options.onWebSiteReady;
 
@@ -195,42 +195,29 @@ export class WebSiteImpl implements WebSite {
         return this.welcomeUrl;
     }
 
-    async processRequest(urlInfos: URL, bunRequest: Request, serverImpl: ServerInstance): Promise<Response|undefined> {
+    async processRequest(handler: RouteHandler, urlParts: any, routeData: WebSiteRoute, urlInfos: URL, serverRequest: Request, serverImpl: ServerInstance): Promise<Response|undefined> {
         // For security reason. Without that, an attacker can break a cache.
         urlInfos.hash = "";
 
-        const matched = findRoute(this.router!, bunRequest.method, urlInfos.pathname);
-        const req = new JopiRequest(this, urlInfos, bunRequest, serverImpl, (matched?.data)!);
+        const req = new JopiRequest(this, urlInfos, serverRequest, serverImpl, routeData);
+        req.urlParts = urlParts;
 
-        if (matched) {
-            req.urlParts = matched.params;
-
-            try {
-                return await matched.data.handler(req);
-            } catch (e) {
-                if (e instanceof SBPE_ServerByPassException) {
-                    if (e instanceof SBPE_DirectSendThisResponseException) {
-                        return e.response;
-                    }
-                    else if (e instanceof SBPE_NotAuthorizedException) {
-                        return req.textResponse(e.message, 401);
-                    }
-                    else if (e instanceof SBPE_MustReturnWithoutResponseException) {
-                        return undefined;
-                    }
+        try {
+            return await handler(req);
+        } catch (e) {
+            if (e instanceof SBPE_ServerByPassException) {
+                if (e instanceof SBPE_DirectSendThisResponseException) {
+                    return e.response;
+                } else if (e instanceof SBPE_NotAuthorizedException) {
+                    return req.textResponse(e.message, 401);
+                } else if (e instanceof SBPE_MustReturnWithoutResponseException) {
+                    return undefined;
                 }
-
-                console.error(e);
-                return this.return500(req, e as Error|string);
             }
-        }
 
-        // Doing this allows CORS options to be sent.
-        if (req.method==="OPTIONS") {
-            return req.htmlResponse("");
+            console.error(e);
+            return this.return500(req, e as Error | string);
         }
-
-        return this.ifRouteNotFound(req);
     }
 
     async onBeforeServerStart() {
@@ -436,7 +423,7 @@ export class WebSiteImpl implements WebSite {
         if (this._onRebuildCertificate) this._onRebuildCertificate();
     }
 
-    declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL) {
+    /*declareNewWebSocketConnection(jws: JopiWebSocket, infos: WebSocketConnectionInfos, urlInfos: URL) {
         const matched = findRoute(this.wsRouter, "ws", urlInfos.pathname);
 
         if (!matched) {
@@ -446,26 +433,22 @@ export class WebSiteImpl implements WebSite {
 
         try { matched.data(jws, infos); }
         catch(e) { console.error(e) }
-    }
+    }*/
 
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler) {
         return this.addWsRoute(path, handler);
     }
 
-    getReactRouterManager(): RoutesManager {
-        if (!this.reactRouterManager) {
-            this.reactRouterManager = new RoutesManager(this);
+    getRoutesManager(): RoutesManager {
+        if (!this.routesManager) {
+            this.routesManager = new RoutesManager(this);
         }
 
-        return this.reactRouterManager;
+        return this.routesManager;
     }
 
-    addSseEVent(path: string|string[], handler: SseEvent): void {
-        handler = {...handler};
-
-        this.onGET(path, async req => {
-            return onSseEvent(handler, req.coreRequest);
-        });
+    addSseEVent(path: string, handler: SseEvent): void {
+        this.routerBuilder.addSseEVent(path, handler);
     }
 
     //region UI Modules
@@ -581,8 +564,7 @@ export class WebSiteImpl implements WebSite {
 
     //region Routes processing
 
-    private readonly router: RouterContext<WebSiteRoute>;
-    private readonly wsRouter: RouterContext<JopiWsRouteHandler>;
+    public readonly routerBuilder: DefaultRouteBuilder;
 
     private _on404_NotFound?: JopiErrorHandler;
     private _on500_Error?: JopiErrorHandler;
@@ -590,73 +572,47 @@ export class WebSiteImpl implements WebSite {
 
     addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
         const webSiteRoute: WebSiteRoute = {handler};
-        addRoute(this.router, method, path, webSiteRoute);
+        this.routerBuilder.addRoute(method, path, handler);
         return webSiteRoute;
     }
 
     addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
-        addRoute(this.wsRouter, "ws", path, handler);
-    }
-
-    addSharedRoute(method: HttpMethod, allPath: string[], handler: JopiRouteHandler) {
-        const webSiteRoute: WebSiteRoute = {handler};
-        allPath.forEach(path => addRoute(this.router, method, path, webSiteRoute));
-        return webSiteRoute;
-    }
-
-    getWebSiteRoute(method:string, url: string): WebSiteRoute|undefined {
-        const matched = findRoute(this.router!, method, url);
-        if (!matched) return undefined;
-        return matched.data;
-    }
-
-    getRouteFor(url: string, method: string = "GET"): WebSiteRoute|undefined {
-        const matched = findRoute(this.router!, method, url);
-        if (!matched) return undefined;
-        return matched.data;
-    }
-
-    private ifRouteNotFound(req: JopiRequest) {
-        return this.return404(req);
+        this.routerBuilder.addWsRoute(path, handler);
     }
 
     //region Path handler
 
-    onVerb(verb: HttpMethod, path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onVerb(verb: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         handler = this.applyMiddlewares(verb, handler);
-
-        if (Array.isArray(path)) {
-            return this.addSharedRoute(verb, path, handler);
-        }
 
         return this.addRoute(verb, path, handler);
     }
 
-    onGET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onGET(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("GET", path, handler);
     }
 
-    onPOST(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPOST(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("POST", path, handler);
     }
 
-    onPUT(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPUT(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("PUT", path, handler);
     }
 
-    onDELETE(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onDELETE(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("DELETE", path, handler);
     }
 
-    onPATCH(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPATCH(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("PATCH", path, handler);
     }
 
-    onHEAD(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onHEAD(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("HEAD", path, handler);
     }
 
-    onOPTIONS(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onOPTIONS(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
         return this.onVerb("OPTIONS", path, handler);
     }
 
@@ -885,8 +841,6 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 
 export type RequestBody = ReadableStream<Uint8Array> | null;
 export type SendingBody = ReadableStream<Uint8Array> | string | FormData | null;
 
-export type WebSiteMap = {[hostname: string]: WebSite};
-
 export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Promise<Response>;
 export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
 export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
@@ -946,3 +900,90 @@ export interface LoginPassword {
 }
 
 const gVoidCache = new VoidPageCache();
+
+export interface RouteBuilder {
+    addRoute(verb: HttpMethod, path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void): void;
+    addSseEVent(path: string, handler: SseEvent): void;
+
+    startServer(params: RouteBuilder_StartServerParams): ServerInstance;
+    updateTlsCertificate(certificate: any): void;
+}
+
+interface RouteBuilder_StartServerParams  {
+    port: number;
+    tls: any;
+}
+
+class DefaultRouteBuilder implements RouteBuilder {
+    private readonly router: RouterContext<WebSiteRoute> = createRouter<WebSiteRoute>();
+    private readonly wsRouter: RouterContext<JopiWsRouteHandler> = createRouter<JopiWsRouteHandler>();
+    private serverImpl?: ServerInstance;
+    private startServerOptions?: StartServerOptions;
+
+    constructor(private readonly webSite: WebSiteImpl) {
+    }
+
+    addRoute(verb: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+        const webSiteRoute: WebSiteRoute = {handler};
+        addRoute(this.router, verb, path, webSiteRoute);
+        return webSiteRoute;
+    }
+
+    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
+        addRoute(this.wsRouter, "ws", path, handler);
+    }
+
+    addSseEVent(path: string, handler: SseEvent): void {
+        handler = {...handler};
+
+        const onSseEvent = isBunJS ? bunOnSseEvent : nodeSseEvent;
+
+        this.addRoute("GET", path, async req => {
+            return onSseEvent(handler, req.coreRequest);
+        });
+    }
+
+    startServer(params: RouteBuilder_StartServerParams): ServerInstance {
+        const fetch = async (req: Request) => {
+            const urlInfos = new URL(req.url);
+
+            const matched = findRoute(this.router, req.method, urlInfos.pathname);
+            if (!matched) return new Response("", {status: 404});
+
+            return await this.webSite.processRequest(matched.data.handler, matched.params, matched.data, urlInfos, req, server);
+        };
+
+        const options = {
+            port: String(params.port),
+
+            tls: params.tls,
+
+            fetch,
+
+            onWebSocketConnection: (ws: WebSocket, infos: WebSocketConnectionInfos) => {
+                const urlInfos = new URL(infos.url);
+
+                const jws = new JopiWebSocket(this.webSite, server, ws);
+                //TODO
+                //webSite.declareNewWebSocketConnection(jws, infos, urlInfos);
+            }
+        };
+
+        this.startServerOptions = options;
+
+        let server: ServerInstance;
+
+        if (isBunJS) {
+            return this.serverImpl = server = bunJsServer.startServer(options);
+        } else {
+            return this.serverImpl = server = nodeJsServer.startServer(options);
+        }
+    }
+
+    updateTlsCertificate(certificate: any) {
+        if (isBunJS) {
+            bunJsServer.updateSslCertificate(this.serverImpl!, this.startServerOptions!, certificate);
+        }
+    }
+}

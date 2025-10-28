@@ -40,7 +40,7 @@ import {
 import type {PageCache} from "./caches/cache.js";
 import {getServer, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
-import {getImportTransformConfig} from "jopi-rewrite/loader-tools";
+import {getPackageJsonConfig} from "jopi-rewrite/loader-tools";
 import {initLinker} from "./linker.ts";
 
 serverInitChronos.start("jopiEasy lib");
@@ -73,7 +73,7 @@ class JopiApp {
 
 class JopiEasy {
     private getDefaultUrl(): string {
-        let config = getImportTransformConfig();
+        let config = getPackageJsonConfig();
 
         if (config.webSiteListeningUrl) return config.webSiteListeningUrl;
         if (config.webSiteUrl) return config.webSiteUrl;
@@ -436,7 +436,7 @@ class JopiEasyWebSite {
                 }
             }
 
-            myServer.addWebsite(this.webSite);
+            myServer.setWebsite(this.webSite);
             await autoStartServer();
         }
 
@@ -1459,7 +1459,7 @@ class JwtTokenAuth_Builder {
 
     setTokenStore_useCookie(expirationDuration_hours: number = 3600) {
         this.internals.afterHook.push(async webSite => {
-            webSite.setJwtTokenStore((token, cookieValue, req, res) => {
+            webSite.setJwtTokenStore((_token, cookieValue, req, res) => {
                 req.addCookie(res, "authorization", cookieValue, {maxAge: jk_timer.ONE_HOUR * expirationDuration_hours})
             });
         });

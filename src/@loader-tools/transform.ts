@@ -4,7 +4,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 
 import * as jk_fs from "jopi-toolkit/jk_fs";
-import {getImportTransformConfig, INLINE_MAX_SIZE_KO} from "./config.ts";
+import {getPackageJsonConfig, INLINE_MAX_SIZE_KO} from "./config.ts";
 import {getVirtualUrlForFile} from "./virtualUrl.ts";
 
 export interface TransformResult {
@@ -111,7 +111,7 @@ async function transform_inline(filePath: string) {
     if ((type==="text")||(type==="css")) {
         resText = await jk_fs.readTextFromFile(filePath);
     } else {
-        const config = getImportTransformConfig();
+        const config = getPackageJsonConfig();
         let maxSize = config ? config.inlineMaxSize_ko : INLINE_MAX_SIZE_KO;
 
         let fileSize = Math.trunc(await jk_fs.getFileSize(filePath) / 1024);

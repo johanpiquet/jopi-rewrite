@@ -1,6 +1,6 @@
 import cssModuleCompiler from "./cssModuleCompiler.ts";
 import {transformFile} from "./transform.ts";
-import {getImportTransformConfig} from "./config.ts";
+import {getPackageJsonConfig} from "./config.ts";
 import path from "node:path";
 import fs from "node:fs";
 import * as jk_app from "jopi-toolkit/jk_app";
@@ -60,7 +60,7 @@ function createJopiRawFile(targetFilePath: string, processType: string): any {
     //
     // Also, there are strange behaviors that we avoid when using this strategy.
 
-    let options = getImportTransformConfig();
+    let options = getPackageJsonConfig();
     let tempDir = options?.bundlerOutputDir || path.join(jk_app.getTempDir(), "bunjs");
     fs.mkdirSync(tempDir, {recursive: true});
 
