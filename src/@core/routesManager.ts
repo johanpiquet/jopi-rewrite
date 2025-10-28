@@ -149,18 +149,10 @@ export class RoutesManager {
                 }
             }
 
-            const routeKey = "page_" + jk_crypto.fastHash(route);
-
-            const defaultHandler = async (req: JopiRequest) => {
-                return req.reactPage2(routeKey, reactComponent);
-            };
+            const pageKey = "page_" + jk_crypto.fastHash(route);
 
             for (let route of routes) {
-                // We can have more than one route pointing on the same item,
-                // but here they have the same handle, avoiding us to generate
-                // more than one page.
-                //
-                this.webSite.onGET(route, defaultHandler);
+                this.webSite.onPage(route, pageKey, fileSourceFullPath, reactComponent);
             }
         }
     }

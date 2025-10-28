@@ -794,7 +794,7 @@ export class JopiRequest {
      * The new render function.
      * Used while refactoring the renderer.
      */
-    reactPage2(routeKey: string, C: React.FC<any>): Response {
+    reactPage(routeKey: string, C: React.FC<any>): Response {
         // What we will include in our HTML.
         let options: PageOptions = {
             head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + routeKey + ".css"} />],

@@ -1,6 +1,7 @@
 import type {CoreServer, WebSocketConnectionInfos, SseEvent, SseEventController} from "../jopiServer.ts";
 import type {HttpMethod, JopiWebSocket, WebSiteImpl, WebSiteRouteInfos} from "../jopiWebSite.ts";
 import type {ServerInstanceBuilder} from "../serverInstanceBuilder.ts";
+import React from "react";
 
 /*interface WebSocketData {
     url?: string,
@@ -90,8 +91,6 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
     }
 
     addRoute(verb: HttpMethod, path: string, route: WebSiteRouteInfos) {
-        if (path==="/_bundle/**") debugger;
-
         if (!this.serverRoutes[path]) {
             this.serverRoutes[path] = {};
         }
@@ -135,6 +134,14 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         // Will reload without breaking the current connections.
         // @ts-ignore
         this.bunServer.reload(this.serverOptions);
+    }
+
+    addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): void {
+        routeInfos.handler = async (req) => {
+            return req.reactPage(pageKey, reactComponent);
+        };
+
+        this.addRoute("GET", path, routeInfos)
     }
 }
 

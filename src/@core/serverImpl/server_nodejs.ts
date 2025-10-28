@@ -8,6 +8,7 @@ import {SBPE_MustReturnWithoutResponseException} from "../jopiWebSite.tsx";
 import type {HttpMethod, JopiWebSocket, WebSiteImpl, WebSiteRouteInfos, JopiWsRouteHandler} from "../jopiWebSite.tsx";
 import type {ServerInstanceBuilder} from "../serverInstanceBuilder.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
+import React from "react";
 
 class NodeServerInstance implements CoreServer {
     private readonly server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
@@ -224,6 +225,14 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
 
     updateTlsCertificate(certificate: any) {
         // Not available for node.js
+    }
+
+    addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): void {
+        routeInfos.handler = async (req) => {
+            return req.reactPage(pageKey, reactComponent);
+        };
+
+        this.addRoute("GET", path, routeInfos)
     }
 }
 

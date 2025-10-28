@@ -38,6 +38,8 @@ export interface WebSite {
 
     enableAutomaticCache(): void;
 
+    onPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>): WebSiteRouteInfos;
+
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
     onGET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
@@ -431,7 +433,7 @@ export class WebSiteImpl implements WebSite {
     }*/
 
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler) {
-        return this.addWsRoute(path, handler);
+        return this.serverInstanceBuilder.addWsRoute(path, handler);
     }
 
     getRoutesManager(): RoutesManager {
@@ -565,22 +567,20 @@ export class WebSiteImpl implements WebSite {
     private _on500_Error?: JopiErrorHandler;
     private _on401_Unauthorized?: JopiErrorHandler;
 
-    addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
-        const webSiteRoute: WebSiteRouteInfos = {handler};
-        this.serverInstanceBuilder.addRoute(method, path, webSiteRoute);
-        return webSiteRoute;
-    }
-
-    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
-        this.serverInstanceBuilder.addWsRoute(path, handler);
-    }
-
     //region Path handler
 
     onVerb(verb: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         handler = this.applyMiddlewares(verb, handler);
 
-        return this.addRoute(verb, path, handler);
+        const webSiteRoute: WebSiteRouteInfos = {handler};
+        this.serverInstanceBuilder.addRoute(verb, path, webSiteRoute);
+        return webSiteRoute;
+    }
+
+    onPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>): WebSiteRouteInfos {
+        const routeInfos: WebSiteRouteInfos = {handler: gVoidRouteHandler};
+        this.serverInstanceBuilder.addPage(path, pageKey, sourceFilePath, reactComponent, routeInfos);
+        return routeInfos;
     }
 
     onGET(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
@@ -718,6 +718,8 @@ export class WebSiteImpl implements WebSite {
 
     //endregion
 }
+
+const gVoidRouteHandler = () => Promise.resolve(new Response("void", {status: 200}));
 
 export interface ServeFileOptions {
     /**
