@@ -11,7 +11,7 @@ import * as jk_os from "jopi-toolkit/jk_os";
 
 class JopiServer {
     private webSite?: WebSiteImpl;
-    private server?: ServerInstance;
+    private server?: CoreServer;
     private _isStarted = false;
 
     /**
@@ -150,7 +150,10 @@ export interface TlsCertificate {
     serverName: string;
 }
 
-export interface ServerInstance {
+/**
+ * Allows accessing to the core node.js / bun.js server.
+ */
+export interface CoreServer {
     requestIP(req: Request): ServerSocketAddress|null;
     timeout(req: Request, seconds: number): void;
     stop(closeActiveConnections: boolean): Promise<void>;

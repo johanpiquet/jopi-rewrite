@@ -3,13 +3,13 @@ import https from "node:https";
 import {WebSocketServer} from "ws";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 
-import type {ServerInstance, ServerSocketAddress, WebSocketConnectionInfos, SseEvent, SseEventController, StartServerOptions} from "../jopiServer.ts";
+import type {CoreServer, ServerSocketAddress, WebSocketConnectionInfos, SseEvent, SseEventController, StartServerOptions} from "../jopiServer.ts";
 import {SBPE_MustReturnWithoutResponseException} from "../jopiWebSite.tsx";
 import type {HttpMethod, JopiWebSocket, WebSiteImpl, WebSiteRouteInfos, JopiWsRouteHandler} from "../jopiWebSite.tsx";
 import type {ServerInstanceBuilder} from "../serverInstanceBuilder.ts";
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
 
-class NodeServerInstance implements ServerInstance {
+class NodeServerInstance implements CoreServer {
     private readonly server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
 
     constructor(private options: StartServerOptions) {
@@ -188,7 +188,7 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
         });
     }
 
-    startServer(params: { port: number; tls: any }): ServerInstance {
+    startServer(params: { port: number; tls: any }): CoreServer {
         async function fetch(req: Request): Promise<Response|undefined> {
             const urlInfos = new URL(req.url);
 

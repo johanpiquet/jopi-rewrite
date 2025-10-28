@@ -1,4 +1,4 @@
-import type {ServerInstance, SseEvent, WebSocketConnectionInfos} from "./jopiServer.ts";
+import type {CoreServer, SseEvent, WebSocketConnectionInfos} from "./jopiServer.ts";
 import {isBunJS} from "jopi-toolkit/jk_what";
 import {BunJsServerInstanceBuilder} from "./serverImpl/server_bunjs.ts";
 import {NodeJsServerInstanceBuilder} from "./serverImpl/server_nodejs.ts";
@@ -11,7 +11,7 @@ export interface ServerInstanceBuilder {
 
     addSseEVent(path: string, handler: SseEvent): void;
 
-    startServer(params: { port: number; tls: any }): ServerInstance;
+    startServer(params: { port: number; tls: any }): CoreServer;
 
     updateTlsCertificate(certificate: any): void;
 }

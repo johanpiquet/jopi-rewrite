@@ -1,4 +1,4 @@
-import type {ServerInstance, WebSocketConnectionInfos, SseEvent, SseEventController} from "../jopiServer.ts";
+import type {CoreServer, WebSocketConnectionInfos, SseEvent, SseEventController} from "../jopiServer.ts";
 import type {HttpMethod, JopiWebSocket, WebSiteImpl, WebSiteRouteInfos} from "../jopiWebSite.ts";
 import type {ServerInstanceBuilder} from "../serverInstanceBuilder.ts";
 
@@ -117,7 +117,7 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         });
     }
 
-    startServer(params: { port: number; tls: any }): ServerInstance {
+    startServer(params: { port: number; tls: any }): CoreServer {
         const options = {
             port: String(params.port),
             tls: params.tls,

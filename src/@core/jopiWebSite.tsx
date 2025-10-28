@@ -4,7 +4,7 @@ import {JopiRequest} from "./jopiRequest.tsx";
 import {ServerFetch} from "./serverFetch.ts";
 import {RoutesManager} from "./routesManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
-import {type ServerInstance, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
+import {type CoreServer, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
 import {PostMiddlewares} from "./middlewares/index.ts";
 import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
@@ -191,7 +191,7 @@ export class WebSiteImpl implements WebSite {
         return this.welcomeUrl;
     }
 
-    async processRequest(handler: RouteHandler, urlParts: any, routeInfos: WebSiteRouteInfos, urlInfos: URL|undefined, coreRequest: Request, coreServer: ServerInstance): Promise<Response|undefined> {
+    async processRequest(handler: RouteHandler, urlParts: any, routeInfos: WebSiteRouteInfos, urlInfos: URL|undefined, coreRequest: Request, coreServer: CoreServer): Promise<Response|undefined> {
         // For security reasons. Without that, an attacker can break a cache.
         if (urlInfos) urlInfos.hash = "";
 
@@ -793,7 +793,7 @@ export interface WebSiteRouteInfos {
 }
 
 export class JopiWebSocket {
-    constructor(private readonly webSite: WebSite, private readonly server: ServerInstance, private readonly webSocket: WebSocket) {
+    constructor(private readonly webSite: WebSite, private readonly server: CoreServer, private readonly webSocket: WebSocket) {
     }
 
     close(): void {
@@ -895,4 +895,3 @@ const gVoidCache = new VoidPageCache();
 let G_Default404Template: undefined|React.ComponentType<any>;
 let G_Default500Template: undefined|React.ComponentType<any>;
 let G_Default401Template: undefined|React.ComponentType<any>;
-

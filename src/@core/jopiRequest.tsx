@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import type {ServerInstance, ServerSocketAddress} from "./jopiServer.ts";
+import type {CoreServer, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
 import {PageController_ExposePrivate, type PageOptions} from "jopi-rewrite/ui";
@@ -38,7 +38,7 @@ export class JopiRequest {
     constructor(public readonly webSite: WebSite,
                 private _urlInfos: URL|undefined,
                 public coreRequest: Request,
-                public readonly coreServer: ServerInstance,
+                public readonly coreServer: CoreServer,
                 public readonly routeInfos: WebSiteRouteInfos)
     {
         this.cache = (webSite as WebSiteImpl).mainCache;
