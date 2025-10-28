@@ -23,7 +23,7 @@ import type {EventGroup} from "jopi-toolkit/jk_events";
 import * as jk_events from "jopi-toolkit/jk_events";
 import {installBrowserRefreshSseEvent, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 import {executeBrowserInstall} from "./linker.ts";
-import {createRouteBuilder, type ServerInstanceBuilder} from "./serverInstanceBuilder.ts";
+import {getNewServerInstanceBuilder, type ServerInstanceBuilder} from "./serverInstanceBuilder.ts";
 
 export type RouteHandler = (req: JopiRequest) => Promise<Response>;
 
@@ -179,7 +179,7 @@ export class WebSiteImpl implements WebSite {
 
         this.host = urlInfos.host;
         this.mainCache = options.cache || gVoidCache;
-        this.routerBuilder = createRouteBuilder(this);
+        this.serverInstanceBuilder = getNewServerInstanceBuilder(this);
 
         this._onWebSiteReady = options.onWebSiteReady;
 
@@ -191,11 +191,11 @@ export class WebSiteImpl implements WebSite {
         return this.welcomeUrl;
     }
 
-    async processRequest(handler: RouteHandler, urlParts: any, routeInfos: WebSiteRouteInfos, urlInfos: URL|undefined, serverRequest: Request, serverImpl: ServerInstance): Promise<Response|undefined> {
+    async processRequest(handler: RouteHandler, urlParts: any, routeInfos: WebSiteRouteInfos, urlInfos: URL|undefined, coreRequest: Request, coreServer: ServerInstance): Promise<Response|undefined> {
         // For security reasons. Without that, an attacker can break a cache.
         if (urlInfos) urlInfos.hash = "";
 
-        const req = new JopiRequest(this, urlInfos, serverRequest, serverImpl, routeInfos);
+        const req = new JopiRequest(this, urlInfos, coreRequest, coreServer, routeInfos);
         req.urlParts = urlParts;
 
         try {
@@ -262,8 +262,8 @@ export class WebSiteImpl implements WebSite {
             return async function (req: JopiRequest) {
                 // >>> Check the required roles.
 
-                if (req.route.requiredRoles) {
-                    req.assertUserHasRoles(req.route.requiredRoles);
+                if (req.routeInfos.requiredRoles) {
+                    req.assertUserHasRoles(req.routeInfos.requiredRoles);
                 }
 
                 // >>> Take from the cache.
@@ -271,16 +271,16 @@ export class WebSiteImpl implements WebSite {
                 let mustUseAutoCache = req.mustUseAutoCache;
 
                 if (mustUseAutoCache) {
-                    if (req.route.beforeCheckingCache) {
-                        let r = await req.route.beforeCheckingCache(req);
+                    if (req.routeInfos.beforeCheckingCache) {
+                        let r = await req.routeInfos.beforeCheckingCache(req);
                         if (r) return r;
                     }
 
                     let res = await req.getFromCache();
 
                     if (res) {
-                        if (req.route.afterGetFromCache) {
-                            let r = await req.route.afterGetFromCache(req, res);
+                        if (req.routeInfos.afterGetFromCache) {
+                            let r = await req.routeInfos.afterGetFromCache(req, res);
                             if (r) return r;
                         } else {
                             return res;
@@ -330,8 +330,8 @@ export class WebSiteImpl implements WebSite {
                 // >>> Add the result to the cache.
 
                 if (mustUseAutoCache && (res.status === 200)) {
-                    if (req.route.beforeAddToCache) {
-                        let r = await req.route.beforeAddToCache(req, res);
+                    if (req.routeInfos.beforeAddToCache) {
+                        let r = await req.routeInfos.beforeAddToCache(req, res);
                         if (r) res = await req.addToCache(r)!;
                     } else {
                         res = await req.addToCache(res)!;
@@ -344,8 +344,8 @@ export class WebSiteImpl implements WebSite {
             return async function (req: JopiRequest) {
                 // >>> Check the required roles.
 
-                if (req.route.requiredRoles) {
-                    req.assertUserHasRoles(req.route.requiredRoles);
+                if (req.routeInfos.requiredRoles) {
+                    req.assertUserHasRoles(req.routeInfos.requiredRoles);
                 }
 
                 // >>> Apply the middlewares.
@@ -443,7 +443,7 @@ export class WebSiteImpl implements WebSite {
     }
 
     addSseEVent(path: string, handler: SseEvent): void {
-        this.routerBuilder.addSseEVent(path, handler);
+        this.serverInstanceBuilder.addSseEVent(path, handler);
     }
 
     //region UI Modules
@@ -559,7 +559,7 @@ export class WebSiteImpl implements WebSite {
 
     //region Routes processing
 
-    public readonly routerBuilder: ServerInstanceBuilder;
+    public readonly serverInstanceBuilder: ServerInstanceBuilder;
 
     private _on404_NotFound?: JopiErrorHandler;
     private _on500_Error?: JopiErrorHandler;
@@ -567,12 +567,12 @@ export class WebSiteImpl implements WebSite {
 
     addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
         const webSiteRoute: WebSiteRouteInfos = {handler};
-        this.routerBuilder.addRoute(method, path, webSiteRoute);
+        this.serverInstanceBuilder.addRoute(method, path, webSiteRoute);
         return webSiteRoute;
     }
 
     addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
-        this.routerBuilder.addWsRoute(path, handler);
+        this.serverInstanceBuilder.addWsRoute(path, handler);
     }
 
     //region Path handler
@@ -813,10 +813,6 @@ export function newWebSite(url: string, options?: WebSiteOptions): WebSite {
     return new WebSiteImpl(url, options);
 }
 
-let G_Default404Template: undefined|React.ComponentType<any>;
-let G_Default500Template: undefined|React.ComponentType<any>;
-let G_Default401Template: undefined|React.ComponentType<any>;
-
 export function setDefaultPage404Template(reactCpn: React.ComponentType<any>) {
     G_Default404Template = reactCpn;
 }
@@ -839,6 +835,12 @@ export type SendingBody = ReadableStream<Uint8Array> | string | FormData | null;
 export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Promise<Response>;
 export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
 export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
+
+export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
+export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
+
+export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response> | null;
+export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response | Promise<Response>;
 
 export class SBPE_ServerByPassException extends Error {
 }
@@ -878,12 +880,6 @@ export interface AuthResult {
     userInfos?: UserInfos;
 }
 
-export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
-export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
-
-export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response> | null;
-export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response | Promise<Response>;
-
 export interface SslCertificatePath {
     key: string;
     cert: string;
@@ -895,4 +891,8 @@ export interface LoginPassword {
 }
 
 const gVoidCache = new VoidPageCache();
+
+let G_Default404Template: undefined|React.ComponentType<any>;
+let G_Default500Template: undefined|React.ComponentType<any>;
+let G_Default401Template: undefined|React.ComponentType<any>;
 

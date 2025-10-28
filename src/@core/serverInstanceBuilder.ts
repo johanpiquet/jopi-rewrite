@@ -16,7 +16,7 @@ export interface ServerInstanceBuilder {
     updateTlsCertificate(certificate: any): void;
 }
 
-export function createRouteBuilder(webSite: WebSiteImpl): ServerInstanceBuilder {
+export function getNewServerInstanceBuilder(webSite: WebSiteImpl): ServerInstanceBuilder {
     if (isBunJS) {
         return new BunJsServerInstanceBuilder(webSite);
     } else {

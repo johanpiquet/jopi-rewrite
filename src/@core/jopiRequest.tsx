@@ -39,10 +39,10 @@ export class JopiRequest {
                 private _urlInfos: URL|undefined,
                 public coreRequest: Request,
                 public readonly coreServer: ServerInstance,
-                public readonly route: WebSiteRouteInfos)
+                public readonly routeInfos: WebSiteRouteInfos)
     {
         this.cache = (webSite as WebSiteImpl).mainCache;
-        this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && route && (route.mustDisableAutomaticCache!==true);
+        this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && routeInfos && (routeInfos.mustDisableAutomaticCache!==true);
 
         this.mainCache = this.cache;
         this._headers = this.coreRequest.headers;
@@ -986,8 +986,8 @@ export class JopiRequest {
         if (filter) {
             filter(this.urlInfos);
         } else {
-            if (this.route.searchParamFilter) {
-                this.route.searchParamFilter(this.urlInfos);
+            if (this.routeInfos.searchParamFilter) {
+                this.routeInfos.searchParamFilter(this.urlInfos);
             }
         }
     }

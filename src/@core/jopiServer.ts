@@ -86,12 +86,12 @@ class JopiServer {
             rebuildCertificates();
 
             let certificate = selectCertificate(certificates);
-            webSite.routerBuilder.updateTlsCertificate(certificate);
+            webSite.serverInstanceBuilder.updateTlsCertificate(certificate);
         };
 
         await webSite.onBeforeServerStart();
 
-        this.server = webSite.routerBuilder.startServer({
+        this.server = webSite.serverInstanceBuilder.startServer({
             port: webSite.port,
             tls: selectCertificate(certificates)
         });
@@ -169,11 +169,6 @@ export interface ServerSocketAddress {
      * The IP family ("IPv4" or "IPv6").
      */
     family: "IPv4" | "IPv6";
-}
-
-export interface ServerImpl {
-    startServer(options: StartServerOptions): ServerInstance
-    updateSslCertificate(server: ServerInstance, options: StartServerOptions, sslCertificate: any|any[]|undefined): void;
 }
 
 export interface SseEvent {

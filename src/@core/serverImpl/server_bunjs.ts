@@ -79,6 +79,8 @@ export async function onSseEvent(sseEvent: SseEvent): Promise<Response> {
 
 //endregion
 
+//region ServerInstanceProvider
+
 export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
     private bunServer?: Bun.Server<unknown>;
     private serverOptions?: any;
@@ -135,3 +137,5 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         this.bunServer.reload(this.serverOptions);
     }
 }
+
+//endregion
