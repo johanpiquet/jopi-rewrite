@@ -219,6 +219,7 @@ export class WebSiteImpl implements WebSite {
     async onBeforeServerStart() {
         await jk_events.sendAsyncEvent("jopi.server.before.start", {webSite: this});
         await createBundle(this);
+        installBundleServer(this);
     }
 
     async onServerStarted() {
@@ -229,8 +230,6 @@ export class WebSiteImpl implements WebSite {
         if (isBrowserRefreshEnabled()) {
             installBrowserRefreshSseEvent(this);
         }
-
-        installBundleServer(this);
 
         if (this.welcomeUrl) {
             console.log("Website started:", this.welcomeUrl);
