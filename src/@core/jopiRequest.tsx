@@ -20,7 +20,7 @@ import {
     type ResponseModifier, type ServeFileOptions, type TestCookieValue, type TextModifier, type UserInfos,
     type WebSite,
     WebSiteImpl,
-    type WebSiteRoute
+    type WebSiteRouteInfos
 } from "./jopiWebSite.tsx";
 
 import {parseCookies} from "./internalTools.ts";
@@ -36,10 +36,10 @@ export class JopiRequest {
     private _headers: Headers;
 
     constructor(public readonly webSite: WebSite,
-                public readonly urlInfos: URL,
+                private _urlInfos: URL|undefined,
                 public coreRequest: Request,
                 public readonly coreServer: ServerInstance,
-                public readonly route: WebSiteRoute)
+                public readonly route: WebSiteRouteInfos)
     {
         this.cache = (webSite as WebSiteImpl).mainCache;
         this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && route && (route.mustDisableAutomaticCache!==true);
@@ -51,6 +51,15 @@ export class JopiRequest {
     //region Properties
 
     private _customData?: any;
+
+    get urlInfos(): URL {
+        if (!this._urlInfos) {
+            this._urlInfos = new URL(this.coreRequest.url);
+            this._urlInfos.hash = "";
+        }
+
+        return this._urlInfos;
+    }
 
     get customData(): any {
         if (!this._customData) this._customData = {};

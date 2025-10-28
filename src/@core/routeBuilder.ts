@@ -1,13 +1,12 @@
 import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
 import type {ServerInstance, SseEvent, StartServerOptions, WebSocketConnectionInfos} from "./jopiServer.ts";
-import {JopiRequest} from "./jopiRequest.tsx";
 import {isBunJS} from "jopi-toolkit/jk_what";
-import bunJsServer, {onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.ts";
+import bunJsServer, {BunJsRouteBuilder, onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.ts";
 import nodeJsServer, {onSseEvent as nodeSseEvent} from "./serverImpl/server_nodejs.ts";
-import {type HttpMethod, JopiWebSocket, type JopiWsRouteHandler, WebSiteImpl, type WebSiteRoute} from "./jopiWebSite.tsx";
+import {type HttpMethod, JopiWebSocket, type JopiWsRouteHandler, WebSiteImpl, type WebSiteRouteInfos} from "./jopiWebSite.tsx";
 
 export interface RouteBuilder {
-    addRoute(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    addRoute(verb: HttpMethod, path: string, routeInfos: WebSiteRouteInfos): void;
 
     addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void): void;
 
@@ -18,8 +17,8 @@ export interface RouteBuilder {
     updateTlsCertificate(certificate: any): void;
 }
 
-export class DefaultRouteBuilder implements RouteBuilder {
-    private readonly router: RouterContext<WebSiteRoute> = createRouter<WebSiteRoute>();
+class DefaultRouteBuilder implements RouteBuilder {
+    private readonly router: RouterContext<WebSiteRouteInfos> = createRouter<WebSiteRouteInfos>();
     private readonly wsRouter: RouterContext<JopiWsRouteHandler> = createRouter<JopiWsRouteHandler>();
     private serverImpl?: ServerInstance;
     private startServerOptions?: StartServerOptions;
@@ -27,10 +26,8 @@ export class DefaultRouteBuilder implements RouteBuilder {
     constructor(private readonly webSite: WebSiteImpl) {
     }
 
-    addRoute(verb: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        const webSiteRoute: WebSiteRoute = {handler};
-        addRoute(this.router, verb, path, webSiteRoute);
-        return webSiteRoute;
+    addRoute(verb: HttpMethod, path: string, routeInfos: WebSiteRouteInfos) {
+        addRoute(this.router, verb, path, routeInfos);
     }
 
     addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
@@ -42,8 +39,10 @@ export class DefaultRouteBuilder implements RouteBuilder {
 
         const onSseEvent = isBunJS ? bunOnSseEvent : nodeSseEvent;
 
-        this.addRoute("GET", path, async req => {
-            return onSseEvent(handler, req.coreRequest);
+        this.addRoute("GET", path, {
+            handler: async req => {
+                return onSseEvent(handler, req.coreRequest);
+            }
         });
     }
 
@@ -65,9 +64,9 @@ export class DefaultRouteBuilder implements RouteBuilder {
             fetch,
 
             onWebSocketConnection: (ws: WebSocket, infos: WebSocketConnectionInfos) => {
-                const urlInfos = new URL(infos.url);
+                //const urlInfos = new URL(infos.url);
 
-                const jws = new JopiWebSocket(this.webSite, server, ws);
+                //const jws = new JopiWebSocket(this.webSite, server, ws);
                 //TODO
                 //webSite.declareNewWebSocketConnection(jws, infos, urlInfos);
             }
@@ -88,5 +87,13 @@ export class DefaultRouteBuilder implements RouteBuilder {
         if (isBunJS) {
             bunJsServer.updateSslCertificate(this.serverImpl!, this.startServerOptions!, certificate);
         }
+    }
+}
+
+export function createRouteBuilder(webSite: WebSiteImpl): RouteBuilder {
+    if (isBunJS) {
+        return new BunJsRouteBuilder(webSite);
+    } else {
+        return new DefaultRouteBuilder(webSite);
     }
 }

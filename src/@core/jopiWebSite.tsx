@@ -21,9 +21,9 @@ import {createBundle} from "./bundler/bundler.ts";
 import * as jk_webSocket from "jopi-toolkit/jk_webSocket";
 import type {EventGroup} from "jopi-toolkit/jk_events";
 import * as jk_events from "jopi-toolkit/jk_events";
-import {installBrowserRefreshSseEvent, isBrowserRefreshEnabled} from "../@loader-client/index.ts";
+import {installBrowserRefreshSseEvent, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 import {executeBrowserInstall} from "./linker.ts";
-import {DefaultRouteBuilder} from "./routeBuilder.ts";
+import {createRouteBuilder, type RouteBuilder} from "./routeBuilder.ts";
 
 export type RouteHandler = (req: JopiRequest) => Promise<Response>;
 
@@ -38,21 +38,21 @@ export interface WebSite {
 
     enableAutomaticCache(): void;
 
-    onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
-    onGET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onGET(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
-    onPOST(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onPOST(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
-    onPUT(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onPUT(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
-    onDELETE(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onDELETE(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
-    onPATCH(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onPATCH(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
-    onHEAD(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onHEAD(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
-    onOPTIONS(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute;
+    onOPTIONS(path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler): void;
 
@@ -179,7 +179,7 @@ export class WebSiteImpl implements WebSite {
 
         this.host = urlInfos.host;
         this.mainCache = options.cache || gVoidCache;
-        this.routerBuilder = new DefaultRouteBuilder(this);
+        this.routerBuilder = createRouteBuilder(this);
 
         this._onWebSiteReady = options.onWebSiteReady;
 
@@ -191,11 +191,11 @@ export class WebSiteImpl implements WebSite {
         return this.welcomeUrl;
     }
 
-    async processRequest(handler: RouteHandler, urlParts: any, routeData: WebSiteRoute, urlInfos: URL, serverRequest: Request, serverImpl: ServerInstance): Promise<Response|undefined> {
-        // For security reason. Without that, an attacker can break a cache.
-        urlInfos.hash = "";
+    async processRequest(handler: RouteHandler, urlParts: any, routeInfos: WebSiteRouteInfos, urlInfos: URL|undefined, serverRequest: Request, serverImpl: ServerInstance): Promise<Response|undefined> {
+        // For security reasons. Without that, an attacker can break a cache.
+        if (urlInfos) urlInfos.hash = "";
 
-        const req = new JopiRequest(this, urlInfos, serverRequest, serverImpl, routeData);
+        const req = new JopiRequest(this, urlInfos, serverRequest, serverImpl, routeInfos);
         req.urlParts = urlParts;
 
         try {
@@ -560,15 +560,15 @@ export class WebSiteImpl implements WebSite {
 
     //region Routes processing
 
-    public readonly routerBuilder: DefaultRouteBuilder;
+    public readonly routerBuilder: RouteBuilder;
 
     private _on404_NotFound?: JopiErrorHandler;
     private _on500_Error?: JopiErrorHandler;
     private _on401_Unauthorized?: JopiErrorHandler;
 
     addRoute(method: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>) {
-        const webSiteRoute: WebSiteRoute = {handler};
-        this.routerBuilder.addRoute(method, path, handler);
+        const webSiteRoute: WebSiteRouteInfos = {handler};
+        this.routerBuilder.addRoute(method, path, webSiteRoute);
         return webSiteRoute;
     }
 
@@ -578,37 +578,37 @@ export class WebSiteImpl implements WebSite {
 
     //region Path handler
 
-    onVerb(verb: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onVerb(verb: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         handler = this.applyMiddlewares(verb, handler);
 
         return this.addRoute(verb, path, handler);
     }
 
-    onGET(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onGET(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         return this.onVerb("GET", path, handler);
     }
 
-    onPOST(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPOST(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         return this.onVerb("POST", path, handler);
     }
 
-    onPUT(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPUT(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         return this.onVerb("PUT", path, handler);
     }
 
-    onDELETE(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onDELETE(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         return this.onVerb("DELETE", path, handler);
     }
 
-    onPATCH(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onPATCH(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         return this.onVerb("PATCH", path, handler);
     }
 
-    onHEAD(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onHEAD(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         return this.onVerb("HEAD", path, handler);
     }
 
-    onOPTIONS(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
+    onOPTIONS(path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         return this.onVerb("OPTIONS", path, handler);
     }
 
@@ -751,7 +751,7 @@ export class WebSiteOptions {
     onWebSiteReady?: (()=>void)[];
 }
 
-export interface WebSiteRoute {
+export interface WebSiteRouteInfos {
     handler: JopiRouteHandler;
 
     /**

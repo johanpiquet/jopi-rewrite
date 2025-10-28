@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import type {WebSite, WebSiteRoute} from "./jopiWebSite.tsx";
+import type {WebSite, WebSiteRouteInfos} from "./jopiWebSite.tsx";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import {JopiRequest} from "./jopiRequest.js";
 
@@ -56,7 +56,7 @@ export class RouteServerContext {
 class RouteContext_NextStep {
     private requiredRoles?: string[];
 
-    constructor(private readonly route: WebSiteRoute) {
+    constructor(private readonly route: WebSiteRouteInfos) {
     }
 
     add_requiredRole(role: string): RouteContext_NextStep {
