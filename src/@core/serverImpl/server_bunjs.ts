@@ -1,7 +1,11 @@
-import type {CoreServer, WebSocketConnectionInfos, SseEvent, SseEventController} from "../jopiServer.ts";
+import type {CoreServer, SseEvent, SseEventController, WebSocketConnectionInfos} from "../jopiServer.ts";
 import type {HttpMethod, JopiWebSocket, WebSiteImpl, WebSiteRouteInfos} from "../jopiWebSite.ts";
 import type {ServerInstanceBuilder} from "../serverInstanceBuilder.ts";
 import React from "react";
+import {isProduction} from "jopi-toolkit/jk_process";
+import * as jk_fs from "jopi-toolkit/jk_fs";
+import {getBundleDirPath} from "../bundler/common.ts";
+import {JopiRequest} from "../jopiRequest";
 
 /*interface WebSocketData {
     url?: string,
@@ -120,7 +124,14 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         const options = {
             port: String(params.port),
             tls: params.tls,
-            routes: this.serverRoutes
+            routes: this.serverRoutes,
+
+            development: process.env.NODE_ENV !== "production" && {
+                // Enable browser hot reloading in development
+                hmr: true,
+                // Echo console logs from the browser to the server
+                console: true,
+            }
         };
 
         this.serverOptions = options;
@@ -137,11 +148,51 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
     }
 
     addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): void {
-        routeInfos.handler = async (req) => {
-            return req.reactPage(pageKey, reactComponent);
-        };
+        if (isProduction) {
+            routeInfos.handler = async (req) => {
+                return req.reactPage(pageKey, reactComponent);
+            };
 
-        this.addRoute("GET", path, routeInfos)
+            this.addRoute("GET", path, routeInfos)
+            return;
+        }
+
+        const genDir = getBundleDirPath(this.webSite);
+        const htmlFilePath = jk_fs.join(genDir, "out", pageKey + ".html");
+
+        if (!this.serverRoutes[path]) {
+            this.serverRoutes[path] = {};
+        }
+
+        this.serverRoutes[path]["GET"] = async (coreRequest: Request, urlParts: any) => {
+            const req = new JopiRequest(this.webSite, undefined, coreRequest, this.bunServer!, routeInfos);
+
+            // > Step 1: create / update the page on disk.
+
+            // Note: the HTML already include the specific CSS and JS for this page.
+            let htmlText = req.renderPageToHtml(pageKey, reactComponent);
+            htmlText = htmlText.replaceAll("/_bundle/" + pageKey, this.webSite.welcomeUrl + "/_bundle/" + pageKey);
+
+            await jk_fs.writeTextToFile(htmlFilePath, htmlText);
+
+            // Step 2: import and return the file.
+
+            this.serverRoutes[path]["GET"] = (await import(htmlFilePath)).default;
+
+            setTimeout(() => {
+                this.bunServer!.reload(this.serverOptions);
+            }, 0);
+
+            // Will force reloading the page.
+            // Work well here. If ko, the matter is not the reload, but the server.
+            return new Response("Reload...", {
+                status: 200,
+                headers: {
+                "Refresh": "0",
+                "Content-Type": "text/html;charset=utf-8"
+                }
+            });
+        }
     }
 }
 

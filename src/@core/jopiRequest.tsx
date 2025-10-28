@@ -795,6 +795,17 @@ export class JopiRequest {
      * Used while refactoring the renderer.
      */
     reactPage(routeKey: string, C: React.FC<any>): Response {
+        try {
+            let html = this.renderPageToHtml(routeKey, C);
+            return new Response(html, {status: 200, headers: {"content-type": "text/html;charset=utf-8"}});
+        }
+        catch (e) {
+            console.error(e);
+            return new Response("Error", {status: 500, headers: {"content-type": "text/html;charset=utf-8"}});
+        }
+    }
+
+    renderPageToHtml(routeKey: string, C: React.FC<any>): string {
         // What we will include in our HTML.
         let options: PageOptions = {
             head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + routeKey + ".css"} />],
@@ -806,14 +817,7 @@ export class JopiRequest {
         controller.setServerRequest(this);
         (this.webSite as WebSiteImpl).executeBrowserInstall(controller);
 
-        try {
-            let html = ReactServer.renderToStaticMarkup(<Page controller={controller} ><C/></Page>);
-            return new Response(html, {status: 200, headers: {"content-type": "text/html;charset=utf-8"}});
-        }
-        catch (e) {
-            console.error(e);
-            return new Response("Error", {status: 500, headers: {"content-type": "text/html;charset=utf-8"}});
-        }
+        return ReactServer.renderToStaticMarkup(<Page controller={controller} ><C/></Page>);
     }
 
     //endregion
