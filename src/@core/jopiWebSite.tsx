@@ -4,8 +4,7 @@ import {JopiRequest} from "./jopiRequest.tsx";
 import {ServerFetch} from "./serverFetch.ts";
 import {RoutesManager} from "./routesManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
-import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
-import {type ServerInstance, type SseEvent, type StartServerOptions, type WebSocketConnectionInfos} from "./jopiServer.ts";
+import {type ServerInstance, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
 import {PostMiddlewares} from "./middlewares/index.ts";
 import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
@@ -20,14 +19,11 @@ import {getInMemoryCache} from "./caches/InMemoryCache.ts";
 import {installBundleServer} from "./bundler/server.ts";
 import {createBundle} from "./bundler/bundler.ts";
 import * as jk_webSocket from "jopi-toolkit/jk_webSocket";
-import * as jk_events from "jopi-toolkit/jk_events";
-import {isBrowserRefreshEnabled, installBrowserRefreshSseEvent} from "../@loader-client/index.ts";
-import {executeBrowserInstall} from "./linker.ts";
 import type {EventGroup} from "jopi-toolkit/jk_events";
-
-import bunJsServer, {onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.js";
-import nodeJsServer, {onSseEvent as nodeSseEvent} from "./serverImpl/server_nodejs.js";
-import {isBunJS} from "jopi-toolkit/jk_what";
+import * as jk_events from "jopi-toolkit/jk_events";
+import {installBrowserRefreshSseEvent, isBrowserRefreshEnabled} from "../@loader-client/index.ts";
+import {executeBrowserInstall} from "./linker.ts";
+import {DefaultRouteBuilder} from "./routeBuilder.ts";
 
 export type RouteHandler = (req: JopiRequest) => Promise<Response>;
 
@@ -901,89 +897,3 @@ export interface LoginPassword {
 
 const gVoidCache = new VoidPageCache();
 
-export interface RouteBuilder {
-    addRoute(verb: HttpMethod, path: string|string[], handler:  (req: JopiRequest) => Promise<Response>): WebSiteRoute;
-    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void): void;
-    addSseEVent(path: string, handler: SseEvent): void;
-
-    startServer(params: RouteBuilder_StartServerParams): ServerInstance;
-    updateTlsCertificate(certificate: any): void;
-}
-
-interface RouteBuilder_StartServerParams  {
-    port: number;
-    tls: any;
-}
-
-class DefaultRouteBuilder implements RouteBuilder {
-    private readonly router: RouterContext<WebSiteRoute> = createRouter<WebSiteRoute>();
-    private readonly wsRouter: RouterContext<JopiWsRouteHandler> = createRouter<JopiWsRouteHandler>();
-    private serverImpl?: ServerInstance;
-    private startServerOptions?: StartServerOptions;
-
-    constructor(private readonly webSite: WebSiteImpl) {
-    }
-
-    addRoute(verb: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRoute {
-        const webSiteRoute: WebSiteRoute = {handler};
-        addRoute(this.router, verb, path, webSiteRoute);
-        return webSiteRoute;
-    }
-
-    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
-        addRoute(this.wsRouter, "ws", path, handler);
-    }
-
-    addSseEVent(path: string, handler: SseEvent): void {
-        handler = {...handler};
-
-        const onSseEvent = isBunJS ? bunOnSseEvent : nodeSseEvent;
-
-        this.addRoute("GET", path, async req => {
-            return onSseEvent(handler, req.coreRequest);
-        });
-    }
-
-    startServer(params: RouteBuilder_StartServerParams): ServerInstance {
-        const fetch = async (req: Request) => {
-            const urlInfos = new URL(req.url);
-
-            const matched = findRoute(this.router, req.method, urlInfos.pathname);
-            if (!matched) return new Response("", {status: 404});
-
-            return await this.webSite.processRequest(matched.data.handler, matched.params, matched.data, urlInfos, req, server);
-        };
-
-        const options = {
-            port: String(params.port),
-
-            tls: params.tls,
-
-            fetch,
-
-            onWebSocketConnection: (ws: WebSocket, infos: WebSocketConnectionInfos) => {
-                const urlInfos = new URL(infos.url);
-
-                const jws = new JopiWebSocket(this.webSite, server, ws);
-                //TODO
-                //webSite.declareNewWebSocketConnection(jws, infos, urlInfos);
-            }
-        };
-
-        this.startServerOptions = options;
-
-        let server: ServerInstance;
-
-        if (isBunJS) {
-            return this.serverImpl = server = bunJsServer.startServer(options);
-        } else {
-            return this.serverImpl = server = nodeJsServer.startServer(options);
-        }
-    }
-
-    updateTlsCertificate(certificate: any) {
-        if (isBunJS) {
-            bunJsServer.updateSslCertificate(this.serverImpl!, this.startServerOptions!, certificate);
-        }
-    }
-}

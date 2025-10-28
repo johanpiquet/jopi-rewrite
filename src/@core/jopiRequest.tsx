@@ -26,7 +26,6 @@ import {
 import {parseCookies} from "./internalTools.ts";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_fs from "jopi-toolkit/jk_fs";
-import {getBrowserRefreshHtmlSnippet, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 
 export class JopiRequest {
     public cache: PageCache;
