@@ -2,7 +2,6 @@ import {type WebSite} from "./jopiWebSite.tsx";
 import path from "node:path";
 import fs from "node:fs/promises";
 import {pathToFileURL} from "node:url";
-import {JopiRequest} from "./jopiRequest.ts";
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import {RouteServerContext_ExposePrivate} from "./routeServerContext.ts";
