@@ -1,18 +1,15 @@
 import http from "node:http";
 import https from "node:https";
-import type {
-    ServerImpl,
-    ServerInstance,
-    ServerSocketAddress,
-    SseEvent,
-    SseEventController,
-    StartServerOptions
-} from "../jopiServer.ts";
 import {WebSocketServer} from "ws";
 import * as jk_fs from "jopi-toolkit/jk_fs";
-import {SBPE_MustReturnWithoutResponseException} from "../jopiWebSite.tsx";
 
-class NodeServer implements ServerInstance {
+import type {ServerInstance, ServerSocketAddress, WebSocketConnectionInfos, SseEvent, SseEventController, StartServerOptions} from "../jopiServer.ts";
+import {SBPE_MustReturnWithoutResponseException} from "../jopiWebSite.tsx";
+import type {HttpMethod, JopiWebSocket, WebSiteImpl, WebSiteRouteInfos, JopiWsRouteHandler} from "../jopiWebSite.tsx";
+import type {ServerInstanceBuilder} from "../serverInstanceBuilder.ts";
+import {addRoute, createRouter, findRoute, type RouterContext} from "rou3";
+
+class NodeServerInstance implements ServerInstance {
     private readonly server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
 
     constructor(private options: StartServerOptions) {
@@ -109,20 +106,6 @@ class NodeServer implements ServerInstance {
     }
 }
 
-function startServer(options: StartServerOptions): ServerInstance {
-    const server = new NodeServer(options);
-    server.start();
-    return server;
-}
-
-function updateSslCertificate() {
-    // Not supported ...
-}
-
-const serverImpl : ServerImpl = {startServer, updateSslCertificate};
-
-export default serverImpl;
-
 //region SSE Events
 
 interface NodeSseEvent extends SseEvent {
@@ -174,6 +157,74 @@ export async function onSseEvent(sseEvent: SseEvent, rawReq: any): Promise<Respo
 
     // Allow bubbling up.
     throw new SBPE_MustReturnWithoutResponseException();
+}
+
+//endregion
+
+//region ServerInstanceProvider
+
+export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
+    private readonly router: RouterContext<WebSiteRouteInfos> = createRouter<WebSiteRouteInfos>();
+    private readonly wsRouter: RouterContext<JopiWsRouteHandler> = createRouter<JopiWsRouteHandler>();
+
+    constructor(private readonly webSite: WebSiteImpl) {
+    }
+
+    addRoute(verb: HttpMethod, path: string, routeInfos: WebSiteRouteInfos) {
+        addRoute(this.router, verb, path, routeInfos);
+    }
+
+    addWsRoute(path: string, handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void) {
+        addRoute(this.wsRouter, "ws", path, handler);
+    }
+
+    addSseEVent(path: string, handler: SseEvent): void {
+        handler = {...handler};
+
+        this.addRoute("GET", path, {
+            handler: async req => {
+                return onSseEvent(handler, req.coreRequest);
+            }
+        });
+    }
+
+    startServer(params: { port: number; tls: any }): ServerInstance {
+        async function fetch(req: Request): Promise<Response|undefined> {
+            const urlInfos = new URL(req.url);
+
+            const matched = findRoute(router, req.method, urlInfos.pathname);
+            if (!matched) return new Response("", {status: 404});
+
+            return await webSite.processRequest(matched.data.handler, matched.params, matched.data, urlInfos, req, server!);
+        }
+
+        const webSite = this.webSite;
+        const router = this.router;
+
+        const server = new NodeServerInstance({
+            port: String(params.port),
+
+            tls: params.tls,
+
+            fetch,
+
+            onWebSocketConnection: (ws: WebSocket, infos: WebSocketConnectionInfos) => {
+                //const urlInfos = new URL(infos.url);
+
+                //const jws = new JopiWebSocket(this.webSite, server, ws);
+                //TODO
+                //webSite.declareNewWebSocketConnection(jws, infos, urlInfos);
+            }
+        });
+
+        server.start();
+
+        return server;
+    }
+
+    updateTlsCertificate(certificate: any) {
+        // Not available for node.js
+    }
 }
 
 //endregion

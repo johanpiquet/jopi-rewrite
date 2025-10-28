@@ -3,15 +3,11 @@
 import path from "node:path";
 
 import fs from "node:fs/promises";
-import {JopiWebSocket, ServerAlreadyStartedError, type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
+import {ServerAlreadyStartedError, type SslCertificatePath, type WebSite, WebSiteImpl} from "./jopiWebSite.tsx";
 
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_os from "jopi-toolkit/jk_os";
-import {isBunJS} from "jopi-toolkit/jk_what";
-
-import bunJsServer, {onSseEvent as bunOnSseEvent} from "./serverImpl/server_bunjs.js";
-import nodeJsServer, {onSseEvent as NodeSseEvent} from "./serverImpl/server_nodejs.js";
 
 class JopiServer {
     private webSite?: WebSiteImpl;
@@ -189,9 +185,6 @@ export interface SseEventController {
     send(eventName: string, data: string): void;
     close(): void;
 }
-
-const serverImpl: ServerImpl = isBunJS ?  bunJsServer : nodeJsServer;
-export const onSseEvent = isBunJS ? bunOnSseEvent : NodeSseEvent;
 
 let gServerInstance: JopiServer|undefined;
 const gServerStartGlobalOptions: StartServerCoreOptions = {};

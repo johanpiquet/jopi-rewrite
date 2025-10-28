@@ -23,7 +23,7 @@ import type {EventGroup} from "jopi-toolkit/jk_events";
 import * as jk_events from "jopi-toolkit/jk_events";
 import {installBrowserRefreshSseEvent, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 import {executeBrowserInstall} from "./linker.ts";
-import {createRouteBuilder, type RouteBuilder} from "./routeBuilder.ts";
+import {createRouteBuilder, type ServerInstanceBuilder} from "./serverInstanceBuilder.ts";
 
 export type RouteHandler = (req: JopiRequest) => Promise<Response>;
 
@@ -559,7 +559,7 @@ export class WebSiteImpl implements WebSite {
 
     //region Routes processing
 
-    public readonly routerBuilder: RouteBuilder;
+    public readonly routerBuilder: ServerInstanceBuilder;
 
     private _on404_NotFound?: JopiErrorHandler;
     private _on500_Error?: JopiErrorHandler;
