@@ -12,6 +12,10 @@ export function isBrowserRefreshEnabled(): boolean {
     return gIsBrowserRefreshEnabled!;
 }
 
+export function isDevUiEnabled() {
+    return process.env.JOPI_DEV_UI === "1";
+}
+
 export function getBrowserRefreshHtmlSnippet() {
     return `<script type="application/javascript">${getBrowserRefreshScript()}</script>`;
 }

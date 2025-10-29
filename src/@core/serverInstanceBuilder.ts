@@ -16,7 +16,7 @@ export interface ServerInstanceBuilder {
 
     updateTlsCertificate(certificate: any): void;
 
-    addPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void>;
+    addPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): void;
 }
 
 export function getNewServerInstanceBuilder(webSite: WebSiteImpl): ServerInstanceBuilder {

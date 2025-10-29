@@ -151,7 +151,7 @@ export class RoutesManager {
             const pageKey = "page_" + jk_crypto.fastHash(route);
 
             for (let route of routes) {
-                await this.webSite.onPage(route, pageKey, fileSourceFullPath, reactComponent);
+                this.webSite.onPage(route, pageKey, fileSourceFullPath, reactComponent);
             }
         }
     }

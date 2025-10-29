@@ -4,6 +4,7 @@ import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import {type BundlerConfig} from "./config.ts";
 import {getBrowserInstallScript} from "jopi-rewrite/linker";
 import {getBrowserRefreshScript, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
+import {isBunJS} from "jopi-toolkit/jk_what";
 
 // *********************************************************************************************************************
 // The goal of this file is to generate the individual pages required for each page found in the root (index.page.tsx).
@@ -23,6 +24,7 @@ jk_events.addListener("jopi.route.newPage", async ({route, filePath}: {route: st
 // - Generate the file named "page_xxxx.js" for each page, which will import the real page.
 //      Doing this allows enforcing the name of the output produced.
 // - Add this file to EsBuild entryPoints to build it with shared resources.
+// - It will also generate a "page_xxxx.html" for Bun.js / React HMR.
 //
 jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {genDir: string, tailwindCss: string, config: BundlerConfig}) => {
     const installScript = getBrowserInstallScript();
@@ -38,7 +40,7 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {g
         txt = txt.replace("__PATH__", filePath);
         txt = txt.replace("__INSTALL__", installScript);
 
-        if (isBrowserRefreshEnabled()) {
+        if (isBrowserRefreshEnabled() && !isBunJS) {
             txt = txt.replace("__SSE_EVENTS__", getBrowserRefreshScript());
         } else {
             txt = txt.replace("__SSE_EVENTS__", "");
