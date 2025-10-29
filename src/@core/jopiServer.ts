@@ -91,7 +91,7 @@ class JopiServer {
 
         await webSite.onBeforeServerStart();
 
-        this.server = webSite.serverInstanceBuilder.startServer({
+        this.server = await webSite.serverInstanceBuilder.startServer({
             port: webSite.port,
             tls: selectCertificate(certificates)
         });

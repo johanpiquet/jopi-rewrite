@@ -12,7 +12,7 @@ export interface ServerInstanceBuilder {
 
     addSseEVent(path: string, handler: SseEvent): void;
 
-    startServer(params: { port: number; tls: any }): CoreServer;
+    startServer(params: { port: number; tls: any }): Promise<CoreServer>;
 
     updateTlsCertificate(certificate: any): void;
 

@@ -7,13 +7,7 @@ import {getBundleDirPath} from "../bundler/common.ts";
 import {JopiRequest} from "../jopiRequest.tsx";
 import type {PageOptions} from "jopi-rewrite/ui";
 
-/*interface WebSocketData {
-    url?: string,
-    headers?: Headers,
-
-    onMessage?: (msg: string|Buffer) => void
-    onClosed?: (code: number, reason: string) => void
-}*/
+import testPageHMR from "/Users/johan/Projets/jopi-rewrite-workspace/__packages/jopi-rewrite/src/@core/serverImpl/testPage/index.html";
 
 //region SSE Events
 
@@ -86,10 +80,13 @@ export async function onSseEvent(sseEvent: SseEvent): Promise<Response> {
 
 //region ServerInstanceProvider
 
+
 export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
     private bunServer?: Bun.Server<unknown>;
     private serverOptions?: any;
     private serverRoutes: any = {};
+
+    private readonly pageToBuild: Record<string, string> = {};
 
     constructor(private readonly webSite: WebSiteImpl) {
     }
@@ -120,7 +117,7 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         });
     }
 
-    startServer(params: { port: number; tls: any }): CoreServer {
+    async startServer(params: { port: number; tls: any }): Promise<CoreServer> {
         const options = {
             port: String(params.port),
             tls: params.tls,
@@ -133,6 +130,12 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
                 console: true,
             }
         };
+        await this.patchTest(options);
+
+        for (let path in this.pageToBuild) {
+            let pageKey = this.pageToBuild[path];
+            await this.buildPage(path, pageKey);
+        }
 
         this.serverOptions = options;
 
@@ -148,6 +151,18 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
     }
 
     async addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void> {
+        this.pageToBuild[path] = pageKey;
+    }
+
+    async buildPage(path: string, pageKey: string): Promise<void> {
+        const genDir = getBundleDirPath(this.webSite);
+        const htmlFilePath = jk_fs.join(genDir, pageKey + ".html");
+
+        if (!this.serverRoutes[path]) this.serverRoutes[path] = {};
+        this.serverRoutes[path]["GET"] = (await import(htmlFilePath)).default;
+    }
+
+    async addPage2(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void> {
         const genDir = getBundleDirPath(this.webSite);
         const htmlFilePath = jk_fs.join(genDir, pageKey + ".html");
 
@@ -157,7 +172,6 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
 
         this.serverRoutes[path]["GET"] = async (coreRequest: Request, urlParts: any) => {
             this.serverRoutes[path]["GET"] = (await import(htmlFilePath)).default;
-            process.env.JOPI_BUNJS_REPLACE_TEXT = "1";
 
             setTimeout(() => {
                 this.bunServer!.reload(this.serverOptions);
@@ -173,7 +187,13 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         }
     }
 
-    async addPage2(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void> {
+    async patchTest(options: any) {
+        options.routes["/hmr"] = {
+            "GET": (await import("/Users/johan/Projets/jopi-rewrite-workspace/__packages/jopi-rewrite/src/@core/serverImpl/testPage/index.html")).default
+        };
+    }
+
+    async addPage_full(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void> {
         if (process.env.JOPI_DEV_UI !== "1") {
             routeInfos.handler = async (req) => {
                 return req.reactPage(pageKey, reactComponent);
@@ -195,7 +215,7 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
 
             // > Step 1: create / update the page on disk.
 
-            // Here we work with a relatif paths.
+            // Here we work with a relatif path.
             let options: PageOptions = {
                 head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"./_bundle/" + pageKey + ".css"} />],
                 bodyEnd: [<script key="jopi.mainSript" type="module" src={"./_bundle/" + pageKey + ".js"}></script>]

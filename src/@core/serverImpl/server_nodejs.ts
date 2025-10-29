@@ -189,7 +189,7 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
         });
     }
 
-    startServer(params: { port: number; tls: any }): CoreServer {
+    async startServer(params: { port: number; tls: any }): Promise<CoreServer> {
         async function fetch(req: Request): Promise<Response|undefined> {
             const urlInfos = new URL(req.url);
 
