@@ -8,6 +8,7 @@ import {getExtraCssToBundle} from "./extraContent.ts";
 import {configureServer} from "./server.ts";
 import {getVirtualUrlMap, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
 import "./pagesGenerator.ts";
+import {isBunJS} from "jopi-toolkit/jk_what";
 
 export interface CreateBundleEvent {
     entryPoints: string[];
@@ -44,7 +45,8 @@ export async function createBundle(webSite: WebSite): Promise<void> {
 
     if (requireTailwind) cssToImport.push("./tailwind.css");
 
-    const enableUiWatch = process.env.JOPI_DEV_UI === "1";
+    // Bun has his own bundler system of development.
+    const enableUiWatch = (process.env.JOPI_DEV_UI === "1") && !isBunJS;
     const config = getBundlerConfig();
 
     await jk_events.sendAsyncEvent("jopi.bundler.creatingBundle", {
@@ -52,13 +54,11 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         tailwindCss: requireTailwind ? innerUrl + "tailwind.css" : undefined
     });
 
-    const data: CreateBundleEvent = {
+    await executeBundler({
         outputDir, genDir, publicUrl, webSite, requireTailwind, enableUiWatch,
         config: getBundlerConfig(), entryPoints: [...config.entryPoints],
         virtualUrlMap: getVirtualUrlMap()
-    };
-
-    await executeBundler(data);
+    });
 
     configureServer(outputDir);
     serverInitChronos.end();

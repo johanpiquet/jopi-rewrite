@@ -805,11 +805,11 @@ export class JopiRequest {
         }
     }
 
-    renderPageToHtml(routeKey: string, C: React.FC<any>): string {
+    renderPageToHtml(pageKey: string, C: React.FC<any>, options?: PageOptions): string {
         // What we will include in our HTML.
-        let options: PageOptions = {
-            head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + routeKey + ".css"} />],
-            bodyEnd: [<script key="jopi.mainSript" type="module" src={"/_bundle/" + routeKey + ".js"}></script>]
+        if (!options) options = {
+            head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + pageKey + ".css"} />],
+            bodyEnd: [<script key="jopi.mainSript" type="module" src={"/_bundle/" + pageKey + ".js"}></script>]
         };
 
         // Allow faking the environment of the page.

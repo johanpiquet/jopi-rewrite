@@ -4,9 +4,6 @@ import path from "node:path";
 import {applyTailwindProcessor} from "./tailwind.ts";
 import * as jk_events from "jopi-toolkit/jk_events";
 import type {EsBuildParams} from "./esbuild.ts";
-import type {CreateBundleEvent} from "../@core/index.ts";
-import * as jk_fs from "jopi-toolkit/jk_fs";
-import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import {installEsBuildPlugins} from "jopi-rewrite/loader-tools";
 import MagicString from 'magic-string';
 import {SourceMapConsumer, SourceMapGenerator} from "source-map";
@@ -14,7 +11,7 @@ import {SourceMapConsumer, SourceMapGenerator} from "source-map";
 /**
  * This plugin allows replacing some text entries according to rules.
  */
-export function jopiReplaceText(replaceRules: Record<string, string>|undefined): Plugin {
+export function jopiReplaceText(): Plugin {
     async function getExistingSourceMap(filePath: string, source: string): Promise<string | null> {
         const sourceMapCommentMatch = source.match(/\/\/# sourceMappingURL=(.+)$/m);
         if (!sourceMapCommentMatch) return null;
@@ -40,13 +37,9 @@ export function jopiReplaceText(replaceRules: Record<string, string>|undefined):
         setup(build) {
             build.onLoad({ filter: /\.(tsx|jsx|js)$/ }, async (args) => {
                 const oldContent = await fs.readFile(args.path, 'utf8');
-                let newContent = oldContent;
+                let newContent = oldContent.replace("jBundler_ifServer", "jBundler_ifBrowser");
+                if (newContent === oldContent) return undefined;
 
-                for (let toReplace in replaceRules) {
-                    newContent = newContent.replace(toReplace, replaceRules[toReplace]);
-                }
-
-                if (newContent === oldContent) return null;
                 const useSourceMap = !!build.initialOptions.sourcemap;
 
                 if (!useSourceMap) {
@@ -55,12 +48,8 @@ export function jopiReplaceText(replaceRules: Record<string, string>|undefined):
                 }
 
                 const existingSourceMap = await getExistingSourceMap(args.path, oldContent);
-                //const existingSourceMap = undefined;
                 const magic = new MagicString(oldContent, {filename: args.path});
-
-                for (let toReplace in replaceRules) {
-                    magic.replace(toReplace, replaceRules[toReplace]);
-                }
+                magic.replace("jBundler_ifServer", "jBundler_ifBrowser");
 
                 const map = magic.generateMap({
                     file: args.path,

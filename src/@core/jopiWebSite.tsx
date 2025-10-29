@@ -38,7 +38,7 @@ export interface WebSite {
 
     enableAutomaticCache(): void;
 
-    onPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>): WebSiteRouteInfos;
+    onPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>): Promise<WebSiteRouteInfos>;
 
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
@@ -577,9 +577,9 @@ export class WebSiteImpl implements WebSite {
         return webSiteRoute;
     }
 
-    onPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>): WebSiteRouteInfos {
+    async onPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>): Promise<WebSiteRouteInfos> {
         const routeInfos: WebSiteRouteInfos = {handler: gVoidRouteHandler};
-        this.serverInstanceBuilder.addPage(path, pageKey, sourceFilePath, reactComponent, routeInfos);
+        await this.serverInstanceBuilder.addPage(path, pageKey, sourceFilePath, reactComponent, routeInfos);
         return routeInfos;
     }
 

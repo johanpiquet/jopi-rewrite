@@ -2,10 +2,10 @@ import type {CoreServer, SseEvent, SseEventController, WebSocketConnectionInfos}
 import type {HttpMethod, JopiWebSocket, WebSiteImpl, WebSiteRouteInfos} from "../jopiWebSite.ts";
 import type {ServerInstanceBuilder} from "../serverInstanceBuilder.ts";
 import React from "react";
-import {isProduction} from "jopi-toolkit/jk_process";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import {getBundleDirPath} from "../bundler/common.ts";
-import {JopiRequest} from "../jopiRequest";
+import {JopiRequest} from "../jopiRequest.tsx";
+import type {PageOptions} from "jopi-rewrite/ui";
 
 /*interface WebSocketData {
     url?: string,
@@ -147,8 +147,34 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         this.bunServer.reload(this.serverOptions);
     }
 
-    addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): void {
-        if (isProduction) {
+    async addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void> {
+        const genDir = getBundleDirPath(this.webSite);
+        const htmlFilePath = jk_fs.join(genDir, pageKey + ".html");
+
+        if (!this.serverRoutes[path]) {
+            this.serverRoutes[path] = {};
+        }
+
+        this.serverRoutes[path]["GET"] = async (coreRequest: Request, urlParts: any) => {
+            this.serverRoutes[path]["GET"] = (await import(htmlFilePath)).default;
+            process.env.JOPI_BUNJS_REPLACE_TEXT = "1";
+
+            setTimeout(() => {
+                this.bunServer!.reload(this.serverOptions);
+            }, 0);
+
+            return new Response("Dev mode - waiting ...", {
+                status: 200,
+                headers: {
+                    "Refresh": "0",
+                    "Content-Type": "text/html;charset=utf-8"
+                }
+            });
+        }
+    }
+
+    async addPage2(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void> {
+        if (process.env.JOPI_DEV_UI !== "1") {
             routeInfos.handler = async (req) => {
                 return req.reactPage(pageKey, reactComponent);
             };
@@ -169,11 +195,18 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
 
             // > Step 1: create / update the page on disk.
 
+            // Here we work with a relatif paths.
+            let options: PageOptions = {
+                head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"./_bundle/" + pageKey + ".css"} />],
+                bodyEnd: [<script key="jopi.mainSript" type="module" src={"./_bundle/" + pageKey + ".js"}></script>]
+            };
+
             // Note: the HTML already include the specific CSS and JS for this page.
-            let htmlText = req.renderPageToHtml(pageKey, reactComponent);
-            htmlText = htmlText.replaceAll("/_bundle/" + pageKey, this.webSite.welcomeUrl + "/_bundle/" + pageKey);
+            let htmlText = req.renderPageToHtml(pageKey, reactComponent, options);
+            //htmlText = htmlText.replaceAll("/_bundle/" + pageKey, this.webSite.welcomeUrl + "/_bundle/" + pageKey);
 
             await jk_fs.writeTextToFile(htmlFilePath, htmlText);
+            console.log("Page updated:", htmlFilePath);
 
             // Step 2: import and return the file.
 

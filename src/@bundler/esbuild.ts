@@ -6,7 +6,6 @@ import {jopiReplaceText, jopiLoaderPlugin, jopiDetectRebuild} from "./plugins.ts
 
 export interface EsBuildParams extends CreateBundleEvent {
     metaDataFilePath: string;
-    replaceRules: Record<string, string>;
     dontEmbed: string[]|undefined;
 }
 
@@ -35,7 +34,7 @@ export async function esBuildBundle(params: EsBuildParams) {
 
         plugins: [
             jopiLoaderPlugin,
-            jopiReplaceText(params.replaceRules),
+            jopiReplaceText(),
             jopiDetectRebuild(params)
         ],
 

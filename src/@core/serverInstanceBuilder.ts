@@ -1,6 +1,6 @@
 import type {CoreServer, SseEvent, WebSocketConnectionInfos} from "./jopiServer.ts";
 import {isBunJS} from "jopi-toolkit/jk_what";
-import {BunJsServerInstanceBuilder} from "./serverImpl/server_bunjs.ts";
+import {BunJsServerInstanceBuilder} from "./serverImpl/server_bunjs.tsx";
 import {NodeJsServerInstanceBuilder} from "./serverImpl/server_nodejs.ts";
 import {type HttpMethod, JopiWebSocket, WebSiteImpl, type WebSiteRouteInfos} from "./jopiWebSite.tsx";
 import React from "react";
@@ -16,7 +16,7 @@ export interface ServerInstanceBuilder {
 
     updateTlsCertificate(certificate: any): void;
 
-    addPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): void;
+    addPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void>;
 }
 
 export function getNewServerInstanceBuilder(webSite: WebSiteImpl): ServerInstanceBuilder {

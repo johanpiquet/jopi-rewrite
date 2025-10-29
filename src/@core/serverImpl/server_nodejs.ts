@@ -227,7 +227,7 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
         // Not available for node.js
     }
 
-    addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): void {
+    async addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos): Promise<void> {
         routeInfos.handler = async (req) => {
             return req.reactPage(pageKey, reactComponent);
         };

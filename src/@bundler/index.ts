@@ -19,7 +19,6 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
     await launchEsBuildProcess({
         metaDataFilePath,
         dontEmbed: config.embed.dontEmbedThis,
-        replaceRules,
 
         ...params
     });

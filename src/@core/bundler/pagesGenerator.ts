@@ -46,14 +46,29 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {g
 
         let outFilePath = jk_fs.join(genDir, fileName + ".jsx");
         await jk_fs.writeTextToFile(outFilePath, txt);
-
-        // Will allows compiling it.
         config.entryPoints.push(outFilePath);
+
+        txt = HTML_TEMPLATE;
+        txt = txt.replace("__SCRIPT_PATH__", "./" + fileName + ".jsx");
+        outFilePath = jk_fs.join(genDir, fileName + ".html");
+        await jk_fs.writeTextToFile(outFilePath, txt);
     }
 });
 
-const REACT_TEMPLATE = `
-import React from "react";
+const HTML_TEMPLATE = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dev Mode</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="__SCRIPT_PATH__"></script>
+  </body>
+</html>`;
+
+const REACT_TEMPLATE = `import React from "react";
 import ReactDOM from "react-dom/client";
 import {PageContext, PageController_ExposePrivate} from "jopi-rewrite/ui";
 import C from "__PATH__";
@@ -63,13 +78,20 @@ import "./tailwind.css";
 
 installer(new UiKitModule());
 
-const root = document.body;
-const reactRoot = ReactDOM.createRoot(root);
+function start() {
+    const container = document.getElementById("root");
+    const root = ReactDOM.createRoot(container);
+    root.render(<React.StrictMode><PageContext.Provider value={new PageController_ExposePrivate()}>
+                        <C/></PageContext.Provider></React.StrictMode>);
+}
 
 __SSE_EVENTS__
 
-reactRoot.render(<React.StrictMode><PageContext.Provider value={new PageController_ExposePrivate()}>
-                    <C/></PageContext.Provider></React.StrictMode>);
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+} else {
+  start();
+}
 `;
 
 /**
