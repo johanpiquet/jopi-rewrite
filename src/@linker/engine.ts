@@ -300,6 +300,10 @@ export abstract class ArobaseType {
 
     abstract processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }): Promise<void>;
 
+    declareError(message: string, filePath?: string): Error {
+        return declareLinkerError(message, filePath);
+    }
+
     //region Codegen
 
     generateCodeForItem(writer: CodeGenWriter, key: string, rItem: RegistryItem): Promise<void> {
@@ -316,11 +320,7 @@ export abstract class ArobaseType {
 
     //endregion
 
-    declareError(message: string, filePath?: string): Error {
-        return declareLinkerError(message, filePath);
-    }
-
-    //region Rules
+    //region Processing dir
 
     /**
      * Process a directory containing item to process.
@@ -330,7 +330,7 @@ export abstract class ArobaseType {
      *                    ^- we will iterate it
      *           ^-- we are here
      */
-    async rules_applyRulesOnDir(p: RulesFor_Collection) {
+    async dir_recurseOnDir(p: ScanDirItemsParams) {
         const dirItems = await jk_fs.listDir(p.dirToScan);
 
         for (let entry of dirItems) {
@@ -338,14 +338,17 @@ export abstract class ArobaseType {
 
             if (p.expectFsType === "file") {
                 if (entry.isFile) {
-                    await this.rules_applyRulesOnChildDir(p.itemDefRules, entry);
+                    if (p.handler) await p.handler(entry, p.rules);
+                    else if (p.rules) await this.dir_processItem(entry, p.rules);
                 }
             } else if (p.expectFsType === "dir") {
                 if (entry.isDirectory) {
-                    await this.rules_applyRulesOnChildDir(p.itemDefRules, entry);
+                    if (p.handler) await p.handler(entry, p.rules);
+                    else if (p.rules) await this.dir_processItem(entry, p.rules);
                 }
             } else if (p.expectFsType === "fileOrDir") {
-                await this.rules_applyRulesOnChildDir(p.itemDefRules, entry);
+                if (p.handler) await p.handler(entry, p.rules);
+                else if (p.rules) await this.dir_processItem(entry, p.rules);
             }
         }
     }
@@ -357,7 +360,7 @@ export abstract class ArobaseType {
      * ruleDir/itemType/newItem/...
      *                  ^-- we are here
      */
-    async rules_applyRulesOnChildDir(p: RulesFor_CollectionItem, dirItem: jk_fs.DirItem) {
+    async dir_processItem(dirItem: jk_fs.DirItem, p: ProcessDirItemParams) {
         const thisIsFile = dirItem.isFile;
         const thisFullPath = dirItem.fullPath;
         const thisName = dirItem.name;
@@ -407,7 +410,7 @@ export abstract class ArobaseType {
 
         // Search the "uid.myuid" file, which allows knowing the uid of the item.
         //
-        const result = await this.rules_analizeDirContent(thisFullPath, p);
+        const result = await this.dir_extractInfos(thisFullPath, p);
 
         const myUid = result.myUid;
         const refTarget = result.refTarget;
@@ -442,7 +445,7 @@ export abstract class ArobaseType {
      * @param rules
      * @param useThisUid
      */
-    private async rules_analizeDirContent(dirPath: string, rules: DirAnalizingRules, useThisUid?: string | undefined): Promise<AnalizeDirResult> {
+    private async dir_extractInfos(dirPath: string, rules: DirAnalizingRules, useThisUid?: string | undefined): Promise<ExtractDirectoryInfosResult> {
         function decodeCond(condName: string) {
             // Remove .cond at the end.
             condName = condName.slice(0, -5);
@@ -556,7 +559,7 @@ export abstract class ArobaseType {
             }
         }
 
-        let result: AnalizeDirResult = { dirItems: [] };
+        let result: ExtractDirectoryInfosResult = { dirItems: [] };
 
         const items = await getSortedDirItem(dirPath);
 
@@ -572,16 +575,27 @@ export abstract class ArobaseType {
 
     //region Registry
 
-    registry_requireItem<T extends RegistryItem>(key: string, requireType?: ArobaseType): T {
-        const entry = gRegistry[key];
-        if (!entry) throw declareLinkerError("The item " + key + " is required but not defined");
-        if (requireType && (entry.arobaseType !== requireType)) throw declareLinkerError("The item " + key + " is not of the expected type @" + requireType.typeName);
-        return entry as T;
+    registry_addItem<T extends RegistryItem>(uid: string, item: T) {
+        if (gRegistry[uid]) declareLinkerError("The UID " + uid + " is already defined", gRegistry[uid].itemPath);
+
+        gRegistry[uid] = item;
+
+        if (LOG) {
+            const relPath = jk_fs.getRelativePath(gDir_ProjectSrc, item.itemPath);
+            console.log(`Add ${uid} to registry. Path: ${relPath}`);
+        }
     }
 
     registry_getItem<T extends RegistryItem>(key: string, requireType?: ArobaseType): T|undefined {
         const entry = gRegistry[key];
         if (requireType && entry && (entry.arobaseType !== requireType)) throw declareLinkerError("The item " + key + " is not of the expected type @" + requireType.typeName);
+        return entry as T;
+    }
+
+    registry_requireItem<T extends RegistryItem>(key: string, requireType?: ArobaseType): T {
+        const entry = gRegistry[key];
+        if (!entry) throw declareLinkerError("The item " + key + " is required but not defined");
+        if (requireType && (entry.arobaseType !== requireType)) throw declareLinkerError("The item " + key + " is not of the expected type @" + requireType.typeName);
         return entry as T;
     }
 
@@ -598,17 +612,6 @@ export abstract class ArobaseType {
         if (LOG) console.log("Add REPLACE", mustReplace, "=>", replaceWith, "priority", priority);
     }
 
-    registry_addItem<T extends RegistryItem>(uid: string, item: T) {
-        if (gRegistry[uid]) declareLinkerError("The UID " + uid + " is already defined", gRegistry[uid].itemPath);
-
-        gRegistry[uid] = item;
-
-        if (LOG) {
-            const relPath = jk_fs.getRelativePath(gDir_ProjectSrc, item.itemPath);
-            console.log(`Add ${uid} to registry. Path: ${relPath}`);
-        }
-    }
-
     //endregion
 }
 
@@ -618,13 +621,19 @@ export interface DirAnalizingRules {
     requirePriority?: boolean
 }
 
-export interface RulesFor_Collection {
+export interface ScanDirItemsParams {
     dirToScan: string;
     expectFsType: "file"|"dir"|"fileOrDir";
-    itemDefRules: RulesFor_CollectionItem;
+
+    /**
+     * If defined, then will be called for each validated entry.
+     */
+    handler?: (item: jk_fs.DirItem, rules: ProcessDirItemParams|undefined) => Promise<void>;
+
+    rules?: ProcessDirItemParams;
 }
 
-export interface RulesFor_CollectionItem extends DirAnalizingRules {
+export interface ProcessDirItemParams extends DirAnalizingRules {
     rootDirName: string;
     filesToResolve?: Record<string, string[]>;
     nameConstraint: "canBeUid"|"mustNotBeUid"|"mustBeUid";
@@ -655,7 +664,7 @@ export enum PriorityLevel {
     veryHigh = 200,
 }
 
-export interface AnalizeDirResult {
+export interface ExtractDirectoryInfosResult {
     dirItems: jk_fs.DirItem[];
 
     myUid?: string;

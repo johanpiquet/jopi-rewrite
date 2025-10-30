@@ -8,11 +8,11 @@ export default class TypeReplaces extends ArobaseType {
         for (let itemType of itemTypes) {
             if ((itemType.name[0]==='_') || (itemType.name[0]==='.')) continue;
 
-            await this.rules_applyRulesOnDir({
+            await this.dir_recurseOnDir({
                 dirToScan: itemType.fullPath,
                 expectFsType: "dir",
 
-                itemDefRules: {
+                rules: {
                     nameConstraint: "canBeUid",
                     requireRefFile: true,
 

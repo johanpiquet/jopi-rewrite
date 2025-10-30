@@ -1,16 +1,16 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_tools from "jopi-toolkit/jk_tools";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 import {
-    type RulesFor_CollectionItem,
+    type ProcessDirItemParams,
     getSortedDirItem,
     type TransformItemParams,
     PriorityLevel,
     type RegistryItem,
     ArobaseType,
-    type RulesFor_Collection,
     CodeGenWriter
 } from "./engine.ts";
-import * as jk_tools from "jopi-toolkit/jk_tools";
 
 // region ArobaseList
 
@@ -30,26 +30,33 @@ export interface ArobaseListItem {
 }
 
 export class Type_ArobaseList extends ArobaseType {
+    protected async onListItem(item: ArobaseListItem, list: ArobaseListItem[], dirPath: string): Promise<void> {
+        list.push(item);
+    }
+
+    protected mergeLists(existingList: ArobaseList, newList: TransformItemParams) {
+    }
+
     processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }) {
         return this.processList(p.arobaseDir);
     }
 
-    protected async processList(listDirPath: string) {
-        await this.rules_applyRulesOnDir(this.hookRootDirConstraints({
+    protected async processList(listDirPath: string): Promise<void> {
+        await this.dir_recurseOnDir({
             dirToScan: listDirPath,
             expectFsType: "dir",
 
-            itemDefRules: {
+            rules: {
                 nameConstraint: "canBeUid",
                 requireRefFile: false,
                 requirePriority: true,
                 rootDirName: jk_fs.basename(listDirPath),
                 transform: (p) => this.processListItem(p)
             }
-        }));
+        });
     }
 
-    async processListItem(p: TransformItemParams) {
+    protected async processListItem(p: TransformItemParams) {
         let listId = this.typeName + "!" + p.itemName!;
         const listName = p.itemName;
 
@@ -58,7 +65,7 @@ export class Type_ArobaseList extends ArobaseType {
         const dirItems = await getSortedDirItem(p.itemPath);
         let listItems: ArobaseListItem[] = [];
 
-        const params: RulesFor_CollectionItem = {
+        const params: ProcessDirItemParams = {
             rootDirName: p.parentDirName,
             nameConstraint: "mustNotBeUid",
             requirePriority: true,
@@ -72,12 +79,16 @@ export class Type_ArobaseList extends ArobaseType {
                     throw this.declareError("The list item can't have both an index file and a .ref file", item.itemPath);
                 }
 
-                listItems.push({
+                const listItem: ArobaseListItem = {
                     priority: item.priority,
                     sortKey: item.itemName,
                     ref: item.refTarget,
                     entryPoint: item.resolved.entryPoint
-                });
+                };
+
+                const eventData = {itemPath: item.itemPath, item: listItem, list: listItems, mustSkip: false};
+                await jk_events.sendAsyncEvent("jopi.linker.onNewListItem." + this.typeName, eventData);
+                if (!eventData.mustSkip) await this.onListItem(listItem, listItems, item.itemPath);
             }
         };
 
@@ -95,7 +106,7 @@ export class Type_ArobaseList extends ArobaseType {
 
             if ((dirItem.name[0] === "_") || (dirItem.name[0] === ".")) continue;
 
-            await this.rules_applyRulesOnChildDir(params, dirItem);
+            await this.dir_processItem(dirItem, params);
         }
 
         // > Add the list.
@@ -123,6 +134,9 @@ export class Type_ArobaseList extends ArobaseType {
                     }
                 }
             }
+
+            this.mergeLists(current, p);
+            await jk_events.sendAsyncEvent("jopi.linker.mergeLists." + this.typeName, {arobaseType: this, current, newList: p});
         }
 
         if (current.itemsType !== p.parentDirName) {
@@ -131,10 +145,6 @@ export class Type_ArobaseList extends ArobaseType {
 
         current.allDirPath.push(p.itemPath);
         current.items.push(...listItems);
-    }
-
-    hookRootDirConstraints(p: RulesFor_Collection): RulesFor_Collection {
-        return p;
     }
 
     protected getGenOutputDir(_list: ArobaseList) {
@@ -221,18 +231,24 @@ export class Type_ArobaseList extends ArobaseType {
 
 //endregion
 
+//region ArobaseChunk
+
 export interface ArobaseChunk extends RegistryItem {
     entryPoint: string;
     itemType: string;
 }
 
 export class Type_ArobaseChunk extends ArobaseType {
+    async onChunk(chunk: ArobaseChunk, key: string, dirPath: string) {
+        this.registry_addItem(key, chunk);
+    }
+
     async processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }) {
-        await this.rules_applyRulesOnDir({
+        await this.dir_recurseOnDir({
             dirToScan: p.arobaseDir,
             expectFsType: "dir",
 
-            itemDefRules: {
+            rules: {
                 rootDirName: jk_fs.basename(p.arobaseDir),
                 nameConstraint: "canBeUid",
                 requireRefFile: false,
@@ -247,14 +263,20 @@ export class Type_ArobaseChunk extends ArobaseType {
                         throw this.declareError("No 'index.ts' or 'index.tsx' file found", props.itemPath);
                     }
 
-                    const newItem: ArobaseChunk = {
+                    const chunk: ArobaseChunk = {
                         arobaseType: this,
                         entryPoint: props.resolved.entryPoint,
                         itemType: props.parentDirName,
                         itemPath: props.itemPath,
                     };
 
-                    this.registry_addItem(this.typeName + "!" + props.itemName, newItem);
+                    const key = this.typeName + "!" + props.itemName;
+                    const eventData = {mustSkip: false, key, chunk, itemPath: props.itemPath};
+                    await jk_events.sendAsyncEvent("jopi.linker.onNewChunk." + this.typeName, eventData);
+
+                    if (!eventData.mustSkip) {
+                        await this.onChunk(chunk, key, props.itemPath);
+                    }
                 }
             }
         });
@@ -271,3 +293,5 @@ export class Type_ArobaseChunk extends ArobaseType {
         return this.typeName;
     }
 }
+
+//endregion
