@@ -793,6 +793,7 @@ export class JopiRequest {
     /**
      * The new render function.
      * Used while refactoring the renderer.
+     * Used while refactoring the renderer.
      */
     reactPage(routeKey: string, C: React.FC<any>): Response {
         try {

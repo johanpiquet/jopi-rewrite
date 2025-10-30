@@ -99,7 +99,7 @@ __EXTRA_IMPORTS__
 installer(new UiKitModule());
 
 function start() {
-    const container = document.getElementById("root");
+    const container = document.body;
     const root = ReactDOM.createRoot(container);
     root.render(<React.StrictMode><PageContext.Provider value={new PageController_ExposePrivate()}>
                         <C/></PageContext.Provider></React.StrictMode>);
