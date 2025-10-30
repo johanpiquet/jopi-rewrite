@@ -151,6 +151,25 @@ export class Type_ArobaseList extends ArobaseType {
         return this.typeName;
     }
 
+    protected resolveEntryPointFor(list: ArobaseList, item: ArobaseListItem): string {
+        let entryPoint = item.entryPoint!;
+
+        if (!entryPoint) {
+            let d = this.registry_requireItem<ArobaseChunk>(item.ref!);
+            if (d.itemType!==list.itemsType) {
+                throw this.declareError(`Type mismatch. Expect ${list.itemsType}`, d.itemPath)
+            }
+
+            if (!d.entryPoint) {
+                throw this.declareError(`Item if missing index.ts/index.tsx file`, d.itemPath)
+            }
+
+            entryPoint = d.entryPoint;
+        }
+
+        return entryPoint;
+    }
+
     async generateCodeForItem(writer: CodeGenWriter, key: string, rItem: RegistryItem) {
         function sortByPriority(items: ArobaseListItem[]): ArobaseListItem[] {
             function addPriority(priority: PriorityLevel) {
@@ -180,25 +199,6 @@ export class Type_ArobaseList extends ArobaseType {
         list.items = sortByPriority(list.items);
 
         await this.generateCodeForList(writer, key, list);
-    }
-
-    protected resolveEntryPointFor(list: ArobaseList, item: ArobaseListItem): string {
-        let entryPoint = item.entryPoint!;
-
-        if (!entryPoint) {
-            let d = this.registry_requireItem<ArobaseChunk>(item.ref!);
-            if (d.itemType!==list.itemsType) {
-                throw this.declareError(`Type mismatch. Expect ${list.itemsType}`, d.itemPath)
-            }
-
-            if (!d.entryPoint) {
-                throw this.declareError(`Item if missing index.ts/index.tsx file`, d.itemPath)
-            }
-
-            entryPoint = d.entryPoint;
-        }
-
-        return entryPoint;
     }
 
     protected async generateCodeForList(writer: CodeGenWriter, key: string, list: ArobaseList): Promise<void> {

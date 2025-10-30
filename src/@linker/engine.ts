@@ -2,6 +2,7 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_tools from "jopi-toolkit/jk_tools";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_what from "jopi-toolkit/jk_what";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 const LOG = false;
 
@@ -104,10 +105,20 @@ async function generateAll() {
         let items: RegistryItem[] = [];
 
         for (let key in gRegistry) {
-            const entry = gRegistry[key];
-            if (entry.arobaseType === arobaseType) {
-                items.push(entry);
-                await entry.arobaseType.generateCodeForItem(gCodeGenWriter, key, entry);
+            const item = gRegistry[key];
+
+            if (item.arobaseType === arobaseType) {
+                const eventData = {
+                    codeWrite: gCodeGenWriter, key,
+                    item, items, mustSkip: false
+                };
+
+                items.push(item);
+                await jk_events.sendAsyncEvent("jopi.linker.generateCode." + arobaseType.typeName, eventData);
+
+                if (!eventData.mustSkip) {
+                    await item.arobaseType.generateCodeForItem(gCodeGenWriter, key, item);
+                }
             }
         }
 
@@ -189,7 +200,7 @@ export class CodeGenWriter {
         await jk_fs.symlink(targetDirPath_src, srcNewDir, "dir");
     }
 
-    genAddToInstallFile_JS(who: InstallFileType, where: FilePart, javascriptContent: string) {
+    genAddToInstallFile(who: InstallFileType, where: FilePart, javascriptContent: string) {
         function addTo(group: Record<string, string>) {
             let part = group[where] || "";
             group[where] = part + javascriptContent;
@@ -247,6 +258,7 @@ async function processModules() {
 
         for (let p of gModuleDirProcessors) {
             await p.onBeginModuleProcessing(gCodeGenWriter, module.fullPath);
+            await jk_events.sendAsyncEvent("jopi.linker.onModule", { codeWrite: gCodeGenWriter, moduleDir: module.fullPath});
         }
 
         await processModule(module.fullPath);

@@ -23,7 +23,7 @@ export default class TypeEvents extends Type_ArobaseList {
             }
 
             let jsSources = `    registry.events.addProvider("${list.listName}", async () => { const R = await import("@/events/${list.listName}"); return R.default; });`;
-            writer.genAddToInstallFile_JS(installFileType, FilePart.body, jsSources);
+            writer.genAddToInstallFile(installFileType, FilePart.body, jsSources);
         }
     }
 }

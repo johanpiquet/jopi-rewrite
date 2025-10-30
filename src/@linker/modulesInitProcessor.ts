@@ -32,8 +32,8 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
             let relPath = writer.makePathRelatifToOutput(uiInitFile);
             if (!writer.isTypeScriptOnly) relPath = writer.toJavascriptFileName(relPath);
 
-            writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.imports, `\nimport modUiInit${i} from "${relPath}";`);
-            writer.genAddToInstallFile_JS(InstallFileType.browser, FilePart.footer, `\n    modUiInit${i}(registry);`)
+            writer.genAddToInstallFile(InstallFileType.browser, FilePart.imports, `\nimport modUiInit${i} from "${relPath}";`);
+            writer.genAddToInstallFile(InstallFileType.browser, FilePart.footer, `\n    modUiInit${i}(registry);`)
         }
 
         i = 0;
@@ -44,12 +44,12 @@ export class ModulesInitProcessor extends ModuleDirProcessor {
             let relPath = writer.makePathRelatifToOutput(serverInitFile);
             if (!writer.isTypeScriptOnly) relPath = writer.toJavascriptFileName(relPath);
 
-            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.imports, `\nimport modServerInit${i} from "${relPath}";`);
-            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `\n    await modServerInit${i}(registry);`)
+            writer.genAddToInstallFile(InstallFileType.server, FilePart.imports, `\nimport modServerInit${i} from "${relPath}";`);
+            writer.genAddToInstallFile(InstallFileType.server, FilePart.body, `\n    await modServerInit${i}(registry);`)
         }
 
         if (this.routesDir) {
-            writer.genAddToInstallFile_JS(InstallFileType.server, FilePart.body, `\n    await registry.getRoutesManager().scanRoutesFrom("${this.routesDir}");`);
+            writer.genAddToInstallFile(InstallFileType.server, FilePart.body, `\n    await registry.getRoutesManager().scanRoutesFrom("${this.routesDir}");`);
         }
     }
 }
