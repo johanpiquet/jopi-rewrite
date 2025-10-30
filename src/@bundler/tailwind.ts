@@ -60,7 +60,7 @@ async function applyPostCss(params: CreateBundleEvent, sourceFiles: string[]): P
 
     if (!plugins.length) return undefined;
 
-    let globalCssContent = await resolveGlobalCss(bundlerConfig);
+    let globalCssContent = await getGlobalCssFileContent(bundlerConfig);
 
     try {
         const processor = postcss(plugins);
@@ -78,7 +78,7 @@ async function applyPostCss(params: CreateBundleEvent, sourceFiles: string[]): P
     }
 }
 
-async function resolveGlobalCss(config: BundlerConfig): Promise<string> {
+export async function getGlobalCssFileContent(config: BundlerConfig): Promise<string> {
     if (config.tailwind.globalCssContent) {
         return config.tailwind.globalCssContent;
     }

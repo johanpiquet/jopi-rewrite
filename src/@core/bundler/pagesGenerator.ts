@@ -3,8 +3,8 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import {type BundlerConfig} from "./config.ts";
 import {getBrowserInstallScript} from "jopi-rewrite/linker";
-import {getBrowserRefreshScript, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
-import {isBunJS} from "jopi-toolkit/jk_what";
+import {getBrowserRefreshScript, isBrowserRefreshEnabled, isReactHMR} from "jopi-rewrite/loader-client";
+import {getGlobalCssFileContent} from "jopi-rewrite/bundler";
 
 // *********************************************************************************************************************
 // The goal of this file is to generate the individual pages required for each page found in the root (index.page.tsx).
@@ -29,6 +29,11 @@ jk_events.addListener("jopi.route.newPage", async ({route, filePath}: {route: st
 jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {genDir: string, tailwindCss: string, config: BundlerConfig}) => {
     const installScript = getBrowserInstallScript();
 
+    if (isReactHMR()) {
+        let globalCss = await getGlobalCssFileContent(config);
+        jk_fs.writeTextToFile(jk_fs.join(genDir, "tailwind-hmr.css"), globalCss);
+    }
+
     for (let filePath in gPagePathToRoute) {
         let route = gPagePathToRoute[filePath];
         let fileName = "page_" + jk_crypto.fastHash(route);
@@ -40,15 +45,28 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {g
         txt = txt.replace("__PATH__", filePath);
         txt = txt.replace("__INSTALL__", installScript);
 
-        if (isBrowserRefreshEnabled() && !isBunJS) {
+        if (isReactHMR()) {
+            // Bun.js use his own SSE events.
+            txt = txt.replace("__SSE_EVENTS__", "");
+        }
+        else if (isBrowserRefreshEnabled()) {
+            // Node.js require our custom SSE events.
             txt = txt.replace("__SSE_EVENTS__", getBrowserRefreshScript());
         } else {
+            // No SSE events if production.
             txt = txt.replace("__SSE_EVENTS__", "");
         }
 
+        if (isReactHMR()) {
+            // The uncompiled version of tailwind.
+            txt = txt.replace("__EXTRA_IMPORTS__", 'import "./tailwind-hmr.css";');
+        } else {
+            txt = txt.replace("__EXTRA_IMPORTS__", 'import "./tailwind.css";');
+        }
+
         let outFilePath = jk_fs.join(genDir, fileName + ".jsx");
-        await jk_fs.writeTextToFile(outFilePath, txt);
         config.entryPoints.push(outFilePath);
+        await jk_fs.writeTextToFile(outFilePath, txt);
 
         txt = HTML_TEMPLATE;
         txt = txt.replace("__SCRIPT_PATH__", "./" + fileName + ".jsx");
@@ -76,7 +94,7 @@ import {PageContext, PageController_ExposePrivate} from "jopi-rewrite/ui";
 import C from "__PATH__";
 import {UiKitModule} from "jopi-rewrite/uikit";
 import installer from "__INSTALL__";
-import "./tailwind.css";
+__EXTRA_IMPORTS__
 
 installer(new UiKitModule());
 

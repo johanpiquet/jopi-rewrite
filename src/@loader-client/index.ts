@@ -1,6 +1,7 @@
 import process from 'node:process';
 import type {WebSite} from "../@core";
 import * as jk_events from "jopi-toolkit/jk_events";
+import {isBunJS} from "jopi-toolkit/jk_what";
 
 let gIsBrowserRefreshEnabled: boolean|undefined;
 
@@ -14,6 +15,10 @@ export function isBrowserRefreshEnabled(): boolean {
 
 export function isDevUiEnabled() {
     return process.env.JOPI_DEV_UI === "1";
+}
+
+export function isReactHMR() {
+    return isDevUiEnabled() && isBunJS;
 }
 
 export function getBrowserRefreshHtmlSnippet() {

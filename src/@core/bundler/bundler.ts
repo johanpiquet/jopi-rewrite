@@ -9,6 +9,7 @@ import {configureServer} from "./server.ts";
 import {getVirtualUrlMap, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
 import "./pagesGenerator.ts";
 import {isBunJS} from "jopi-toolkit/jk_what";
+import {isReactHMR} from "jopi-rewrite/loader-client";
 
 export interface CreateBundleEvent {
     entryPoints: string[];
@@ -54,11 +55,16 @@ export async function createBundle(webSite: WebSite): Promise<void> {
         tailwindCss: requireTailwind ? innerUrl + "tailwind.css" : undefined
     });
 
-    await executeBundler({
-        outputDir, genDir, publicUrl, webSite, requireTailwind, enableUiWatch,
-        config: getBundlerConfig(), entryPoints: [...config.entryPoints],
-        virtualUrlMap: getVirtualUrlMap()
-    });
+    // React HMR mode uses on the fly bundler.
+    // It's why we don't generate the default bundle here.
+    //
+    if (!isReactHMR()) {
+        await executeBundler({
+            outputDir, genDir, publicUrl, webSite, requireTailwind, enableUiWatch,
+            config: getBundlerConfig(), entryPoints: [...config.entryPoints],
+            virtualUrlMap: getVirtualUrlMap()
+        });
+    }
 
     configureServer(outputDir);
     serverInitChronos.end();
