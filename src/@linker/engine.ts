@@ -28,6 +28,17 @@ export async function getSortedDirItem(dirPath: string): Promise<jk_fs.DirItem[]
     return items.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export async function useCanonicalFileName(fileFullPath: string, expectedFileName: string): Promise<string> {
+    let fileName = jk_fs.basename(fileFullPath);
+    let newFullPath = jk_fs.join(jk_fs.dirname(fileFullPath), expectedFileName);
+
+    if (fileName !== expectedFileName) {
+        await jk_fs.rename(fileFullPath, newFullPath);
+    }
+
+    return newFullPath;
+}
+
 //endregion
 
 //region Registry
@@ -458,33 +469,49 @@ export abstract class ArobaseType {
      * @param useThisUid
      */
     private async dir_extractInfos(dirPath: string, rules: DirAnalizingRules, useThisUid?: string | undefined): Promise<ExtractDirectoryInfosResult> {
-        function decodeCond(condName: string) {
-            // Remove .cond at the end.
-            condName = condName.slice(0, -5);
-
-            condName = condName.toLowerCase();
+        async function decodeCond(dirItem: jk_fs.DirItem): Promise<string> {
+            let condName = dirItem.name.toLowerCase();
             if (condName.startsWith("if")) condName = condName.substring(2);
             condName = condName.replace("-", "");
             condName = condName.replace("_", "");
 
+            if (condName==="browser.cond") {
+                dirItem.name = "if_browser.cond";
+                condName = "if_browser";
+            }
+            else if (condName==="server.cond") {
+                dirItem.name = "if_server.cond";
+                condName = "if_server";
+            }
+            else {
+                throw declareLinkerError("Unknown condition name: " + condName, dirItem.fullPath);
+            }
+
+            dirItem.fullPath = await useCanonicalFileName(dirItem.fullPath, dirItem.name);
+
             return condName;
         }
 
-        function decodePriority(priorityName: string, itemFullPath: string): PriorityLevel {
+        async function decodePriority(priorityName: string, itemFullPath: string): Promise<PriorityLevel> {
             priorityName = priorityName.toLowerCase();
             priorityName = priorityName.replace("-", "");
             priorityName = priorityName.replace("_", "");
 
             switch (priorityName) {
                 case "default.priority":
+                    await useCanonicalFileName(itemFullPath, priorityName)
                     return PriorityLevel.default;
                 case "veryhigh.priority":
+                    await useCanonicalFileName(itemFullPath, "very_high.priority")
                     return PriorityLevel.veryHigh;
                 case "high.priority":
+                    await useCanonicalFileName(itemFullPath, priorityName)
                     return PriorityLevel.high;
                 case "low.priority":
+                    await useCanonicalFileName(itemFullPath, priorityName)
                     return PriorityLevel.low;
                 case "verylow.priority":
+                    await useCanonicalFileName(itemFullPath, "very_low.priority")
                     return PriorityLevel.veryLow;
             }
 
@@ -541,17 +568,17 @@ export abstract class ArobaseType {
                     }
 
                     await addNameIntoFile(entry.fullPath);
-                    result.priority = decodePriority(entry.name, entry.fullPath);
+                    result.priority = await decodePriority(entry.name, entry.fullPath);
                 }
                 else if (entry.name.endsWith(".cond")) {
                     if (rules.allowConditions===false) {
                         throw declareLinkerError("A .cond file is NOT expected here", entry.fullPath);
                     }
 
-                    await addNameIntoFile(entry.fullPath);
+                    if (!result.conditionsFound) result.conditionsFound = new Set<string>();
+                    result.conditionsFound.add(await decodeCond(entry));
 
-                    if (!result.conditionsFound)  result.conditionsFound = new Set<string>();
-                    result.conditionsFound.add(decodeCond(entry.name));
+                    await addNameIntoFile(entry.fullPath);
                 }
                 else if (entry.name.endsWith(".ref")) {
                     if (result.refTarget) {

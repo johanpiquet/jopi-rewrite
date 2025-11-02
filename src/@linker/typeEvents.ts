@@ -14,9 +14,9 @@ export default class TypeEvents extends Type_ArobaseList {
             let conditions = list.conditions;
 
             if (conditions) {
-                if (conditions.has("server") && conditions.has("browser")) installFileType = InstallFileType.both;
-                else if (conditions.has("server")) installFileType = InstallFileType.server;
-                else if (conditions.has("browser")) installFileType = InstallFileType.browser;
+                if (conditions.has("if_server") && conditions.has("if_browser")) installFileType = InstallFileType.both;
+                else if (conditions.has("if_server")) installFileType = InstallFileType.server;
+                else if (conditions.has("if_browser")) installFileType = InstallFileType.browser;
                 else installFileType = InstallFileType.both;
             } else {
                 installFileType = InstallFileType.both;
