@@ -4,17 +4,16 @@ import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import * as jk_events from "jopi-toolkit/jk_events";
 
 export interface RouteAttributs {
-    needRoles?: string[];
+    needRoles?: Record<string, string[]>;
     disableCache?: boolean;
     config?: any;
 }
 
 type RouteHandler = (req: JopiRequest) => Promise<Response>;
 
-
 function applyAttributes(infos: WebSiteRouteInfos, attributes: RouteAttributs, verb: string) {
     if (attributes.needRoles) {
-        infos.requiredRoles = attributes.needRoles;
+        infos.requiredRoles = attributes.needRoles[verb];
     }
 }
 
@@ -22,7 +21,7 @@ export async function routeBindPage(webSite: WebSiteImpl, route: string, attribu
     const pageKey = "page_" + jk_crypto.fastHash(route);
     const infos = webSite.onPage(route, pageKey, reactComponent);
 
-    applyAttributes(infos, attributes, "page");
+    applyAttributes(infos, attributes, "PAGE");
 
     await jk_events.sendAsyncEvent("jopi.route.newPage", {route, filePath});
 }

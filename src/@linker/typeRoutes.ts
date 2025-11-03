@@ -1,4 +1,12 @@
-import {addNameIntoFile, ArobaseType, CodeGenWriter, FilePart, getWriter, InstallFileType} from "./engine.ts";
+import {
+    addNameIntoFile,
+    ArobaseType,
+    CodeGenWriter,
+    FilePart,
+    getWriter,
+    InstallFileType,
+    useCanonicalFileName
+} from "./engine.ts";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import type {RouteAttributs} from "jopi-rewrite/generated";
 
@@ -29,8 +37,6 @@ export default class TypeRoutes extends ArobaseType {
         let relPath_output = jk_fs.getRelativePath(this.outputDir, filePath);
         let relPath_cwd = jk_fs.getRelativePath(this.cwdDir, filePath);
 
-        attributs = filterRoles(attributs, "page");
-
         this.sourceCode_header += `\nimport c_${routeId} from "${relPath_output}";`;
         this.sourceCode_body += `\n    await routeBindPage(registry, ${JSON.stringify(route)}, ${JSON.stringify(attributs)}, c_${routeId}, ${JSON.stringify(relPath_cwd)});`
     }
@@ -39,15 +45,13 @@ export default class TypeRoutes extends ArobaseType {
         let routeId = "r" + (this.routeCount++);
         let relPath = jk_fs.getRelativePath(this.outputDir, filePath);
 
-        attributs = filterRoles(attributs, verb.toLowerCase());
-
         this.sourceCode_header += `\nimport f_${routeId} from "${relPath}";`;
         this.sourceCode_body += `\n    await routeBindVerb(registry,  ${JSON.stringify(route)}, ${JSON.stringify(verb)}, ${JSON.stringify(attributs)}, f_${routeId});`
     }
 
     private async scanAttributs(dirPath: string): Promise<RouteAttributs> {
         let dirItems = await jk_fs.listDir(dirPath);
-        let needRoles: string[]|undefined;
+        let needRoles: Record<string, string[]>|undefined;
         const res: any = {};
 
         for (let dirItem of dirItems) {
@@ -56,20 +60,25 @@ export default class TypeRoutes extends ArobaseType {
 
             let name = dirItem.name.toLowerCase();
 
-            if (name.endsWith(".role")) {
+            if (name.endsWith(".cond")) {
+                let needRoleIdx = name.toLowerCase().indexOf("needrole");
+                if (needRoleIdx===-1) continue;
+
+                let target = name.substring(0, needRoleIdx).toUpperCase();
+                let role = name.substring(needRoleIdx + 8).slice(0, -5).toLowerCase();
+                if ((role[0]==='_')||(role[0]==='-')) role = role.substring(1);
+
+                dirItem.fullPath = await useCanonicalFileName(dirItem.fullPath, target.toLowerCase() + "NeedRole_" + role + ".cond");
                 await addNameIntoFile(dirItem.fullPath);
 
-                name = name.replace("-", "");
-                name = name.replace("_", "");
-
-                let role = name.substring(0, name.length - 5).toLowerCase();
-
                 if (!needRoles) {
-                    needRoles = [];
+                    needRoles = {};
                     res.needRoles = needRoles;
                 }
 
-                needRoles.push(role);
+                if (!needRoles[target]) needRoles[target] = [role];
+                else needRoles[target].push(role);
+
             } else if (name==="cache.disable") {
                 res.disableCache = true;
             } else if (name==="config.json") {
@@ -127,35 +136,6 @@ export default class TypeRoutes extends ArobaseType {
             }
         }
     }
-}
-
-function filterRoles(attributs: RouteAttributs, filterTarget: string): RouteAttributs {
-    let needRoles = attributs.needRoles;
-    if (!needRoles) return attributs;
-
-    let roles: string[]|undefined;
-
-    needRoles.forEach(r => {
-        let idx = r.indexOf(".");
-        if (idx===-1) {
-            if (!roles) roles = [];
-            roles.push(r);
-            return;
-        }
-
-        let target = r.substring(idx+1);
-        let role = r.substring(0, idx);
-
-        if (target===filterTarget) {
-            if (!roles) roles = [];
-            roles.push(role);
-        }
-    });
-
-    return {
-        ...attributs,
-        needRoles: roles
-    };
 }
 
 function convertRouteSegment(segment: string): string {
