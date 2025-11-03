@@ -7,7 +7,10 @@ import {
 } from "./engine.ts";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 
-export class ModulesInitProcessor extends ModuleDirProcessor {
+/**
+ * Search the uiInstall.ts and serverInstall.ts files
+ */
+export default class ModInstaller extends ModuleDirProcessor {
     private uiInitFiles: string[] = [];
     private serverInitFiles: string[] = [];
     private routesDir?: string;

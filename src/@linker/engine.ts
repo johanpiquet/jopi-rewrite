@@ -39,6 +39,10 @@ export async function useCanonicalFileName(fileFullPath: string, expectedFileNam
     return newFullPath;
 }
 
+export async function addNameIntoFile(filePath: string, name: string = jk_fs.basename(filePath)) {
+    await jk_fs.writeTextToFile(filePath, name);
+}
+
 //endregion
 
 //region Registry
@@ -319,6 +323,10 @@ async function processModule(moduleDir: string) {
 
 export abstract class ArobaseType {
     constructor(public readonly typeName: string, public readonly position?: "root"|undefined) {
+        this.initialize();
+    }
+
+    protected initialize() {
     }
 
     abstract processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }): Promise<void>;
@@ -516,10 +524,6 @@ export abstract class ArobaseType {
             }
 
             throw declareLinkerError("Unknown priority name: " + jk_fs.basename(itemFullPath, ".priority"), itemFullPath);
-        }
-
-        function addNameIntoFile(filePath: string, name: string = jk_fs.basename(filePath)) {
-            return jk_fs.writeTextToFile(filePath, name);
         }
 
         async function checkDirItem(entry: jk_fs.DirItem) {
@@ -739,6 +743,10 @@ let gDir_ProjectDist: string;
 let gDir_outputSrc: string;
 let gDir_outputDst: string;
 
+export function getWriter(): CodeGenWriter {
+    return gCodeGenWriter;
+}
+
 export function getBrowserInstallScript() {
     if (gIsTypeScriptOnly) return jk_fs.join(gDir_outputSrc, "installBrowser.js");
     return jk_fs.join(gDir_outputDst, "installBrowser.js");
@@ -754,6 +762,7 @@ export interface Directories {
     project_src: string;
     project_dst: string;
 
+    output_dir: string;
     output_src: string;
     output_dist: string;
 }
@@ -788,7 +797,9 @@ export async function compile(importMeta: any, config: LinkerConfig): Promise<vo
         project_dst: gDir_ProjectDist,
 
         output_src: gDir_outputSrc,
-        output_dist: gDir_outputDst
+        output_dist: gDir_outputDst,
+
+        output_dir: gIsTypeScriptOnly ? gDir_outputSrc : gDir_outputDst
     });
 
     let jopiLinkerScript = await searchLinkerScript();

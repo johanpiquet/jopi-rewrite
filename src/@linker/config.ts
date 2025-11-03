@@ -3,7 +3,8 @@ import * as jk_app from "jopi-toolkit/jk_app";
 import {Type_ArobaseChunk, Type_ArobaseList} from "./arobaseTypes.ts";
 import TypeEvents from "./typeEvents.ts";
 import TypeReplaces from "./typeReplaces.ts";
-import {ModulesInitProcessor} from "./modulesInitProcessor.ts";
+import ModInstaller from "./modInstaller.ts";
+import TypeRoutes from "./typeRoutes.ts";
 
 // Here it's ASYNC.
 let gServerInstallFileTemplate = `__HEADER
@@ -33,11 +34,12 @@ export function getDefaultLinkerConfig(): LinkerConfig {
             new Type_ArobaseChunk("uiChunks"),
             new Type_ArobaseList("uiComposites"),
             new TypeReplaces("replaces", "root"),
-            new TypeEvents("events")
+            new TypeEvents("events"),
+            new TypeRoutes("routes", "root")
         ],
 
         modulesProcess: [
-            new ModulesInitProcessor()
+            new ModInstaller()
         ]
     }
 }

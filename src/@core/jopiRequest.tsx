@@ -806,9 +806,9 @@ export class JopiRequest {
         }
     }
 
-    renderPageToHtml(pageKey: string, C: React.FC<any>, options?: PageOptions): string {
+    renderPageToHtml(pageKey: string, C: React.FC<any>): string {
         // What we will include in our HTML.
-        if (!options) options = {
+        const options = {
             head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + pageKey + ".css"} />],
             bodyEnd: [<script key="jopi.mainSript" type="module" src={"/_bundle/" + pageKey + ".js"}></script>]
         };

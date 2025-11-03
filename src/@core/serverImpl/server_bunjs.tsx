@@ -115,7 +115,7 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         });
     }
 
-    addPage(path: string, pageKey: string, _sourceFilePath: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos) {
+    addPage(path: string, pageKey: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos) {
         if (this.isReactHmrEnabled) {
             this.pageToBuild[path] = pageKey;
             return;

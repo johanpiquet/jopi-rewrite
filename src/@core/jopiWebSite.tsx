@@ -38,7 +38,7 @@ export interface WebSite {
 
     enableAutomaticCache(): void;
 
-    onPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>): WebSiteRouteInfos;
+    onPage(path: string, pageKey: string, reactComponent: React.FC<any>): WebSiteRouteInfos;
 
     onVerb(verb: HttpMethod, path: string | string[], handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos;
 
@@ -569,7 +569,7 @@ export class WebSiteImpl implements WebSite {
 
     //region Path handler
 
-    onVerb(verb: HttpMethod, path: string, handler:  (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
+    onVerb(verb: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         handler = this.applyMiddlewares(verb, handler);
 
         const webSiteRoute: WebSiteRouteInfos = {handler};
@@ -577,9 +577,9 @@ export class WebSiteImpl implements WebSite {
         return webSiteRoute;
     }
 
-    onPage(path: string, pageKey: string, sourceFilePath: string, reactComponent: React.FC<any>): WebSiteRouteInfos {
+    onPage(path: string, pageKey: string, reactComponent: React.FC<any>): WebSiteRouteInfos {
         const routeInfos: WebSiteRouteInfos = {handler: gVoidRouteHandler};
-        this.serverInstanceBuilder.addPage(path, pageKey, sourceFilePath, reactComponent, routeInfos);
+        this.serverInstanceBuilder.addPage(path, pageKey, reactComponent, routeInfos);
         return routeInfos;
     }
 
