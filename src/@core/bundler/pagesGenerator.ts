@@ -44,6 +44,7 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {g
         let txt = REACT_TEMPLATE;
         txt = txt.replace("__PATH__", filePath);
         txt = txt.replace("__INSTALL__", installScript);
+        txt = txt.replace("__ROUTE__", JSON.stringify(route));
 
         if (isReactHMR()) {
             // Bun.js use his own SSE events.
@@ -97,6 +98,8 @@ import installer from "__INSTALL__";
 __EXTRA_IMPORTS__
 
 installer(new UiKitModule());
+
+window["__JOPI_ROUTE__"] = __ROUTE__;
 
 function start() {
     const container = document.body;

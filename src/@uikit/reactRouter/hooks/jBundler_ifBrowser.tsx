@@ -29,12 +29,25 @@ export function useRouterLocation(): Path {
     return location;
 }
 
+let gPageParams: any|undefined;
+
 export function usePageParams(): any {
-    // Page params is specific to router (server and browser-side).
-    // Here router is disabled, so we have nothing to return.
-    // TODO: the server can set route info on the <Page/> values.
-    //
-    return {};
+    if (gPageParams===undefined) {
+        let pathname = new URL(window.location.href).pathname;
+        let route = ((window as any)["__JOPI_ROUTE__"]) as string;
+        if (!route) return gPageParams = {};
+
+        let pRoute = route.split("/");
+        let pPathname = pathname.split("/");
+        gPageParams = {};
+
+        for (let i = 0; i < pRoute.length; i++) {
+            let p = pRoute[i];
+            if (p[0]===":") gPageParams[p.substring(1)] = pPathname[i];
+        }
+    }
+
+    return gPageParams;
 }
 
 export function RouterLink({to, onClick, children, ...p}: React.ComponentProps<"a"> & {

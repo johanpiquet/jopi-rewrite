@@ -38,7 +38,7 @@ export function useSendRouterLocationUpdateEvent(_eventName?: string) {
  * This function works server side and browser side.
  *
  * If the url is https://mywebsite/product-name/list
- * and the route is http://mywebsite/$product/list
+ * and the route is http://mywebsite/[product]/list
  * then urlParts contains {product: "product-name"}
  */
 export function usePageParams(): any {
