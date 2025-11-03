@@ -213,8 +213,9 @@ export class Type_ArobaseList extends ArobaseType {
             let entryPoint = this.resolveEntryPointFor(list, item);
             let relPath = jk_fs.getRelativePath(outDir_fullPath, entryPoint);
 
-            tsSource += `import I${count++} from "${relPath}";\n`;
-            jsSource += `import I${count++} from "${writer.toJavascriptFileName(relPath)}";\n`;
+            tsSource += `import I${count} from "${relPath}";\n`;
+            jsSource += `import I${count} from "${writer.toJavascriptFileName(relPath)}";\n`;
+            count++;
         }
 
         let max = list.items.length;
