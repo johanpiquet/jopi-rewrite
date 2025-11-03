@@ -13,7 +13,6 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 export default class ModInstaller extends ModuleDirProcessor {
     private uiInitFiles: string[] = [];
     private serverInitFiles: string[] = [];
-    private routesDir?: string;
 
     override async onBeginModuleProcessing(_writer: CodeGenWriter, moduleDir: string): Promise<void> {
         let uiInitFile = await resolveFile(moduleDir, ["uiInit.tsx", "uiInit.ts"]);
@@ -21,9 +20,6 @@ export default class ModInstaller extends ModuleDirProcessor {
 
         let serverInitFile = await resolveFile(moduleDir, ["serverInit.tsx", "serverInit.ts"]);
         if (serverInitFile) this.serverInitFiles.push(serverInitFile);
-
-        let routesDir = jk_fs.join(moduleDir, "routes");
-        if (await jk_fs.isDirectory(routesDir)) this.routesDir = routesDir;
     }
 
     override async generateCode(writer: CodeGenWriter): Promise<void> {
@@ -49,10 +45,6 @@ export default class ModInstaller extends ModuleDirProcessor {
 
             writer.genAddToInstallFile(InstallFileType.server, FilePart.imports, `\nimport modServerInit${i} from "${relPath}";`);
             writer.genAddToInstallFile(InstallFileType.server, FilePart.body, `\n    await modServerInit${i}(registry);`)
-        }
-
-        if (this.routesDir) {
-            writer.genAddToInstallFile(InstallFileType.server, FilePart.body, `\n    await registry.getRoutesManager().scanRoutesFrom("${this.routesDir}");`);
         }
     }
 }

@@ -8,6 +8,7 @@ import {
     useCanonicalFileName
 } from "./engine.ts";
 import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_app from "jopi-toolkit/jk_app";
 import type {RouteAttributs} from "jopi-rewrite/generated";
 
 export default class TypeRoutes extends ArobaseType {
@@ -18,9 +19,9 @@ export default class TypeRoutes extends ArobaseType {
     private routeCount: number = 1;
 
     async beginGeneratingCode(writer: CodeGenWriter): Promise<void> {
-        this.sourceCode_body = `\n\nexport default async function(registry) {${this.sourceCode_body}\n}`;
+        this.sourceCode_body = `\n\nexport default async function(webSite) {${this.sourceCode_body}\n}`;
 
-        let filePath = jk_fs.join(writer.dir.output_src, "declareServerRoutes.js");
+        let filePath = jk_fs.join(writer.dir.output_dir, "declareServerRoutes.js");
         await jk_fs.writeTextToFile(filePath, this.sourceCode_header + this.sourceCode_body);
 
         writer.genAddToInstallFile(InstallFileType.server, FilePart.imports, `\nimport declareRoutes from "./declareServerRoutes.js";`);
@@ -34,11 +35,13 @@ export default class TypeRoutes extends ArobaseType {
 
     private bindPage(route: string, filePath: string, attributs: RouteAttributs) {
         let routeId = "r" + (this.routeCount++);
-        let relPath_output = jk_fs.getRelativePath(this.outputDir, filePath);
-        let relPath_cwd = jk_fs.getRelativePath(this.cwdDir, filePath);
+        let srcFilePath = jk_fs.getRelativePath(this.cwdDir, filePath);
 
-        this.sourceCode_header += `\nimport c_${routeId} from "${relPath_output}";`;
-        this.sourceCode_body += `\n    await routeBindPage(registry, ${JSON.stringify(route)}, ${JSON.stringify(attributs)}, c_${routeId}, ${JSON.stringify(relPath_cwd)});`
+        filePath = jk_app.getCompiledFilePathFor(filePath);
+        let distFilePath = jk_fs.getRelativePath(this.outputDir, filePath);
+
+        this.sourceCode_header += `\nimport c_${routeId} from "${distFilePath}";`;
+        this.sourceCode_body += `\n    await routeBindPage(webSite, ${JSON.stringify(route)}, ${JSON.stringify(attributs)}, c_${routeId}, ${JSON.stringify(srcFilePath)});`
     }
 
     private bindVerb(verb: string, route: string, filePath: string, attributs: RouteAttributs) {
@@ -46,7 +49,7 @@ export default class TypeRoutes extends ArobaseType {
         let relPath = jk_fs.getRelativePath(this.outputDir, filePath);
 
         this.sourceCode_header += `\nimport f_${routeId} from "${relPath}";`;
-        this.sourceCode_body += `\n    await routeBindVerb(registry,  ${JSON.stringify(route)}, ${JSON.stringify(verb)}, ${JSON.stringify(attributs)}, f_${routeId});`
+        this.sourceCode_body += `\n    await routeBindVerb(webSite,  ${JSON.stringify(route)}, ${JSON.stringify(verb)}, ${JSON.stringify(attributs)}, f_${routeId});`
     }
 
     private async scanAttributs(dirPath: string): Promise<RouteAttributs> {

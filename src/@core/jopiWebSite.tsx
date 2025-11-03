@@ -2,7 +2,6 @@
 
 import {JopiRequest} from "./jopiRequest.tsx";
 import {ServerFetch} from "./serverFetch.ts";
-import {RoutesManager} from "./routesManager.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {type CoreServer, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
 import {PostMiddlewares} from "./middlewares/index.ts";
@@ -130,8 +129,6 @@ export interface WebSite {
 
     enableCors(allows?: string[]): void;
 
-    getRoutesManager(): RoutesManager;
-
     readonly events: EventGroup;
 }
 
@@ -146,7 +143,6 @@ export class WebSiteImpl implements WebSite {
     certificate?: SslCertificatePath;
     private middlewares?: JopiMiddleware[];
     private postMiddlewares?: JopiPostMiddleware[];
-    private routesManager?: RoutesManager;
 
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
@@ -434,14 +430,6 @@ export class WebSiteImpl implements WebSite {
 
     onWebSocketConnect(path: string, handler: JopiWsRouteHandler) {
         return this.serverInstanceBuilder.addWsRoute(path, handler);
-    }
-
-    getRoutesManager(): RoutesManager {
-        if (!this.routesManager) {
-            this.routesManager = new RoutesManager(this);
-        }
-
-        return this.routesManager;
     }
 
     addSseEVent(path: string, handler: SseEvent): void {
