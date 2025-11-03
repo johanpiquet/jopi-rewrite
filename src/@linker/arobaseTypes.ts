@@ -225,7 +225,7 @@ export class Type_ArobaseList extends ArobaseType {
 
         let fileName = key.substring(key.indexOf("!") + 1) + ".ts";
 
-        // Here TypeScript and javascript are the same.
+        // Here TypeScript and JavaScript are the same.
         await writer.writeCodeFile(jk_fs.join(outDir_innerPath, fileName), tsSource, jsSource);
     }
 }

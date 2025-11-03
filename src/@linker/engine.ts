@@ -476,28 +476,38 @@ export abstract class ArobaseType {
      * @param rules
      * @param useThisUid
      */
-    private async dir_extractInfos(dirPath: string, rules: DirAnalizingRules, useThisUid?: string | undefined): Promise<ExtractDirectoryInfosResult> {
-        async function decodeCond(dirItem: jk_fs.DirItem): Promise<string> {
-            let condName = dirItem.name.toLowerCase();
-            if (condName.startsWith("if")) condName = condName.substring(2);
-            condName = condName.replace("-", "");
-            condName = condName.replace("_", "");
+    protected async dir_extractInfos(dirPath: string, rules: DirAnalizingRules, useThisUid?: string | undefined): Promise<ExtractDirectoryInfosResult> {
+        const decodeFeature = async (dirItem: jk_fs.DirItem, ext: string): Promise<string> => {
+            let featureName = dirItem.name.toLowerCase();
+            featureName = featureName.slice(0, -ext.length);
 
-            if (condName==="browser.cond") {
-                dirItem.name = "if_browser.cond";
-                condName = "if_browser";
+            let canonicalName = this.normalizeFeatureName(featureName, rules.featureCheckingContext);
+
+            if (!canonicalName) {
+                throw declareLinkerError("Unknown feature name: " + featureName, dirItem.fullPath);
             }
-            else if (condName==="server.cond") {
-                dirItem.name = "if_server.cond";
-                condName = "if_server";
-            }
-            else {
+
+            dirItem.name = canonicalName + ext;
+            dirItem.fullPath = await useCanonicalFileName(dirItem.fullPath, dirItem.name);
+
+            return canonicalName;
+        }
+
+        const decodeCond = async (dirItem: jk_fs.DirItem): Promise<string> => {
+            let condName = dirItem.name.toLowerCase();
+            // Remove .cond
+            condName = condName.slice(0, -5);
+
+            let canonicalName = this.normalizeConditionName(condName, rules.conditionCheckingContext);
+
+            if (!canonicalName) {
                 throw declareLinkerError("Unknown condition name: " + condName, dirItem.fullPath);
             }
 
+            dirItem.name = canonicalName + ".cond";
             dirItem.fullPath = await useCanonicalFileName(dirItem.fullPath, dirItem.name);
 
-            return condName;
+            return canonicalName;
         }
 
         async function decodePriority(priorityName: string, itemFullPath: string): Promise<PriorityLevel> {
@@ -597,6 +607,34 @@ export abstract class ArobaseType {
 
                     await addNameIntoFile(entry.fullPath);
                 }
+                else if (entry.name.endsWith(".disable")) {
+                    if (rules.allowFeatures===false) {
+                        throw declareLinkerError("A .disable file is NOT expected here", entry.fullPath);
+                    }
+
+                    if (!result.features) result.features = {};
+
+                    let canonicalName = await decodeFeature(entry, ".disable");
+                    result.features[canonicalName] = false;
+
+                    entry.name = canonicalName + ".disable";
+                    entry.fullPath = await useCanonicalFileName(entry.fullPath, entry.name);
+                    await addNameIntoFile(entry.fullPath);
+                }
+                else if (entry.name.endsWith(".enable")) {
+                    if (rules.allowFeatures===false) {
+                        throw declareLinkerError("A .disable file is NOT expected here", entry.fullPath);
+                    }
+
+                    if (!result.features) result.features = {};
+
+                    let canonicalName = await decodeFeature(entry, ".enable");
+                    result.features[canonicalName] = true;
+
+                    entry.name = canonicalName + ".enable";
+                    entry.fullPath = await useCanonicalFileName(entry.fullPath, entry.name);
+                    await addNameIntoFile(entry.fullPath);
+                }
 
                 return true;
             }
@@ -612,6 +650,14 @@ export abstract class ArobaseType {
         }
 
         return result;
+    }
+
+    protected normalizeConditionName(condName: string, ctx: any|undefined): string|undefined {
+        return undefined;
+    }
+
+    protected normalizeFeatureName(featureName: string, ctx: any|undefined): string|undefined {
+        return undefined;
     }
 
     //endregion
@@ -661,7 +707,10 @@ export abstract class ArobaseType {
 export interface DirAnalizingRules {
     requireRefFile?: boolean;
     allowConditions?: boolean;
-    requirePriority?: boolean
+    requirePriority?: boolean;
+    allowFeatures?: boolean;
+    conditionCheckingContext?: any;
+    featureCheckingContext?: any;
 }
 
 export interface ScanDirItemsParams {
@@ -714,6 +763,7 @@ export interface ExtractDirectoryInfosResult {
     priority?: PriorityLevel;
     refTarget?: string;
     conditionsFound?: Set<string>;
+    features?: Record<string, boolean>;
 }
 
 export class ModuleDirProcessor {

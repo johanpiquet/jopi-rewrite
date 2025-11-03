@@ -1,24 +1,26 @@
-import {
-    addNameIntoFile,
-    ArobaseType,
-    CodeGenWriter,
-    FilePart,
-    getWriter,
-    InstallFileType,
-    useCanonicalFileName
-} from "./engine.ts";
+import {ArobaseType, CodeGenWriter, FilePart, getWriter, InstallFileType, PriorityLevel} from "./engine.ts";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_app from "jopi-toolkit/jk_app";
 import type {RouteAttributs} from "jopi-rewrite/generated";
 
 export default class TypeRoutes extends ArobaseType {
     private sourceCode_header = `import {routeBindPage, routeBindVerb} from "jopi-rewrite/generated";`;
-    private sourceCode_body = ``;
+    private sourceCode_body = "";
     private outputDir: string = "";
     private cwdDir: string = process.cwd();
     private routeCount: number = 1;
 
+    private registry: Record<string, RegistryItem> = {};
+
     async beginGeneratingCode(writer: CodeGenWriter): Promise<void> {
+        for (let item of Object.values(this.registry)) {
+            if (item.verb==="PAGE") {
+                this.bindPage(item.route, item.filePath, item.attributs);
+            } else {
+                this.bindVerb(item.verb, item.route, item.filePath, item.attributs);
+            }
+        }
+
         this.sourceCode_body = `\n\nexport default async function(webSite) {${this.sourceCode_body}\n}`;
 
         let filePath = jk_fs.join(writer.dir.output_dir, "declareServerRoutes.js");
@@ -52,45 +54,66 @@ export default class TypeRoutes extends ArobaseType {
         this.sourceCode_body += `\n    await routeBindVerb(webSite,  ${JSON.stringify(route)}, ${JSON.stringify(verb)}, ${JSON.stringify(attributs)}, f_${routeId});`
     }
 
-    private async scanAttributs(dirPath: string): Promise<RouteAttributs> {
-        let dirItems = await jk_fs.listDir(dirPath);
-        let needRoles: Record<string, string[]>|undefined;
-        const res: any = {};
-
-        for (let dirItem of dirItems) {
-            if (!dirItem.isFile) continue;
-            if (dirItem.name[0] === '.') continue;
-
-            let name = dirItem.name.toLowerCase();
-
-            if (name.endsWith(".cond")) {
-                let needRoleIdx = name.toLowerCase().indexOf("needrole");
-                if (needRoleIdx===-1) continue;
-
-                let target = name.substring(0, needRoleIdx).toUpperCase();
-                let role = name.substring(needRoleIdx + 8).slice(0, -5).toLowerCase();
-                if ((role[0]==='_')||(role[0]==='-')) role = role.substring(1);
-
-                dirItem.fullPath = await useCanonicalFileName(dirItem.fullPath, target.toLowerCase() + "NeedRole_" + role + ".cond");
-                await addNameIntoFile(dirItem.fullPath);
-
-                if (!needRoles) {
-                    needRoles = {};
-                    res.needRoles = needRoles;
-                }
-
-                if (!needRoles[target]) needRoles[target] = [role];
-                else needRoles[target].push(role);
-
-            } else if (name==="cache.disable") {
-                res.disableCache = true;
-            } else if (name==="config.json") {
-                let txt = await jk_fs.readTextFromFile(dirItem.fullPath);
-                res.config = JSON.parse(txt);
-            }
+    protected normalizeFeatureName(feature: string): string|undefined {
+        if (feature==="cache") {
+            return "cache";
         }
 
+        feature = feature.replaceAll("-", "");
+        feature = feature.replaceAll("_", "");
+
+        if (feature==="autocache") {
+            return "cache";
+        }
+
+        return undefined;
+    }
+
+    protected normalizeConditionName(condName: string, ctx: any|undefined): string|undefined {
+        let needRoleIdx = condName.toLowerCase().indexOf("needrole");
+        if (needRoleIdx===-1) return undefined;
+
+        let target = condName.substring(0, needRoleIdx).toUpperCase();
+        let role = condName.substring(needRoleIdx + 8).toLowerCase();
+        if ((role[0]==='_')||(role[0]==='-')) role = role.substring(1);
+
+        if (!ctx[target]) ctx[target] = [role];
+        else ctx[target].push(role);
+
+        return target.toLowerCase() + "NeedRole_" + role;
+    }
+
+    private async scanAttributs(dirPath: string): Promise<RouteAttributs> {
+        const res: any = {needRoles: {}};
+
+        const infos = await this.dir_extractInfos(dirPath, {
+            allowConditions: true,
+            requirePriority: true,
+            requireRefFile: false,
+            conditionCheckingContext: res.needRoles
+        });
+
+        res.disableCache = infos.features?.["cache"] === false;
+        res.priority = infos.priority;
+
         return res;
+    }
+
+    private addToRegistry(item: RegistryItem) {
+        const key = item.route + ' ' + item.verb;
+        let current = this.registry[key];
+
+        if (!current) {
+            this.registry[key] = item;
+            return;
+        }
+
+        let newPriority = item.attributs.priority || PriorityLevel.default;
+        let currentPriority = current.attributs.priority || PriorityLevel.default;
+
+        if (newPriority>currentPriority) {
+            this.registry[key] = item;
+        }
     }
 
     private async scanDir(dir: string, route: string, attributs: any) {
@@ -104,6 +127,7 @@ export default class TypeRoutes extends ArobaseType {
 
                 let segment = convertRouteSegment(dirItem.name);
                 let newRoute = route==="/" ? route + segment : route + "/" + segment;
+
                 await this.scanDir(dirItem.fullPath, newRoute, attributs);
             } else if (dirItem.isFile) {
                 let name = dirItem.name;
@@ -114,31 +138,38 @@ export default class TypeRoutes extends ArobaseType {
 
                     switch (name) {
                         case "index.page":
-                            this.bindPage(route, dirItem.fullPath, attributs);
+                            this.addToRegistry({verb: "PAGE", route, filePath: dirItem.fullPath, attributs});
                             break;
                         case "onGET":
-                            this.bindVerb("GET", route, dirItem.fullPath, attributs);
+                            this.addToRegistry({verb: "GET", route, filePath: dirItem.fullPath, attributs});
                             break;
                         case "onPOST":
-                            this.bindVerb("POST", route, dirItem.fullPath, attributs);
+                            this.addToRegistry({verb: "POST", route, filePath: dirItem.fullPath, attributs});
                             break;
                         case "onPUT":
-                            this.bindVerb("PUT", route, dirItem.fullPath, attributs);
+                            this.addToRegistry({verb: "PUT", route, filePath: dirItem.fullPath, attributs});
                             break;
                         case "onDELETE":
-                            this.bindVerb("DELETE", route, dirItem.fullPath, attributs);
+                            this.addToRegistry({verb: "DELETE", route, filePath: dirItem.fullPath, attributs});
                             break;
                         case "onHEAD":
-                            this.bindVerb("HEAD", route, dirItem.fullPath, attributs);
+                            this.addToRegistry({verb: "HEAD", route, filePath: dirItem.fullPath, attributs});
                             break;
                         case "onOPTIONS":
-                            this.bindVerb("OPTIONS", route, dirItem.fullPath, attributs);
+                            this.addToRegistry({verb: "OPTIONS", route, filePath: dirItem.fullPath, attributs});
                             break;
                     }
                 }
             }
         }
     }
+}
+
+interface RegistryItem {
+    verb: string;
+    route: string;
+    filePath: string;
+    attributs: RouteAttributs;
 }
 
 function convertRouteSegment(segment: string): string {

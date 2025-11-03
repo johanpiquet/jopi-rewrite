@@ -2,11 +2,12 @@ import React from "react";
 import {type HttpMethod, JopiRequest, WebSiteImpl, type WebSiteRouteInfos} from "jopi-rewrite";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import * as jk_events from "jopi-toolkit/jk_events";
+import {PriorityLevel} from "../@linker";
 
 export interface RouteAttributs {
     needRoles?: Record<string, string[]>;
     disableCache?: boolean;
-    config?: any;
+    priority?: PriorityLevel;
 }
 
 type RouteHandler = (req: JopiRequest) => Promise<Response>;
