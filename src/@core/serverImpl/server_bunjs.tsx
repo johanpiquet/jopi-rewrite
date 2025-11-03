@@ -96,8 +96,8 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
 
         const webSite = this.webSite;
 
-        this.serverRoutes[path][verb] = (req: Request, urlParts: any) => {
-            return webSite.processRequest(route.handler, urlParts, route, undefined, req, this.bunServer!);
+        this.serverRoutes[path][verb] = (req: Bun.BunRequest, server: Bun.Server<unknown>) => {
+            return webSite.processRequest(route.handler, req.params, route, undefined, req, server);
         }
     }
 
