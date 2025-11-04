@@ -8,6 +8,7 @@ export interface RouteAttributs {
     needRoles?: Record<string, string[]>;
     disableCache?: boolean;
     priority?: PriorityLevel;
+    configFile?: string;
 }
 
 type RouteHandler = (req: JopiRequest) => Promise<Response>;

@@ -1,4 +1,12 @@
-import {ArobaseType, CodeGenWriter, FilePart, getWriter, InstallFileType, PriorityLevel} from "./engine.ts";
+import {
+    ArobaseType,
+    CodeGenWriter,
+    FilePart,
+    getWriter,
+    InstallFileType,
+    PriorityLevel,
+    resolveFile
+} from "./engine.ts";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_app from "jopi-toolkit/jk_app";
 import type {RouteAttributs} from "jopi-rewrite/generated";
@@ -11,6 +19,7 @@ export default class TypeRoutes extends ArobaseType {
     private routeCount: number = 1;
 
     private registry: Record<string, RegistryItem> = {};
+    private routeConfig: Record<string, string> = {};
 
     async beginGeneratingCode(writer: CodeGenWriter): Promise<void> {
         for (let item of Object.values(this.registry)) {
@@ -18,6 +27,22 @@ export default class TypeRoutes extends ArobaseType {
                 this.bindPage(item.route, item.filePath, item.attributs);
             } else {
                 this.bindVerb(item.verb, item.route, item.filePath, item.attributs);
+            }
+        }
+
+        if (Object.keys(this.routeConfig).length>0) {
+            this.sourceCode_header += `\nimport {RouteConfig} from "jopi-rewrite";`;
+
+            let count = 1;
+
+            for (let route of Object.keys(this.routeConfig)) {
+                let configFile = this.routeConfig[route];
+                let relPath = jk_fs.getRelativePath(writer.dir.output_dir, configFile);
+
+                this.sourceCode_header += `\nimport routeConfig${count} from "${relPath}";`;
+                this.sourceCode_body += `\n    await routeConfig${count}(new RouteConfig(webSite, ${JSON.stringify(route)}));`;
+
+                count++;
             }
         }
 
@@ -84,7 +109,7 @@ export default class TypeRoutes extends ArobaseType {
     }
 
     private async scanAttributs(dirPath: string): Promise<RouteAttributs> {
-        const res: any = {needRoles: {}};
+        const res: RouteAttributs = {needRoles: {}};
 
         const infos = await this.dir_extractInfos(dirPath, {
             allowConditions: true,
@@ -93,6 +118,7 @@ export default class TypeRoutes extends ArobaseType {
             conditionCheckingContext: res.needRoles
         });
 
+        res.configFile = await resolveFile(dirPath, ["config.tsx", "config.ts"]);
         res.disableCache = infos.features?.["cache"] === false;
         res.priority = infos.priority;
 
@@ -116,7 +142,7 @@ export default class TypeRoutes extends ArobaseType {
         }
     }
 
-    private async scanDir(dir: string, route: string, attributs: any) {
+    private async scanDir(dir: string, route: string, attributs: RouteAttributs) {
         let dirItems = await jk_fs.listDir(dir);
 
         for (let dirItem of dirItems) {
@@ -124,6 +150,10 @@ export default class TypeRoutes extends ArobaseType {
 
             if (dirItem.isDirectory) {
                 attributs = await this.scanAttributs(dirItem.fullPath);
+
+                if (attributs.configFile) {
+                    this.routeConfig[route] = attributs.configFile;
+                }
 
                 let segment = convertRouteSegment(dirItem.name);
                 let newRoute = route==="/" ? route + segment : route + "/" + segment;

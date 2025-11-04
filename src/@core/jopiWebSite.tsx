@@ -555,18 +555,32 @@ export class WebSiteImpl implements WebSite {
     private _on500_Error?: JopiErrorHandler;
     private _on401_Unauthorized?: JopiErrorHandler;
 
+    private allRouteInfos: Record<string, WebSiteRouteInfos> = {};
+
+    private saveRouteInfos(verb: string, route: string, routeInfos: WebSiteRouteInfos) {
+        this.allRouteInfos[verb + " " + route] = routeInfos;
+    }
+
+    getRouteInfos(verb: string, route: string): WebSiteRouteInfos|undefined {
+        return this.allRouteInfos[verb + " " + route];
+    }
+
     //region Path handler
 
     onVerb(verb: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
         handler = this.applyMiddlewares(verb, handler);
 
-        const webSiteRoute: WebSiteRouteInfos = {handler};
-        this.serverInstanceBuilder.addRoute(verb, path, webSiteRoute);
-        return webSiteRoute;
+        const routeInfos: WebSiteRouteInfos = {handler};
+        this.saveRouteInfos(verb, path, routeInfos);
+
+        this.serverInstanceBuilder.addRoute(verb, path, routeInfos);
+        return routeInfos;
     }
 
     onPage(path: string, pageKey: string, reactComponent: React.FC<any>): WebSiteRouteInfos {
         const routeInfos: WebSiteRouteInfos = {handler: gVoidRouteHandler};
+        this.saveRouteInfos("GET", path, routeInfos);
+
         this.serverInstanceBuilder.addPage(path, pageKey, reactComponent, routeInfos);
         return routeInfos;
     }

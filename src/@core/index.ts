@@ -9,7 +9,7 @@ export * from "./middlewares/index.ts";
 
 export * from "./letsEncrypt.ts";
 export * from "./jopiEasy.ts";
-export * from "./routeServerContext.ts";
+export * from "./routeConfig.ts";
 
 export * from "./jopiRequest.tsx";
 export * from "./jopiWebSite.tsx";
