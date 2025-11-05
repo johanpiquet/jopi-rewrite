@@ -185,6 +185,9 @@ export default class TypeRoutes extends ArobaseType {
                         case "onHEAD":
                             this.addToRegistry({verb: "HEAD", route, filePath: dirItem.fullPath, attributs});
                             break;
+                        case "onPATCH":
+                            this.addToRegistry({verb: "PATCH", route, filePath: dirItem.fullPath, attributs});
+                            break;
                         case "onOPTIONS":
                             this.addToRegistry({verb: "OPTIONS", route, filePath: dirItem.fullPath, attributs});
                             break;

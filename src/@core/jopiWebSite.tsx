@@ -23,6 +23,7 @@ import * as jk_events from "jopi-toolkit/jk_events";
 import {installBrowserRefreshSseEvent, isBrowserRefreshEnabled} from "jopi-rewrite/loader-client";
 import {executeBrowserInstall} from "./linker.ts";
 import {getNewServerInstanceBuilder, type ServerInstanceBuilder} from "./serverInstanceBuilder.ts";
+import {PriorityLevel, sortByPriority, type ValueWithPriority} from "jopi-toolkit/jk_tools";
 
 export type RouteHandler = (req: JopiRequest) => Promise<Response>;
 
@@ -121,9 +122,9 @@ export interface WebSite {
 
     addHeaderToCache(header: string): void;
 
-    addMiddleware(middleware: JopiMiddleware): void;
+    addMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, priority: PriorityLevel): void;
 
-    addPostMiddleware(middleware: JopiPostMiddleware): void;
+    addPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, priority: PriorityLevel): void;
 
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number): void;
 
@@ -141,8 +142,8 @@ export class WebSiteImpl implements WebSite {
     private http80WebSite?: WebSite;
 
     certificate?: SslCertificatePath;
-    private middlewares?: JopiMiddleware[];
-    private postMiddlewares?: JopiPostMiddleware[];
+    private middlewares: Record<string, ValueWithPriority<JopiMiddleware>[]> = {};
+    private postMiddlewares: Record<string, ValueWithPriority<JopiPostMiddleware>[]> = {};
 
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
@@ -234,14 +235,16 @@ export class WebSiteImpl implements WebSite {
         }
     }
 
-    addMiddleware(middleware: JopiMiddleware) {
-        if (!this.middlewares) this.middlewares = [];
-        this.middlewares.push(middleware);
+    addMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, priority: PriorityLevel) {
+        let m = method ? method : "*";
+        if (!this.middlewares[m]) this.middlewares[m] = [];
+        this.middlewares[m].push({priority, value: middleware});
     }
 
-    addPostMiddleware(middleware: JopiPostMiddleware) {
-        if (!this.postMiddlewares) this.postMiddlewares = [];
-        this.postMiddlewares.push(middleware);
+    addPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, priority: PriorityLevel) {
+        let m = method ? method : "*";
+        if (!this.postMiddlewares[m]) this.postMiddlewares[m] = [];
+        this.postMiddlewares[m].push({priority, value: middleware});
     }
 
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number) {
@@ -250,11 +253,23 @@ export class WebSiteImpl implements WebSite {
 
     enableCors(allows?: string[]) {
         if (!allows) allows = [this.welcomeUrl];
-        this.addPostMiddleware(PostMiddlewares.cors({accessControlAllowOrigin: allows}));
+        this.addPostMiddleware(undefined, PostMiddlewares.cors({accessControlAllowOrigin: allows}), PriorityLevel.veryHigh);
     }
 
     private applyMiddlewares(verb: HttpMethod, handler: JopiRouteHandler): JopiRouteHandler {
+        function merge<T>(a: T[]|undefined, b: T[]|undefined): T[]|undefined {
+            if (!a) return b;
+            if (!b) return a;
+            return a.concat(b);
+        }
+
         const webSite = this;
+
+        const middlewares = sortByPriority(merge(this.middlewares[verb], this.middlewares["*"]));
+        const middlewares_count = middlewares ? middlewares.length : 0;
+
+        const postMiddlewares = sortByPriority(merge(this.postMiddlewares[verb], this.postMiddlewares["*"]));
+        const postMiddlewares_count = postMiddlewares ? postMiddlewares.length : 0;
 
         if (verb==="GET") {
             return async function (req: JopiRequest) {
@@ -288,16 +303,12 @@ export class WebSiteImpl implements WebSite {
 
                 // >>> Apply the middlewares.
 
-                const mdw = webSite.middlewares;
-
-                if (mdw) {
-                    const count = mdw.length;
-
+                if (middlewares) {
                     // Use a simple loop, which allow us to add/remove middleware at runtime.
                     // For example, it allows enabling / disabling logging requests.
                     //
-                    for (let i = 0; i < count; i++) {
-                        const res = mdw[i](req);
+                    for (let i = 0; i < middlewares_count; i++) {
+                        const res = middlewares[i](req);
                         if (res) return res;
                     }
                 }
@@ -315,12 +326,9 @@ export class WebSiteImpl implements WebSite {
 
                 // >>> Apply the post-middlewares.
 
-                if (webSite.postMiddlewares) {
-                    const pMdw = webSite.postMiddlewares!;
-                    const count = pMdw.length;
-
-                    for (let i = 0; i < count; i++) {
-                        const mRes = pMdw[i](req, res);
+                if (postMiddlewares) {
+                    for (let i = 0; i < postMiddlewares_count; i++) {
+                        const mRes = postMiddlewares[i](req, res);
                         res = mRes instanceof Promise ? await mRes : mRes;
                     }
                 }
@@ -348,16 +356,12 @@ export class WebSiteImpl implements WebSite {
 
                 // >>> Apply the middlewares.
 
-                const mdw = webSite.middlewares;
-
-                if (mdw) {
-                    const count = mdw.length;
-
+                if (middlewares) {
                     // Use a simple loop, which allow us to add/remove middleware at runtime.
                     // For example, it allows enabling / disabling logging requests.
                     //
-                    for (let i = 0; i < count; i++) {
-                        const res = mdw[i](req);
+                    for (let i = 0; i < middlewares_count; i++) {
+                        const res = middlewares[i](req);
                         if (res) return res;
                     }
                 }
@@ -375,12 +379,9 @@ export class WebSiteImpl implements WebSite {
 
                 // >>> Apply the post-middlewares.
 
-                if (webSite.postMiddlewares) {
-                    const pMdw = webSite.postMiddlewares!;
-                    const count = pMdw.length;
-
-                    for (let i = 0; i < count; i++) {
-                        const mRes = pMdw[i](req, res);
+                if (postMiddlewares) {
+                    for (let i = 0; i < postMiddlewares_count; i++) {
+                        const mRes = postMiddlewares[i](req, res);
                         res = mRes instanceof Promise ? await mRes : mRes;
                     }
                 }

@@ -1,28 +1,41 @@
 import type {JopiMiddleware, JopiPostMiddleware, WebSiteImpl} from "./jopiWebSite.tsx";
 import type {JopiRequest} from "./jopiRequest.tsx";
-import {PriorityLevel} from "../@linker";
+import {PriorityLevel} from "jopi-toolkit/jk_tools";
 
 export class RouteConfig {
     constructor(private readonly webSite: WebSiteImpl,
                 private readonly route: string) {
 
-        this.onGET = new RouteConfig_OnGET(this.webSite, this.route);
+        this.onGET = new RouteConfig_OnGET(this.webSite, this.route, "GET");
+        this.onPOST = new RouteConfig_Core(this.webSite, this.route, "POST");
+        this.onPUT = new RouteConfig_Core(this.webSite, this.route, "PUT");
+        this.onDELETE = new RouteConfig_Core(this.webSite, this.route, "DELETE");
+        this.onHEAD = new RouteConfig_Core(this.webSite, this.route, "HEAD");
+        this.onPATCH = new RouteConfig_Core(this.webSite, this.route, "PATCH");
+        this.onOPTIONS = new RouteConfig_Core(this.webSite, this.route, "OPTIONS");
     }
 
     public readonly onGET: RouteConfig_OnGET;
-
-    addMiddleware(middleware: JopiMiddleware, priority: PriorityLevel) {
-        this.webSite.addMiddleware(middleware)
-    }
-
-    addPostMiddleware(middleware: JopiPostMiddleware) {
-        this.webSite.addPostMiddleware(middleware);
-    }
+    public readonly onPOST: RouteConfig_Core;
+    public readonly onPUT: RouteConfig_Core;
+    public readonly onDELETE: RouteConfig_Core;
+    public readonly onHEAD: RouteConfig_Core;
+    public readonly onPATCH: RouteConfig_Core;
+    public readonly onOPTIONS: RouteConfig_Core;
 }
 
-class RouteConfig_OnGET {
-    constructor(private readonly webSite: WebSiteImpl,
-                private readonly route: string) {
+class RouteConfig_Core {
+    constructor(protected readonly webSite: WebSiteImpl,
+                protected readonly route: string,
+                protected readonly method: string) {
+    }
+
+    addMiddleware(middleware: JopiMiddleware, priority: PriorityLevel) {
+        this.webSite.addMiddleware("GET", middleware, priority)
+    }
+
+    addPostMiddleware(middleware: JopiPostMiddleware, priority: PriorityLevel) {
+        this.webSite.addPostMiddleware("GET", middleware, priority);
     }
 
     addRequiredRole(...roles: string[]) {
@@ -32,7 +45,9 @@ class RouteConfig_OnGET {
         if (!routeInfos.requiredRoles) routeInfos.requiredRoles = [];
         routeInfos?.requiredRoles.push(...roles);
     }
+}
 
+class RouteConfig_OnGET extends RouteConfig_Core {
     disableAutomaticCache() {
         let routeInfos = this.webSite.getRouteInfos("GET", this.route);
         if (!routeInfos) return;
