@@ -1,5 +1,6 @@
 import type {JopiMiddleware, JopiPostMiddleware, WebSiteImpl} from "./jopiWebSite.tsx";
 import type {JopiRequest} from "./jopiRequest.tsx";
+import {PriorityLevel} from "../@linker";
 
 export class RouteConfig {
     constructor(private readonly webSite: WebSiteImpl,
@@ -10,7 +11,7 @@ export class RouteConfig {
 
     public readonly onGET: RouteConfig_OnGET;
 
-    addMiddleware(middleware: JopiMiddleware) {
+    addMiddleware(middleware: JopiMiddleware, priority: PriorityLevel) {
         this.webSite.addMiddleware(middleware)
     }
 

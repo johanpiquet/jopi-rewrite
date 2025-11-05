@@ -44,7 +44,7 @@ async function resolveVirtualUrls(params: CreateBundleEvent, metaDataFilePath: s
 
 // createBundle is called when the event is triggered.
 //
-jk_events.addListener("jopi.bundler.createBundle", jk_events.EventPriority.VeryLow, (data) => {
+jk_events.addListener("jopi.bundler.createBundle", jk_events.EventPriority.veryLow, (data) => {
     // Already handled?
     if (data.promise) return;
 

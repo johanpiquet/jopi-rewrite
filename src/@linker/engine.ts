@@ -3,6 +3,9 @@ import * as jk_tools from "jopi-toolkit/jk_tools";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_what from "jopi-toolkit/jk_what";
 import * as jk_events from "jopi-toolkit/jk_events";
+import {PriorityLevel} from "jopi-toolkit/jk_tools";
+
+export {PriorityLevel} from "jopi-toolkit/jk_tools";
 
 const LOG = false;
 
@@ -746,14 +749,6 @@ export interface TransformItemParams {
     priority: PriorityLevel;
 
     resolved: Record<string, string|undefined>;
-}
-
-export enum PriorityLevel {
-    veryLow = -200,
-    low = -100,
-    default = 0,
-    high = 100,
-    veryHigh = 200,
 }
 
 export interface ExtractDirectoryInfosResult {
