@@ -62,7 +62,7 @@ class RouteConfig_OnGET extends RouteConfig_Core {
         let routeInfos = this.webSite.getRouteInfos("GET", this.route);
         if (!routeInfos) return;
 
-        routeInfos.disableAutoCache = true;
+        routeInfos.mustDisableAutomaticCache = true;
     }
 
     afterGetFromCache(handler: (req: JopiRequest, res: Response) => Promise<Response | undefined | void>) {

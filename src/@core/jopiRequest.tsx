@@ -3,7 +3,7 @@
 import type {CoreServer, ServerSocketAddress} from "./jopiServer.ts";
 import {ServerFetch} from "./serverFetch.ts";
 import React, {type ReactNode} from "react";
-import {PageController_ExposePrivate, type PageOptions} from "jopi-rewrite/ui";
+import {PageController_ExposePrivate} from "jopi-rewrite/ui";
 import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";

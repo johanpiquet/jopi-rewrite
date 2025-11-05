@@ -36,7 +36,7 @@ export interface WebSite {
 
     setCache(pageCache: PageCache): void;
 
-    enableAutomaticCache(): void;
+    disableAutomaticCache(): void;
 
     onPage(path: string, pageKey: string, reactComponent: React.FC<any>): WebSiteRouteInfos;
 
@@ -488,9 +488,9 @@ export class WebSiteImpl implements WebSite {
 
     //region Cache
 
-    mainCache: PageCache;
+    mainCache: PageCache = getInMemoryCache();
 
-    mustUseAutomaticCache: boolean = false;
+    mustUseAutomaticCache: boolean = true;
 
     private headersToCache: string[] = ["content-type", "etag", "last-modified"];
 
@@ -502,9 +502,8 @@ export class WebSiteImpl implements WebSite {
         this.mainCache = pageCache || gVoidCache;
     }
 
-    enableAutomaticCache() {
-        this.mustUseAutomaticCache = true;
-        if(!this.mainCache) this.mainCache = getInMemoryCache();
+    disableAutomaticCache() {
+        this.mustUseAutomaticCache = false;
     }
 
     getHeadersToCache(): string[] {
@@ -790,11 +789,6 @@ export interface WebSiteRouteInfos {
     postMiddlewares?: ValueWithPriority<JopiPostMiddleware>[];
 
     /**
-     * If true, the automatic cache is disabled for this path.
-     */
-    mustDisableAutomaticCache?: boolean;
-
-    /**
      * A list of roles which are required.
      */
     requiredRoles?: string[];
@@ -805,9 +799,9 @@ export interface WebSiteRouteInfos {
     searchParamFilter?: SearchParamFilterFunction;
 
     /**
-     * If true, the automatic cache will be disabled for this path.
+     * If true, the automatic cache is disabled for this path.
      */
-    disableAutoCache?: boolean;
+    mustDisableAutomaticCache?: boolean;
 
     /**
      * Is executed before checking the cache.
