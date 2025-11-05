@@ -58,11 +58,11 @@ class RouteConfig_Core {
 }
 
 class RouteConfig_OnGET extends RouteConfig_Core {
-    disableAutomaticCache() {
+    enableAutomaticCache() {
         let routeInfos = this.webSite.getRouteInfos("GET", this.route);
         if (!routeInfos) return;
 
-        routeInfos.mustDisableAutomaticCache = true;
+        routeInfos.mustEnableAutomaticCache = true;
     }
 
     afterGetFromCache(handler: (req: JopiRequest, res: Response) => Promise<Response | undefined | void>) {

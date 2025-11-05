@@ -42,7 +42,7 @@ export class JopiRequest {
                 public readonly routeInfos: WebSiteRouteInfos)
     {
         this.cache = (webSite as WebSiteImpl).mainCache;
-        this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && routeInfos && (routeInfos.mustDisableAutomaticCache!==true);
+        this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && routeInfos && routeInfos.mustEnableAutomaticCache;
 
         this.mainCache = this.cache;
         this._headers = this.coreRequest.headers;

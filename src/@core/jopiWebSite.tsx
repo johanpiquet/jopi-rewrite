@@ -610,6 +610,10 @@ export class WebSiteImpl implements WebSite {
         this.saveRouteInfos("GET", path, routeInfos);
 
         this.serverInstanceBuilder.addPage(path, pageKey, reactComponent, routeInfos);
+
+        // Cache is automatically enabled for pages.
+        routeInfos.mustEnableAutomaticCache = true;
+
         return routeInfos;
     }
 
@@ -799,9 +803,9 @@ export interface WebSiteRouteInfos {
     searchParamFilter?: SearchParamFilterFunction;
 
     /**
-     * If true, the automatic cache is disabled for this path.
+     * If true, the automatic cache is enabled.
      */
-    mustDisableAutomaticCache?: boolean;
+    mustEnableAutomaticCache?: boolean;
 
     /**
      * Is executed before checking the cache.
