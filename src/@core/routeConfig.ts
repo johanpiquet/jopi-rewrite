@@ -13,6 +13,7 @@ export class RouteConfig {
         this.onHEAD = new RouteConfig_Core(this.webSite, this.route, "HEAD");
         this.onPATCH = new RouteConfig_Core(this.webSite, this.route, "PATCH");
         this.onOPTIONS = new RouteConfig_Core(this.webSite, this.route, "OPTIONS");
+        this.onALL = new RouteConfig_Core(this.webSite, this.route, "*");
     }
 
     public readonly onGET: RouteConfig_OnGET;
@@ -22,6 +23,7 @@ export class RouteConfig {
     public readonly onHEAD: RouteConfig_Core;
     public readonly onPATCH: RouteConfig_Core;
     public readonly onOPTIONS: RouteConfig_Core;
+    public readonly onALL: RouteConfig_Core;
 }
 
 class RouteConfig_Core {
@@ -31,15 +33,23 @@ class RouteConfig_Core {
     }
 
     addMiddleware(middleware: JopiMiddleware, priority: PriorityLevel) {
-        this.webSite.addMiddleware("GET", middleware, priority)
+        let routeInfos = this.webSite.getRouteInfos(this.method, this.route);
+        if (!routeInfos) return;
+
+        if (!routeInfos.middlewares) routeInfos.middlewares = [];
+        routeInfos.middlewares.push({priority, value: middleware});
     }
 
     addPostMiddleware(middleware: JopiPostMiddleware, priority: PriorityLevel) {
-        this.webSite.addPostMiddleware("GET", middleware, priority);
+        let routeInfos = this.webSite.getRouteInfos(this.method, this.route);
+        if (!routeInfos) return;
+
+        if (!routeInfos.postMiddlewares) routeInfos.postMiddlewares = [];
+        routeInfos.postMiddlewares.push({priority, value: middleware});
     }
 
     addRequiredRole(...roles: string[]) {
-        let routeInfos = this.webSite.getRouteInfos("GET", this.route);
+        let routeInfos = this.webSite.getRouteInfos(this.method, this.route);
         if (!routeInfos) return;
 
         if (!routeInfos.requiredRoles) routeInfos.requiredRoles = [];

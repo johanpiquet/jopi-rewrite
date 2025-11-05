@@ -14,9 +14,6 @@ import {getBundlerConfig, type PostCssInitializer} from "./bundler/config.ts";
 import {serverInitChronos} from "./internalTools.ts";
 import {getInMemoryCache, initMemoryCache, type InMemoryCacheOptions} from "./caches/InMemoryCache.ts";
 import {SimpleFileCache} from "./caches/SimpleFileCache.ts";
-import {Middlewares} from "./middlewares/index.ts";
-import type {DdosProtectionOptions} from "./middlewares/DdosProtection.ts";
-import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import {
     type CrawlerCanIgnoreIfAlreadyCrawled,
     ProcessUrlResult,
@@ -27,18 +24,14 @@ import {
 import {JopiRequest} from "./jopiRequest.ts";
 import {
     type AuthHandler,
-    type HttpMethod,
-    type JopiMiddleware,
-    type JopiPostMiddleware,
     type JopiRouteHandler,
-    JopiWebSocket,
     type UserInfos,
     type WebSite,
     WebSiteImpl,
     WebSiteOptions
 } from "./jopiWebSite.js";
 import type {PageCache} from "./caches/cache.js";
-import {getServer, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.js";
+import {getServer, type SseEvent} from "./jopiServer.js";
 import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
 import {getPackageJsonConfig} from "jopi-rewrite/loader-tools";
 import {initLinker} from "./linker.ts";
@@ -470,27 +463,11 @@ class JopiEasyWebSite {
         }
     }
 
-    add_path(path: string|string[]): WebSite_PathBuilder {
-        return new WebSite_PathBuilder(this, this.internals, path);
-    }
-
     add_SseEvent(path: string|string[], handler: SseEvent) {
         this.internals.afterHook.push((webSite) => {
             webSite.addSseEVent(path, handler);
         });
 
-        return this;
-    }
-
-    add_path_GET(path: string|string[], handler: (req: JopiRequest) => Promise<Response>): this {
-        let res = new WebSite_PathBuilder(this, this.internals, path);
-        res.onGET(handler);
-        return this;
-    }
-
-    add_path_USE(path: string|string[], def: RouterPathDefinition): this {
-        let res = new WebSite_PathBuilder(this, this.internals, path);
-        res.use(def);
         return this;
     }
 
@@ -500,14 +477,6 @@ class JopiEasyWebSite {
 
     add_sourceServer<T>(): WebSite_AddSourceServerBuilder<T> {
         return new WebSite_AddSourceServerBuilder<T>(this, this.internals);
-    }
-
-    add_middleware(): WebSite_MiddlewareBuilder {
-        return new WebSite_MiddlewareBuilder(this, this.internals);
-    }
-
-    add_postMiddleware(): WebSite_PostMiddlewareBuilder {
-        return new WebSite_PostMiddlewareBuilder(this, this.internals);
     }
 
     add_specialPageHandler(): WebSite_AddSpecialPageHandler {
@@ -584,55 +553,6 @@ class WebSite_AddSpecialPageHandler {
     }
 }
 
-class WebSite_PostMiddlewareBuilder {
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
-    }
-
-    END_add_postMiddleware(): JopiEasyWebSite {
-        return this.webSite;
-    }
-
-    use_custom(myMiddleware: JopiPostMiddleware): this {
-        this.internals.afterHook.push(async webSite => {
-            webSite.addPostMiddleware(myMiddleware);
-        });
-
-        return this;
-    }
-}
-
-class WebSite_MiddlewareBuilder {
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
-    }
-
-    END_add_middleware(): JopiEasyWebSite {
-        return this.webSite;
-    }
-
-    use_custom(myMiddleware: JopiMiddleware): WebSite_MiddlewareBuilder {
-        this.internals.afterHook.push(async webSite => {
-            webSite.addMiddleware(myMiddleware);
-        });
-
-        return this;
-    }
-
-    use_requestTimeout_sec(timeSec: number): WebSite_MiddlewareBuilder {
-        return this.use_custom(Middlewares.requestTimeout_sec(timeSec));
-    }
-
-    use_cors(): WebSite_MiddlewareBuilder {
-        this.internals.afterHook.push(async webSite => {
-            webSite.enableCors();
-        })
-
-        return this;
-    }
-
-    use_ddosProtection(options?: DdosProtectionOptions): WebSite_MiddlewareBuilder {
-        return this.use_custom(Middlewares.ddosProtection(options));
-    }
-}
 
 class WebSite_AddSourceServerBuilder<T> extends CreateServerFetch<T, WebSite_AddSourceServerBuilder_NextStep<T>> {
     private serverFetch?: ServerFetch<T>;
@@ -675,205 +595,6 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
 
     add_sourceServer<T>(): WebSite_AddSourceServerBuilder<T> {
         return new WebSite_AddSourceServerBuilder<T>(this.webSite, this.internals);
-    }
-}
-
-export interface RouterPathDefinition {
-    onGET?: (req: JopiRequest) => Promise<Response>;
-    onPOST?: (req: JopiRequest) => Promise<Response>;
-    onPUT?: (req: JopiRequest) => Promise<Response>;
-    onDELETE?: (req: JopiRequest) => Promise<Response>;
-    onOPTIONS?: (req: JopiRequest) => Promise<Response>;
-    onPATCH?: (req: JopiRequest) => Promise<Response>;
-    onHEAD?: (req: JopiRequest) => Promise<Response>;
-    onWebSocket?: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
-
-    /**
-     * If true, the automatic cache is disabled for this path.
-     */
-    mustDisableAutomaticCache?: boolean;
-
-    /**
-     * A list of roles which are required.
-     */
-    requiredRoles?: string[];
-
-    /**
-     * Define a filter to use to sanitize the search params of the url.
-     */
-    searchParamFilter?: SearchParamFilterFunction;
-
-    /**
-     * Is executed before checking the cache.
-     * If a response is returned/void, then directly returns this response.
-     */
-    beforeCheckingCache?: (req: JopiRequest) => Promise<Response|undefined|void>;
-
-    /**
-     * Is executed before adding the response to the cache.
-     * Returns the response or undefined/void to avoid adding to the cache.
-     */
-    beforeAddToCache?: (req: JopiRequest, res: Response) => Promise<Response|undefined|void>;
-
-    /**
-     * Is executed after getting the response from the cache.
-     * Returns the response or undefined/void to avoid using this cache entry.
-     */
-    afterGetFromCache?: (req: JopiRequest, res: Response) => Promise<Response|undefined|void>;
-}
-
-class WebSite_PathBuilder {
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal, private readonly path: string|string[]) {
-    }
-
-    use(def: RouterPathDefinition) {
-        return new WebSite_PathBuilder_UsePathDefinition(this.webSite, this.internals, this.path, def);
-    }
-
-    onGET(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onGET: handler});
-    }
-
-    onPOST(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onPOST: handler});
-    }
-
-    onPUT(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onPUT: handler});
-    }
-
-    onDELETE(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onDELETE: handler});
-    }
-
-    onOPTIONS(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onOPTIONS: handler});
-    }
-
-    onPATCH(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onPATCH: handler});
-    }
-
-    onHEAD(handler: (req: JopiRequest) => Promise<Response>): WebSite_PathBuilder_NextStep {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onHEAD: handler});
-    }
-
-    onWebSocketConnect(handler: (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void): Pick<WebSite_PathBuilder_NextStep, 'add_path' | 'add_samePath' | 'DONE_add_path'> {
-        return new WebSite_PathBuilder_NextStep(this.webSite, this.internals, this.path, {onWebSocket: handler});
-    }
-}
-
-function usePathDefinition(path: string | string[], routeDef: RouterPathDefinition, webSite: WebSite) {
-    const addVerb = (verb: HttpMethod, handler: JopiRouteHandler) => {
-        let route = webSite.onVerb(verb, path, handler!);
-
-        if (routeDef.searchParamFilter) route.searchParamFilter = routeDef.searchParamFilter;
-        if (routeDef.mustDisableAutomaticCache) route.mustDisableAutomaticCache = true;
-        if (routeDef.requiredRoles) route.requiredRoles = routeDef.requiredRoles;
-        if (routeDef.afterGetFromCache) route.afterGetFromCache = routeDef.afterGetFromCache;
-        if (routeDef.beforeCheckingCache) route.beforeCheckingCache = routeDef.beforeCheckingCache;
-        if (routeDef.beforeAddToCache) route.beforeAddToCache = routeDef.beforeAddToCache;
-    };
-
-    if (routeDef.onGET) addVerb("GET", routeDef.onGET);
-    if (routeDef.onPOST) addVerb("POST", routeDef.onPOST);
-    if (routeDef.onPATCH) addVerb("PATCH", routeDef.onPATCH);
-    if (routeDef.onDELETE) addVerb("DELETE", routeDef.onDELETE);
-    if (routeDef.onOPTIONS) addVerb("OPTIONS", routeDef.onOPTIONS);
-    if (routeDef.onHEAD) addVerb("HEAD", routeDef.onHEAD);
-
-    if (routeDef.onWebSocket) {
-        const handler = routeDef.onWebSocket;
-
-        if (path instanceof Array) {
-            path.forEach(p => webSite.onWebSocketConnect(p, handler));
-        } else {
-            webSite.onWebSocketConnect(path as string, handler)
-        }
-    }
-}
-
-class WebSite_PathBuilder_UsePathDefinition {
-    constructor(private readonly webSite: JopiEasyWebSite,
-                private readonly internals: WebSiteInternal,
-                private readonly path: string | string[],
-                routeDef: RouterPathDefinition)
-    {
-        this.internals.afterHook.push(async webSite => {
-            usePathDefinition(path, routeDef, webSite);
-        });
-    }
-
-    DONE_add_path(): JopiEasyWebSite {
-        return this.webSite;
-    }
-
-    add_path(path: string|string[]): WebSite_PathBuilder {
-        return new WebSite_PathBuilder(this.webSite, this.internals, path);
-    }
-
-    add_samePath(): WebSite_PathBuilder {
-        return new WebSite_PathBuilder(this.webSite, this.internals, this.path);
-    }
-}
-
-class WebSite_PathBuilder_NextStep {
-    constructor(private readonly webSite: JopiEasyWebSite,
-                private readonly internals: WebSiteInternal,
-                private readonly path: string|string[],
-                private readonly routeDef: RouterPathDefinition) {
-        this.internals.afterHook.push(async webSite => {
-            usePathDefinition(path, routeDef, webSite);
-        });
-    }
-
-    DONE_add_path(): JopiEasyWebSite {
-        return this.webSite;
-    }
-
-    add_path(path: string|string[]): WebSite_PathBuilder {
-        return new WebSite_PathBuilder(this.webSite, this.internals, path);
-    }
-
-    add_samePath(): WebSite_PathBuilder {
-        return new WebSite_PathBuilder(this.webSite, this.internals, this.path);
-    }
-
-    add_requiredRole(role: string): WebSite_PathBuilder_NextStep {
-        if (!this.routeDef.requiredRoles) this.routeDef.requiredRoles = [role];
-        else this.routeDef.requiredRoles.push(role);
-        return this;
-    }
-
-    add_requiredRoles(roles: string[]): WebSite_PathBuilder_NextStep {
-        if (!this.routeDef.requiredRoles) this.routeDef.requiredRoles = [...roles];
-        else this.routeDef.requiredRoles = [...this.routeDef.requiredRoles, ...roles];
-        return this;
-    }
-
-    add_searchParamFiler(filter: SearchParamFilterFunction): WebSite_PathBuilder_NextStep {
-        this.routeDef.searchParamFilter = filter;
-        return this;
-    }
-
-    disable_automaticCache(): WebSite_PathBuilder_NextStep {
-        this.routeDef.mustDisableAutomaticCache = true;
-        return this;
-    }
-
-    on_afterGetFromCache(handler: (req: JopiRequest, res: Response) => Promise<Response|undefined|void>): WebSite_PathBuilder_NextStep {
-        this.routeDef.afterGetFromCache = handler;
-        return this;
-    }
-
-    on_beforeAddToCache(handler: (req: JopiRequest, res: Response) => Promise<Response|undefined|void>): WebSite_PathBuilder_NextStep {
-        this.routeDef.beforeAddToCache = handler;
-        return this;
-    }
-
-    on_beforeCheckingCache(handler: (req: JopiRequest) => Promise<Response|undefined|void>): WebSite_PathBuilder_NextStep {
-        this.routeDef.beforeCheckingCache = handler;
-        return this;
     }
 }
 

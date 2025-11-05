@@ -122,9 +122,8 @@ export interface WebSite {
 
     addHeaderToCache(header: string): void;
 
-    addMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, priority: PriorityLevel): void;
-
-    addPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, priority: PriorityLevel): void;
+    addGlobalMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, priority: PriorityLevel, regExp?: RegExp): void;
+    addGlobalPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, priority: PriorityLevel, regExp?: RegExp): void;
 
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number): void;
 
@@ -142,8 +141,9 @@ export class WebSiteImpl implements WebSite {
     private http80WebSite?: WebSite;
 
     certificate?: SslCertificatePath;
-    private middlewares: Record<string, ValueWithPriority<JopiMiddleware>[]> = {};
-    private postMiddlewares: Record<string, ValueWithPriority<JopiPostMiddleware>[]> = {};
+
+    private globalMiddlewares: Record<string, {value: JopiMiddleware, priority: PriorityLevel, regExp?: RegExp}[]> = {};
+    private globalPostMiddlewares: Record<string, {value: JopiPostMiddleware, priority: PriorityLevel, regExp?: RegExp}[]> = {};
 
     _onRebuildCertificate?: () => void;
     private readonly _onWebSiteReady?: (() => void)[];
@@ -235,16 +235,16 @@ export class WebSiteImpl implements WebSite {
         }
     }
 
-    addMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, priority: PriorityLevel) {
+    addGlobalMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, priority: PriorityLevel, regExp?: RegExp) {
         let m = method ? method : "*";
-        if (!this.middlewares[m]) this.middlewares[m] = [];
-        this.middlewares[m].push({priority, value: middleware});
+        if (!this.globalMiddlewares[m]) this.globalMiddlewares[m] = [];
+        this.globalMiddlewares[m].push({priority, value: middleware, regExp});
     }
 
-    addPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, priority: PriorityLevel) {
+    addGlobalPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, priority: PriorityLevel, regExp?: RegExp) {
         let m = method ? method : "*";
-        if (!this.postMiddlewares[m]) this.postMiddlewares[m] = [];
-        this.postMiddlewares[m].push({priority, value: middleware});
+        if (!this.globalPostMiddlewares[m]) this.globalPostMiddlewares[m] = [];
+        this.globalPostMiddlewares[m].push({priority, value: middleware, regExp});
     }
 
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number) {
@@ -253,10 +253,10 @@ export class WebSiteImpl implements WebSite {
 
     enableCors(allows?: string[]) {
         if (!allows) allows = [this.welcomeUrl];
-        this.addPostMiddleware(undefined, PostMiddlewares.cors({accessControlAllowOrigin: allows}), PriorityLevel.veryHigh);
+        this.addGlobalPostMiddleware(undefined, PostMiddlewares.cors({accessControlAllowOrigin: allows}), PriorityLevel.veryHigh);
     }
 
-    private applyMiddlewares(verb: HttpMethod, handler: JopiRouteHandler): JopiRouteHandler {
+    private applyMiddlewares(verb: HttpMethod, route: string, handler: JopiRouteHandler): JopiRouteHandler {
         function merge<T>(a: T[]|undefined, b: T[]|undefined): T[]|undefined {
             if (!a) return b;
             if (!b) return a;
@@ -265,10 +265,38 @@ export class WebSiteImpl implements WebSite {
 
         const webSite = this;
 
-        const middlewares = sortByPriority(merge(this.middlewares[verb], this.middlewares["*"]));
+        const routeInfos = this.getRouteInfos(verb, route);
+        const routeRawMiddlewares = routeInfos ? routeInfos.middlewares : undefined;
+        const routeRawPostMiddlewares = routeInfos ? routeInfos.postMiddlewares : undefined;
+
+        let globalRawMiddleware = this.globalMiddlewares[verb];
+        let globalRawPostMiddleware = this.globalPostMiddlewares[verb];
+
+        if (globalRawMiddleware) {
+            globalRawMiddleware = globalRawMiddleware.filter(m => {
+                if (m.regExp) {
+                    return m.regExp.test(route);
+
+                }
+
+                return true;
+            });
+        }
+
+        if (globalRawPostMiddleware) {
+            globalRawPostMiddleware = globalRawPostMiddleware.filter(m => {
+                if (m.regExp) {
+                    return m.regExp.test(route);
+                }
+
+                return true;
+            })
+        }
+
+        const middlewares = sortByPriority(merge(routeRawMiddlewares, globalRawMiddleware));
         const middlewares_count = middlewares ? middlewares.length : 0;
 
-        const postMiddlewares = sortByPriority(merge(this.postMiddlewares[verb], this.postMiddlewares["*"]));
+        const postMiddlewares = sortByPriority(merge(routeRawPostMiddlewares, globalRawPostMiddleware));
         const postMiddlewares_count = postMiddlewares ? postMiddlewares.length : 0;
 
         if (verb==="GET") {
@@ -569,7 +597,7 @@ export class WebSiteImpl implements WebSite {
     //region Path handler
 
     onVerb(verb: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
-        handler = this.applyMiddlewares(verb, handler);
+        handler = this.applyMiddlewares(verb, path, handler);
 
         const routeInfos: WebSiteRouteInfos = {handler};
         this.saveRouteInfos(verb, path, routeInfos);
@@ -757,6 +785,9 @@ export class WebSiteOptions {
 
 export interface WebSiteRouteInfos {
     handler: JopiRouteHandler;
+
+    middlewares?: ValueWithPriority<JopiMiddleware>[];
+    postMiddlewares?: ValueWithPriority<JopiPostMiddleware>[];
 
     /**
      * If true, the automatic cache is disabled for this path.
