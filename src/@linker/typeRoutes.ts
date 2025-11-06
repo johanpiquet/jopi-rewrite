@@ -105,7 +105,10 @@ export default class TypeRoutes extends ArobaseType {
         if (!ctx[target]) ctx[target] = [role];
         else ctx[target].push(role);
 
-        return target.toLowerCase() + "NeedRole_" + role;
+        target = target.toLowerCase();
+        if (target==="page") target = "get";
+
+        return target + "NeedRole_" + role;
     }
 
     private async scanAttributs(dirPath: string): Promise<RouteAttributs> {
