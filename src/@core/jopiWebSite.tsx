@@ -27,6 +27,11 @@ import {PriorityLevel, sortByPriority, type ValueWithPriority} from "jopi-toolki
 
 export type RouteHandler = (req: JopiRequest) => Promise<Response>;
 
+export interface MiddlewareOptions {
+    priority?: PriorityLevel;
+    regExp?: RegExp;
+}
+
 export interface WebSite {
     data: any;
 
@@ -122,8 +127,8 @@ export interface WebSite {
 
     addHeaderToCache(header: string): void;
 
-    addGlobalMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, priority: PriorityLevel, regExp?: RegExp): void;
-    addGlobalPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, priority: PriorityLevel, regExp?: RegExp): void;
+    addGlobalMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, options?: MiddlewareOptions): void;
+    addGlobalPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, options?: MiddlewareOptions): void;
 
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number): void;
 
@@ -235,16 +240,20 @@ export class WebSiteImpl implements WebSite {
         }
     }
 
-    addGlobalMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, priority: PriorityLevel, regExp?: RegExp) {
+    addGlobalMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, options: MiddlewareOptions) {
+        options = options || {};
+
         let m = method ? method : "*";
         if (!this.globalMiddlewares[m]) this.globalMiddlewares[m] = [];
-        this.globalMiddlewares[m].push({priority, value: middleware, regExp});
+        this.globalMiddlewares[m].push({priority: options.priority||PriorityLevel.default, value: middleware, regExp: options.regExp});
     }
 
-    addGlobalPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, priority: PriorityLevel, regExp?: RegExp) {
+    addGlobalPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, options: MiddlewareOptions) {
+        options = options || {};
+
         let m = method ? method : "*";
         if (!this.globalPostMiddlewares[m]) this.globalPostMiddlewares[m] = [];
-        this.globalPostMiddlewares[m].push({priority, value: middleware, regExp});
+        this.globalPostMiddlewares[m].push({priority: options.priority||PriorityLevel.default, value: middleware, regExp: options.regExp});
     }
 
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number) {
@@ -253,7 +262,7 @@ export class WebSiteImpl implements WebSite {
 
     enableCors(allows?: string[]) {
         if (!allows) allows = [this.welcomeUrl];
-        this.addGlobalPostMiddleware(undefined, PostMiddlewares.cors({accessControlAllowOrigin: allows}), PriorityLevel.veryHigh);
+        this.addGlobalPostMiddleware(undefined, PostMiddlewares.cors({accessControlAllowOrigin: allows}), {priority: PriorityLevel.veryHigh});
     }
 
     private applyMiddlewares(verb: HttpMethod, route: string, handler: JopiRouteHandler): JopiRouteHandler {
@@ -336,8 +345,12 @@ export class WebSiteImpl implements WebSite {
                     // For example, it allows enabling / disabling logging requests.
                     //
                     for (let i = 0; i < middlewares_count; i++) {
-                        const res = middlewares[i](req);
-                        if (res) return res;
+                        let res = middlewares[i](req);
+
+                        if (res) {
+                            if (res instanceof Promise) res = await res;
+                            if (res) return res;
+                        }
                     }
                 }
 
@@ -389,8 +402,12 @@ export class WebSiteImpl implements WebSite {
                     // For example, it allows enabling / disabling logging requests.
                     //
                     for (let i = 0; i < middlewares_count; i++) {
-                        const res = middlewares[i](req);
-                        if (res) return res;
+                        let res = middlewares[i](req);
+
+                        if (res) {
+                            if (res instanceof Promise) res = await res;
+                            if (res) return res;
+                        }
                     }
                 }
 
