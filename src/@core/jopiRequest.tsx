@@ -42,7 +42,7 @@ export class JopiRequest {
                 public readonly routeInfos: WebSiteRouteInfos)
     {
         this.cache = (webSite as WebSiteImpl).mainCache;
-        this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && routeInfos && routeInfos.mustEnableAutomaticCache;
+        this.mustUseAutoCache = (webSite as WebSiteImpl).mustUseAutomaticCache && routeInfos && (routeInfos.mustEnableAutomaticCache===true);
 
         this.mainCache = this.cache;
         this._headers = this.coreRequest.headers;
@@ -423,6 +423,10 @@ export class JopiRequest {
 
     directProxyToServer(): Promise<Response> {
         return (this.webSite as WebSiteImpl).loadBalancer.directProxy(this);
+    }
+
+    proxyRequestTo(server: ServerFetch<any>): Promise<Response> {
+        return server.directProxy(this);
     }
 
     directProxyWith(server: ServerFetch<any>): Promise<Response> {
