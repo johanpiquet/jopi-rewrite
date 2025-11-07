@@ -281,8 +281,6 @@ export class WebSiteImpl implements WebSite {
         let globalRawMiddleware = this.globalMiddlewares[verb];
         let globalRawPostMiddleware = this.globalPostMiddlewares[verb];
 
-        console.log("mdw route", route)
-
         if (globalRawMiddleware) {
             globalRawMiddleware = globalRawMiddleware.filter(m => {
                 if (m.regExp) {
