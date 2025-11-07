@@ -122,8 +122,13 @@ export default class TypeRoutes extends ArobaseType {
         });
 
         res.configFile = await resolveFile(dirPath, ["config.tsx", "config.ts"]);
-        res.disableCache = infos.features?.["cache"] === false;
+
+        res.disableCache = (infos.features?.["cache"] === true) ? true : undefined;
         res.priority = infos.priority;
+
+        if (!Object.values(res.needRoles!).length) {
+            res.needRoles = undefined;
+        }
 
         return res;
     }
@@ -152,14 +157,14 @@ export default class TypeRoutes extends ArobaseType {
             if (dirItem.name[0] === '.') continue;
 
             if (dirItem.isDirectory) {
+                let segment = convertRouteSegment(dirItem.name);
+                let newRoute = route==="/" ? route + segment : route + "/" + segment;
+
                 attributs = await this.scanAttributs(dirItem.fullPath);
 
                 if (attributs.configFile) {
-                    this.routeConfig[route] = attributs.configFile;
+                    this.routeConfig[newRoute] = attributs.configFile;
                 }
-
-                let segment = convertRouteSegment(dirItem.name);
-                let newRoute = route==="/" ? route + segment : route + "/" + segment;
 
                 await this.scanDir(dirItem.fullPath, newRoute, attributs);
             } else if (dirItem.isFile) {
