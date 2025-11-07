@@ -2,7 +2,7 @@ import React from "react";
 import {type HttpMethod, JopiRequest, WebSiteImpl, type WebSiteRouteInfos} from "jopi-rewrite";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import * as jk_events from "jopi-toolkit/jk_events";
-import {PriorityLevel} from "../@linker";
+import {PriorityLevel} from "jopi-toolkit/jk_tools";
 
 export interface RouteAttributs {
     needRoles?: Record<string, string[]>;

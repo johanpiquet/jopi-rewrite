@@ -265,7 +265,7 @@ export class WebSiteImpl implements WebSite {
         this.addGlobalPostMiddleware(undefined, PostMiddlewares.cors({accessControlAllowOrigin: allows}), {priority: PriorityLevel.veryHigh});
     }
 
-    private applyMiddlewares(verb: HttpMethod, route: string, handler: JopiRouteHandler): JopiRouteHandler {
+    applyMiddlewares(verb: HttpMethod, route: string, handler: JopiRouteHandler): JopiRouteHandler {
         function merge<T>(a: T[]|undefined, b: T[]|undefined): T[]|undefined {
             if (!a) return b;
             if (!b) return a;
@@ -281,11 +281,12 @@ export class WebSiteImpl implements WebSite {
         let globalRawMiddleware = this.globalMiddlewares[verb];
         let globalRawPostMiddleware = this.globalPostMiddlewares[verb];
 
+        console.log("mdw route", route)
+
         if (globalRawMiddleware) {
             globalRawMiddleware = globalRawMiddleware.filter(m => {
                 if (m.regExp) {
                     return m.regExp.test(route);
-
                 }
 
                 return true;
