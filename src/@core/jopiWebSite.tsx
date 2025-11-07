@@ -316,6 +316,22 @@ export class WebSiteImpl implements WebSite {
                     req.assertUserHasRoles(req.routeInfos.requiredRoles);
                 }
 
+                // >>> Apply the middlewares.
+
+                if (middlewares) {
+                    // Use a simple loop, which allow us to add/remove middleware at runtime.
+                    // For example, it allows enabling / disabling logging requests.
+                    //
+                    for (let i = 0; i < middlewares_count; i++) {
+                        let res = middlewares[i](req);
+
+                        if (res) {
+                            if (res instanceof Promise) res = await res;
+                            if (res) return res;
+                        }
+                    }
+                }
+
                 // >>> Take from the cache.
 
                 let mustUseAutoCache = req.mustUseAutoCache;
@@ -334,22 +350,6 @@ export class WebSiteImpl implements WebSite {
                             if (r) return r;
                         } else {
                             return res;
-                        }
-                    }
-                }
-
-                // >>> Apply the middlewares.
-
-                if (middlewares) {
-                    // Use a simple loop, which allow us to add/remove middleware at runtime.
-                    // For example, it allows enabling / disabling logging requests.
-                    //
-                    for (let i = 0; i < middlewares_count; i++) {
-                        let res = middlewares[i](req);
-
-                        if (res) {
-                            if (res instanceof Promise) res = await res;
-                            if (res) return res;
                         }
                     }
                 }
