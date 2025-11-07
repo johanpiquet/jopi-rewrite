@@ -675,7 +675,6 @@ class WebSite_AutomaticCacheBuilder_UseFileCache {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: AutoCacheBuilder_Internal) {
         this.internals.initCache = (webSite) => {
             webSite.setCache(new SimpleFileCache(this.rootDir));
-            webSite.enableAutomaticCache();
         };
     }
 
@@ -696,7 +695,6 @@ class WebSite_AutomaticCacheBuilder_UseMemoryCache {
         this.internals.initCache = (webSite) => {
             initMemoryCache(this.cacheOptions);
             webSite.setCache(getInMemoryCache());
-            webSite.enableAutomaticCache();
         };
     }
 
