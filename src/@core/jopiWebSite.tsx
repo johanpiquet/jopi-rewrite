@@ -873,7 +873,7 @@ export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
 export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
 export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
 
-export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response> | null;
+export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response|null> | null;
 export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response | Promise<Response>;
 
 export class SBPE_ServerByPassException extends Error {
