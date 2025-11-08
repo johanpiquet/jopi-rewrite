@@ -56,16 +56,7 @@ export interface RegistryItem {
     priority?: PriorityLevel;
 }
 
-export interface ReplaceItem {
-    mustReplace: string;
-    replaceWith: string;
-
-    priority: PriorityLevel;
-    declarationFile: string;
-}
-
 let gRegistry: Record<string, RegistryItem> = {};
-let gReplacing: Record<string, ReplaceItem> = {};
 
 //endregion
 
@@ -91,32 +82,6 @@ async function generateAll() {
 
         return template;
     }
-
-    function applyReplaces() {
-        for (let mustReplace in gReplacing) {
-            let replaceParams = gReplacing[mustReplace];
-
-            let itemToReplaceRef = gRegistry[mustReplace];
-            //
-            if (!itemToReplaceRef) {
-                throw declareLinkerError("Can't find the element to replace : " + mustReplace, replaceParams.declarationFile);
-            }
-
-            let replaceWithRef = gRegistry[replaceParams.replaceWith];
-            //
-            if (!replaceWithRef) {
-                throw declareLinkerError("Can't find the element used for replacement : " + replaceParams.replaceWith, replaceParams.declarationFile);
-            }
-
-            if (itemToReplaceRef.arobaseType!==replaceWithRef.arobaseType) {
-                throw declareLinkerError(`Try to replace an element of type ${itemToReplaceRef.arobaseType.typeName} with an element of type ${replaceWithRef.arobaseType.typeName}`, replaceParams.declarationFile);
-            }
-
-            gRegistry[mustReplace] = replaceWithRef;
-        }
-    }
-
-    applyReplaces();
 
     for (let arobaseType of Object.values(gArobaseHandler)) {
         await arobaseType.beginGeneratingCode(gCodeGenWriter);
@@ -696,19 +661,6 @@ export abstract class ArobaseType {
         if (!entry) throw declareLinkerError("The item " + key + " is required but not defined");
         if (requireType && (entry.arobaseType !== requireType)) throw declareLinkerError("The item " + key + " is not of the expected type @" + requireType.typeName);
         return entry as T;
-    }
-
-    registry_addReplaceRule(mustReplace: string, replaceWith: string, priority: PriorityLevel|undefined, declarationFile: string) {
-        if (!priority) priority = PriorityLevel.default;
-        let current = gReplacing[mustReplace];
-
-        if (current) {
-            if (current.priority>priority) return;
-        }
-
-        gReplacing[mustReplace] = {declarationFile, mustReplace, replaceWith, priority};
-
-        if (LOG) console.log("Add REPLACE", mustReplace, "=>", replaceWith, "priority", priority);
     }
 
     //endregion
