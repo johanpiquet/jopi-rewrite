@@ -17,7 +17,7 @@ let gBrowserInstallFileTemplate = `__HEADER
 
 export default function(registry) {
 __BODY__FOOTER
-registry.events.sendEvent("app.init.ui", {myModule: registry});
+    registry.events.sendEvent("app.init.ui", {myModule: registry});
 }`;
 
 export function getDefaultLinkerConfig(): LinkerConfig {
