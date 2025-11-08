@@ -424,7 +424,10 @@ export abstract class ArobaseType {
 
         if (!priority) {
             priority = PriorityLevel.default;
-            await jk_fs.writeTextToFile(jk_fs.join(thisFullPath, "default.priority"), "default.priority");
+
+            if (p.requirePriority) {
+                await jk_fs.writeTextToFile(jk_fs.join(thisFullPath, "default.priority"), "default.priority");
+            }
         }
 
         if (myUid) {

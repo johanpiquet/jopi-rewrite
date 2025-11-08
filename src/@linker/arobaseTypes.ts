@@ -49,7 +49,8 @@ export class Type_ArobaseList extends ArobaseType {
             rules: {
                 nameConstraint: "canBeUid",
                 requireRefFile: false,
-                requirePriority: true,
+                requirePriority: false,
+                allowConditions: false,
                 rootDirName: jk_fs.basename(listDirPath),
                 transform: (p) => this.processListItem(p)
             }
@@ -67,18 +68,16 @@ export class Type_ArobaseList extends ArobaseType {
 
         const params: ProcessDirItemParams = {
             rootDirName: p.parentDirName,
-            nameConstraint: "mustNotBeUid",
+            nameConstraint: "canBeUid",
             requirePriority: true,
+            requireRefFile: false,
+            allowConditions: true,
 
             filesToResolve: {
                 "entryPoint": ["index.tsx", "index.ts"]
             },
 
             transform: async (item) => {
-                if (item.refTarget && item.resolved.entryPoint) {
-                    throw this.declareError("The list item can't have both an index file and a .ref file", item.itemPath);
-                }
-
                 const listItem: ArobaseListItem = {
                     priority: item.priority,
                     sortKey: item.itemName,
