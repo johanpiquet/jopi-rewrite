@@ -34,7 +34,10 @@ export class Type_ArobaseList extends ArobaseType {
         list.push(item);
     }
 
-    protected mergeLists(existingList: ArobaseList, newList: TransformItemParams) {
+    protected mergeIntoList(list: ArobaseList, items: ArobaseListItem[]) {
+        let currentItems = list.items;
+        currentItems.push(...items);
+        currentItems.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
     }
 
     processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }) {
@@ -52,12 +55,12 @@ export class Type_ArobaseList extends ArobaseType {
                 requirePriority: false,
                 allowConditions: false,
                 rootDirName: jk_fs.basename(listDirPath),
-                transform: (p) => this.processListItem(p)
+                transform: (p) => this.processGroup(p)
             }
         });
     }
 
-    protected async processListItem(p: TransformItemParams) {
+    protected async processGroup(p: TransformItemParams) {
         let listId = this.typeName + "!" + p.itemName!;
         const listName = p.itemName;
 
@@ -69,9 +72,9 @@ export class Type_ArobaseList extends ArobaseType {
         const params: ProcessDirItemParams = {
             rootDirName: p.parentDirName,
             nameConstraint: "canBeUid",
-            requirePriority: true,
+            requirePriority: false,
             requireRefFile: false,
-            allowConditions: true,
+            allowConditions: false,
 
             filesToResolve: {
                 "entryPoint": ["index.tsx", "index.ts"]
@@ -120,30 +123,17 @@ export class Type_ArobaseList extends ArobaseType {
             };
 
             this.registry_addItem(listId, newItem);
-            return;
-        }
-
-        if (p.conditions) {
-            if (current.conditions) {
-                for (let c of p.conditions) {
-                    current.conditions.add(c);
-                }
-            } else {
-                if (!current.conditions) {
-                    current.conditions = p.conditions;
-                }
+        } else {
+            if (current.itemsType !== p.parentDirName) {
+                throw this.declareError(`The list ${listId} is already defined and has a different type: ${current.itemsType}`, p.itemPath);
             }
+
+            // Merge the items into the current one.
+            this.mergeIntoList(current, listItems);
+
+            // The list of event declaration locations.
+            current.allDirPath.push(p.itemPath);
         }
-
-        this.mergeLists(current, p);
-        await jk_events.sendAsyncEvent("jopi.linker.mergeLists." + this.typeName, {arobaseType: this, current, newList: p});
-
-        if (current.itemsType !== p.parentDirName) {
-            throw this.declareError(`The list ${listId} is already defined and has a different type: ${current.itemsType}`, p.itemPath);
-        }
-
-        current.allDirPath.push(p.itemPath);
-        current.items.push(...listItems);
     }
 
     protected getGenOutputDir(_list: ArobaseList) {
@@ -225,7 +215,7 @@ export class Type_ArobaseList extends ArobaseType {
         code += "\n" + this.codeGen_generateExports("[" + array + "]", list.listName);
 
         let fileName = key.substring(key.indexOf("!") + 1) + ".js";
-        await writer.writeCodeFile(jk_fs.join(outDir_innerPath, fileName), code);
+        await writer.writeCodeFile(jk_fs.join(outDir_innerPath, fileName), code, this.codeGen_createDeclarationTypes());
     }
 
     protected codeGen_generateImports() {
@@ -234,6 +224,14 @@ export class Type_ArobaseList extends ArobaseType {
 
     protected codeGen_generateExports(listAsArray: string, listName: string) {
         return "export default " + listAsArray + ";";
+    }
+
+    /**
+     * Allow creating content for the .d.ts file.
+     * @protected
+     */
+    protected codeGen_createDeclarationTypes() {
+        return `const list: any[]; export default list;`
     }
 }
 

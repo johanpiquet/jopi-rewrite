@@ -11,32 +11,31 @@ export default class TypeEvents extends Type_ArobaseList {
         for (let item of items) {
             count++;
 
-            let installFileType: InstallFileType;
             let list = item as ArobaseList;
-            let conditions = list.conditions;
 
-            if (conditions) {
-                if (conditions.has("if_server") && conditions.has("if_browser")) installFileType = InstallFileType.both;
-                else if (conditions.has("if_server")) installFileType = InstallFileType.server;
-                else if (conditions.has("if_browser")) installFileType = InstallFileType.browser;
-                else installFileType = InstallFileType.both;
-            } else {
-                installFileType = InstallFileType.both;
-            }
-
+            // Note: inside installServer.js : use the global event handler.
+            //       inside installBrowser.js: use the event handler local to the request.
+            //
             let jsSources = `    registry.events.addProvider("${list.listName}", async () => { const R = await import("@/events/${list.listName}"); return R.list; });`;
-            writer.genAddToInstallFile(installFileType, FilePart.body, jsSources);
+            writer.genAddToInstallFile(InstallFileType.both, FilePart.body, jsSources);
         }
     }
 
     protected codeGen_generateExports(array: string, eventName: string) {
         return `export const list = ${array};
-export const event = getEvent(${JSON.stringify(eventName)});
+export const event = createIsolatedEvent(${JSON.stringify(eventName)}, list);
 export default event;`;
     }
 
     protected codeGen_generateImports() {
-        return `import {getEvent} from "jopi-toolkit/jk_events";\n`;
+        return `import {createIsolatedEvent} from "jopi-toolkit/jk_events";\n`;
+    }
+
+    protected codeGen_createDeclarationTypes() {
+        return `import type { EventListener, IsolatedEvent } from "jopi-toolkit/jk_events";
+export declare const list: EventListener[];
+export declare const event: IsolatedEvent;
+export default event;`
     }
 
     protected normalizeConditionName(condName: string): string|undefined {

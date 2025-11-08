@@ -138,16 +138,21 @@ export class CodeGenWriter {
         return jk_fs.getRelativePath(this.dir.output_src, path);
     }
 
-    async writeCodeFile(innerPath: string, content: string) {
+    async writeCodeFile(jsFileInnerPath: string, content: string, declarationFile?: string) {
         // The file must:
         // - Be a JavaScript file.
         // - Be written into ./src/_jopiLinkerGen  (for alias resolve)
-        // - Be written into ./dst/_jopiLinkerGen  (for node.js typescript to js compilation)
+        // - Be written into ./dst/_jopiLinkerGen  (for node.js TypeScript to js compilation)
 
-        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, innerPath), content);
+        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, jsFileInnerPath), content);
 
         if (!gIsTypeScriptOnly) {
-            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, innerPath), content);
+            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, jsFileInnerPath), content);
+        }
+
+        if (declarationFile) {
+            let declFileName = jsFileInnerPath.slice(0, -2) + "d.ts";
+            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, declFileName), declarationFile);
         }
     }
 
