@@ -122,22 +122,22 @@ export class Type_ArobaseList extends ArobaseType {
 
             this.registry_addItem(listId, newItem);
             return;
-        } else {
-            if (p.conditions) {
-                if (current.conditions) {
-                    for (let c of p.conditions) {
-                        current.conditions.add(c);
-                    }
-                } else {
-                    if (!current.conditions) {
-                        current.conditions = p.conditions;
-                    }
+        }
+
+        if (p.conditions) {
+            if (current.conditions) {
+                for (let c of p.conditions) {
+                    current.conditions.add(c);
+                }
+            } else {
+                if (!current.conditions) {
+                    current.conditions = p.conditions;
                 }
             }
-
-            this.mergeLists(current, p);
-            await jk_events.sendAsyncEvent("jopi.linker.mergeLists." + this.typeName, {arobaseType: this, current, newList: p});
         }
+
+        this.mergeLists(current, p);
+        await jk_events.sendAsyncEvent("jopi.linker.mergeLists." + this.typeName, {arobaseType: this, current, newList: p});
 
         if (current.itemsType !== p.parentDirName) {
             throw this.declareError(`The list ${listId} is already defined and has a different type: ${current.itemsType}`, p.itemPath);
@@ -253,6 +253,7 @@ export class Type_ArobaseChunk extends ArobaseType {
                 rootDirName: jk_fs.basename(p.arobaseDir),
                 nameConstraint: "canBeUid",
                 requireRefFile: false,
+                requirePriority: true,
 
                 filesToResolve: {
                     "info": ["info.json"],
@@ -269,6 +270,7 @@ export class Type_ArobaseChunk extends ArobaseType {
                         entryPoint: props.resolved.entryPoint,
                         itemType: props.parentDirName,
                         itemPath: props.itemPath,
+                        priority: props.priority
                     };
 
                     const key = this.typeName + "!" + props.itemName;

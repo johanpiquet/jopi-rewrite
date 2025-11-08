@@ -53,6 +53,7 @@ export async function addNameIntoFile(filePath: string, name: string = jk_fs.bas
 export interface RegistryItem {
     itemPath: string;
     arobaseType: ArobaseType;
+    priority?: PriorityLevel;
 }
 
 export interface ReplaceItem {
@@ -667,14 +668,20 @@ export abstract class ArobaseType {
 
     //region Registry
 
-    registry_addItem<T extends RegistryItem>(uid: string, item: T) {
-        if (gRegistry[uid]) declareLinkerError("The UID " + uid + " is already defined", gRegistry[uid].itemPath);
+    registry_addItem<T extends RegistryItem>(itemId: string, item: T) {
+        // If already exists, then keep the one with greater priority.
+        //
+        if (gRegistry[itemId]) {
+            let currentPriority = gRegistry[itemId]?.priority || PriorityLevel.default;
+            let itemPriority = item.priority || PriorityLevel.default;
+            if (currentPriority > itemPriority) return;
+        }
 
-        gRegistry[uid] = item;
+        gRegistry[itemId] = item;
 
         if (LOG) {
             const relPath = jk_fs.getRelativePath(gDir_ProjectSrc, item.itemPath);
-            console.log(`Add ${uid} to registry. Path: ${relPath}`);
+            console.log(`Add ${itemId} to registry. Path: ${relPath}`);
         }
     }
 
