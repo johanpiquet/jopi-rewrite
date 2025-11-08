@@ -11,7 +11,7 @@ export function useRouterNavigate(): NavigateFunction {
 }
 
 export function useSendRouterLocationUpdateEvent(_eventName?: string) {
-    // Nothing to do if no router enaled.
+    // Nothing to do if no router enabled.
 }
 
 export function useRouterSearchParams(): URLSearchParams {
