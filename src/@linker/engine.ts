@@ -153,6 +153,10 @@ export class CodeGenWriter {
         if (declarationFile) {
             let declFileName = jsFileInnerPath.slice(0, -2) + "d.ts";
             await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, declFileName), declarationFile);
+
+            if (!gIsTypeScriptOnly) {
+                await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, declFileName), declarationFile);
+            }
         }
     }
 

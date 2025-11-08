@@ -21,20 +21,20 @@ export default class TypeEvents extends Type_ArobaseList {
         }
     }
 
+    protected codeGen_generateImports() {
+        return `import {createStaticEvent} from "jopi-toolkit/jk_events";\n`;
+    }
+
     protected codeGen_generateExports(array: string, eventName: string) {
         return `export const list = ${array};
-export const event = createIsolatedEvent(${JSON.stringify(eventName)}, list);
+export const event = createStaticEvent(${JSON.stringify(eventName)}, list);
 export default event;`;
     }
 
-    protected codeGen_generateImports() {
-        return `import {createIsolatedEvent} from "jopi-toolkit/jk_events";\n`;
-    }
-
     protected codeGen_createDeclarationTypes() {
-        return `import type { EventListener, IsolatedEvent } from "jopi-toolkit/jk_events";
-export declare const list: EventListener[];
-export declare const event: IsolatedEvent;
+        return `import type { SyncEventListener, StaticEvent } from "jopi-toolkit/jk_events";
+export declare const list: SyncEventListener[];
+export declare const event: StaticEvent;
 export default event;`
     }
 
