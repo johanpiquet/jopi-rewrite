@@ -55,7 +55,7 @@ export interface PackageJson_jopi {
     bundlerOutputDir: string;
 }
 
-export const INLINE_MAX_SIZE_KO = 10;
+export const INLINE_MAX_SIZE_KO = 3;
 
 let gTransformConfig: PackageJson_jopi|undefined;
 
