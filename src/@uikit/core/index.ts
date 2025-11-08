@@ -1,2 +1,4 @@
 export * from "./UiKitModule.ts";
-export * from "./jBundler_ifServer.ts";
+import {registerUiKit} from "./jBundler_ifServer.ts";
+
+registerUiKit();

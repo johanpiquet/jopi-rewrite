@@ -1,9 +1,11 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
+import * as jk_events from "jopi-toolkit/jk_events";
+import type {WebSite} from "jopi-rewrite";
 import {getBrowserInstallScript, getServerInstallScript} from "./engine.ts";
 
 export type InstallFunction<T> = (registry: T) => void;
 
-export async function loadServerInstall<T>(value: T) {
+export async function loadServerInstall(webSite: WebSite) {
     let installFilePath = getServerInstallScript();
     if (!await jk_fs.isFile(installFilePath)) return;
 
@@ -11,7 +13,8 @@ export async function loadServerInstall<T>(value: T) {
         let v = await import(installFilePath);
         if (!v.default) return;
 
-        await v.default(value);
+        await v.default(webSite);
+        jk_events.sendEvent("jopi.server.install.done", webSite);
     }
     catch (error) {
         throw error;
