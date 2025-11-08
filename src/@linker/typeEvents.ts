@@ -5,12 +5,14 @@ export default class TypeEvents extends Type_ArobaseList {
     async endGeneratingCode(writer: CodeGenWriter, items: RegistryItem[]): Promise<void> {
         let count = 0;
 
+        // Here items are individual event listeners.
+        // There are not sorted, an item can be bound to an event A and another item to another event.
+        //
         for (let item of items) {
             count++;
 
             let installFileType: InstallFileType;
             let list = item as ArobaseList;
-
             let conditions = list.conditions;
 
             if (conditions) {
@@ -22,9 +24,19 @@ export default class TypeEvents extends Type_ArobaseList {
                 installFileType = InstallFileType.both;
             }
 
-            let jsSources = `    registry.events.addProvider("${list.listName}", async () => { const R = await import("@/events/${list.listName}"); return R.default; });`;
+            let jsSources = `    registry.events.addProvider("${list.listName}", async () => { const R = await import("@/events/${list.listName}"); return R.list; });`;
             writer.genAddToInstallFile(installFileType, FilePart.body, jsSources);
         }
+    }
+
+    protected codeGen_generateExports(array: string, eventName: string) {
+        return `export const list = ${array};
+export const event = getEvent(${JSON.stringify(eventName)});
+export default event;`;
+    }
+
+    protected codeGen_generateImports() {
+        return `import {getEvent} from "jopi-toolkit/jk_events";\n`;
     }
 
     protected normalizeConditionName(condName: string): string|undefined {

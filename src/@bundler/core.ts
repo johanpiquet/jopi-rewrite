@@ -1,5 +1,5 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
-import *as jk_events from "jopi-toolkit/jk_events";
+import * as jk_events from "jopi-toolkit/jk_events";
 import type {CreateBundleEvent} from "jopi-rewrite";
 import {launchEsBuildProcess} from "./launcher.ts";
 

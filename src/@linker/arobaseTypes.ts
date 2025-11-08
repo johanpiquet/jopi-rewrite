@@ -202,31 +202,39 @@ export class Type_ArobaseList extends ArobaseType {
     }
 
     protected async generateCodeForList(writer: CodeGenWriter, key: string, list: ArobaseList): Promise<void> {
-        let tsSource = "";
-        let jsSource = "";
+        let code = "";
         let count = 1;
 
+        let needJS = !writer.isTypeScriptOnly;
         let outDir_innerPath = this.getGenOutputDir(list);
         let outDir_fullPath = jk_fs.join(writer.dir.output_src, outDir_innerPath);
+
+        code += this.codeGen_generateImports();
 
         for (let item of list.items) {
             let entryPoint = this.resolveEntryPointFor(list, item);
             let relPath = jk_fs.getRelativePath(outDir_fullPath, entryPoint);
 
-            tsSource += `import I${count} from "${relPath}";\n`;
-            jsSource += `import I${count} from "${writer.toJavascriptFileName(relPath)}";\n`;
+            if (needJS) relPath = writer.toJavascriptFileName(relPath);
+            code += `import I${count} from "${relPath}";\n`;
             count++;
         }
 
+        let array = "";
         let max = list.items.length;
-        tsSource += "\nexport default [";
-        for (let i = 1; i <= max; i++) tsSource += `I${i},`;
-        tsSource += "];";
+        for (let i = 1; i <= max; i++) array += `I${i},`;
+        code += "\n" + this.codeGen_generateExports("[" + array + "]", list.listName);
 
-        let fileName = key.substring(key.indexOf("!") + 1) + ".ts";
+        let fileName = key.substring(key.indexOf("!") + 1) + ".js";
+        await writer.writeCodeFile(jk_fs.join(outDir_innerPath, fileName), code);
+    }
 
-        // Here TypeScript and JavaScript are the same.
-        await writer.writeCodeFile(jk_fs.join(outDir_innerPath, fileName), tsSource, jsSource);
+    protected codeGen_generateImports() {
+        return "";
+    }
+
+    protected codeGen_generateExports(listAsArray: string, listName: string) {
+        return "export default " + listAsArray + ";";
     }
 }
 
