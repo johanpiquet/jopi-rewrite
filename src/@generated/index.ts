@@ -24,7 +24,21 @@ function applyAttributes(infos: WebSiteRouteInfos, attributes: RouteAttributs, v
 
 export async function routeBindPage(webSite: WebSiteImpl, route: string, attributes: RouteAttributs, reactComponent: React.FC<any>, filePath: string) {
     const pageKey = "page_" + jk_crypto.fastHash(route);
-    const infos = webSite.onPage(route, pageKey, reactComponent);
+    let infos: WebSiteRouteInfos;
+
+    if (route==="/") {
+        infos = webSite.onPage(route, pageKey, reactComponent);
+    } else {
+        infos = webSite.onPage(route + "/", pageKey, reactComponent);
+
+        // Note: with node.js, the router doesn't distinguish with and without /
+        // It's why the redirection is done internally.
+        //
+        webSite.onGET(route, async (req) => {
+            req.urlInfos.pathname += "/";
+            return Response.redirect(req.urlInfos.href, 301);
+        });
+    }
 
     applyAttributes(infos, attributes, "PAGE");
 
@@ -32,6 +46,6 @@ export async function routeBindPage(webSite: WebSiteImpl, route: string, attribu
 }
 
 export async function routeBindVerb(webSite: WebSiteImpl, route: string, verb: HttpMethod, attributes: RouteAttributs, handler: RouteHandler) {
-    const infos = webSite.onVerb(verb, route, handler);
+    const infos = webSite.onVerb(verb, route + "/", handler);
     applyAttributes(infos, attributes, verb);
 }

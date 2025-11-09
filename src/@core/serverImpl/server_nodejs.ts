@@ -14,6 +14,8 @@ class NodeServerInstance implements CoreServer {
     private readonly server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
 
     constructor(private options: StartServerOptions) {
+        let isHttps = options.tls !== undefined;
+
         async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
             const headers = new Headers(req.headers as any);
 
@@ -21,7 +23,8 @@ class NodeServerInstance implements CoreServer {
             const body = (method == "GET" || method === "HEAD") ? undefined : jk_fs.nodeStreamToWebStream(req);
 
             // req doesn't allow knowing if we are http or https.
-            const webReq = new Request("https://" + req.headers.host! + req.url!, {
+            // TODO BUG: https
+            const webReq = new Request((isHttps ? "https://" : "http://") + req.headers.host! + req.url!, {
                 body, headers, method,
                 // @ts-ignore
                 duplex: "half"
@@ -45,6 +48,8 @@ class NodeServerInstance implements CoreServer {
             if (webRes.body) {
                 const asNodeStream = jk_fs.webStreamToNodeStream(webRes.body);
                 asNodeStream.pipe(res);
+            } else {
+                res.end("");
             }
         }
 
@@ -228,24 +233,20 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
     }
 
     addPage(path: string, pageKey: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos) {
-        let redirectPath = path;
-
-        if (path.endsWith("/")) {
-            redirectPath = path.substring(0, path.length-1);
-        } else {
-            path += "/";
-        }
-
         routeInfos.handler = async (req) => {
+            let path = req.urlInfos.pathname;
+
+            if (!path.endsWith("/")) {
+                req.urlInfos.pathname += "/";
+                let redirectUrl = req.urlInfos.href;
+                return Response.redirect(redirectUrl, 301);
+            }
+
             return req.reactPage(pageKey, reactComponent);
         };
 
         routeInfos.handler = this.webSite.applyMiddlewares("GET", path, routeInfos.handler);
         this.addRoute("GET", path, routeInfos);
-
-        this.addRoute("GET", redirectPath, {
-            handler: async () => { return Response.redirect(path, 301); }
-        });
     }
 }
 
