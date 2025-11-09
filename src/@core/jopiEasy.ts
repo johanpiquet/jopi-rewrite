@@ -64,6 +64,8 @@ class JopiApp {
     }
 }
 
+let gWebSiteCreated = false;
+
 class JopiEasy {
     private getDefaultUrl(): string {
         let config = getPackageJsonConfig();
@@ -74,7 +76,10 @@ class JopiEasy {
         throw new Error("Invalid package.json configuration. 'jopi.webSiteUrl' or 'jopi.webSiteListeningUrl' must be set");
     }
 
-    new_webSite(url?: string, ref?: RefFor_WebSite): JopiEasyWebSite {
+    use_webSite(url?: string, ref?: RefFor_WebSite): JopiEasyWebSite {
+        if (gWebSiteCreated) throw new Error("WebSite already created");
+        gWebSiteCreated = true;
+
         if (!url) {
             url = this.getDefaultUrl();
         }
@@ -84,7 +89,10 @@ class JopiEasy {
         return res;
     }
 
-    new_reverseProxy(url?: string|undefined, ref?: RefFor_WebSite): ReverseProxyBuilder {
+    use_reverseProxy(url?: string|undefined, ref?: RefFor_WebSite): ReverseProxyBuilder {
+        if (gWebSiteCreated) throw new Error("WebSite already created");
+        gWebSiteCreated = true;
+
         if (!url) {
             url = this.getDefaultUrl();
         }
@@ -92,7 +100,10 @@ class JopiEasy {
         return new ReverseProxyBuilder(url, ref);
     }
 
-    new_fileServer(url?: string|undefined, ref?: RefFor_WebSite): FileServerBuilder {
+    use_fileServer(url?: string|undefined, ref?: RefFor_WebSite): FileServerBuilder {
+        if (gWebSiteCreated) throw new Error("WebSite already created");
+        gWebSiteCreated = true;
+
         if (!url) {
             url = this.getDefaultUrl();
         }
@@ -100,7 +111,10 @@ class JopiEasy {
         return new FileServerBuilder(url, ref);
     }
 
-    new_downloader(urlOrigin?: string|undefined): CrawlerDownloader {
+    use_downloader(urlOrigin?: string|undefined): CrawlerDownloader {
+        if (gWebSiteCreated) throw new Error("WebSite already created");
+        gWebSiteCreated = true;
+
         if (!urlOrigin) {
             urlOrigin = this.getDefaultUrl();
         }
@@ -403,12 +417,22 @@ class JopiEasyWebSite {
         this.options.onWebSiteReady = [() => {
             this._isWebSiteReady = true;
         }];
+
+        if (this.origin.startsWith("https://")) {
+            this.internals.beforeHook.push(async () => {
+                if (!gIsSslCertificateDefined) {
+                    this.internals.options.certificate = useCertificateStore("certs", this.hostName);
+                }
+            })
+        }
     }
 
     private async initWebSiteInstance(): Promise<void> {
         if (!this.webSite) {
             for (let hook of this.beforeHook) await hook();
             this.webSite = new WebSiteImpl(this.origin, this.options);
+
+            await initLinker(this.webSite);
 
             for (const hook of  this.afterHook) {
                 try {
@@ -492,22 +516,6 @@ class JopiEasyWebSite {
         this.options.onWebSiteReady!.push(listener);
         return this;
     }
-
-    use_modules(): WebSite_UseModules {
-        return new WebSite_UseModules(this, this.internals);
-    }
-}
-
-class WebSite_UseModules {
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
-        this.internals.afterHook.push(async webSite => {
-            await initLinker(webSite);
-        });
-    }
-
-    END_use_modules(): JopiEasyWebSite {
-        return this.webSite;
-    }
 }
 
 class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
@@ -552,7 +560,6 @@ class WebSite_AddSpecialPageHandler {
         return this;
     }
 }
-
 
 class WebSite_AddSourceServerBuilder<T> extends CreateServerFetch<T, WebSite_AddSourceServerBuilder_NextStep<T>> {
     private serverFetch?: ServerFetch<T>;
@@ -908,11 +915,38 @@ class FileServerBuilder {
 
 //region CertificateBuilder
 
+let gIsSslCertificateDefined = false;
+
+function useCertificateStore(dirPath: string, hostName: string) {
+    dirPath = path.join(dirPath, hostName);
+
+    let cert:string = "";
+    let key: string = "";
+
+    try {
+        cert = path.resolve(dirPath, "certificate.crt.key")
+        fsc.statfsSync(cert)
+    } catch {
+        console.error("Certificat file not found: ", cert);
+    }
+
+    try {
+        key = path.resolve(dirPath, "certificate.key")
+        fsc.statfsSync(key)
+    } catch {
+        console.error("Certificat key file not found: ", key);
+    }
+
+    return {key, cert};
+}
+
 class CertificateBuilder {
     constructor(private readonly parent: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
     }
 
     generate_localDevCert(saveInDir: string = "certs") {
+        gIsSslCertificateDefined = true;
+
         this.internals.beforeHook.push(async () => {
             try {
                 this.internals.options.certificate = await myServer.createDevCertificate(this.internals.hostName, saveInDir);
@@ -928,33 +962,14 @@ class CertificateBuilder {
     }
 
     use_dirStore(dirPath: string) {
-        dirPath = path.join(dirPath, this.internals.hostName);
-
-        let cert:string = "";
-        let key: string = "";
-
-        try {
-            cert = path.resolve(dirPath, "certificate.crt.key")
-            fsc.statfsSync(cert)
-        } catch {
-            console.error("Certificat file not found: ", cert);
-        }
-
-        try {
-            key = path.resolve(dirPath, "certificate.key")
-            fsc.statfsSync(key)
-        } catch {
-            console.error("Certificat key file not found: ", key);
-        }
-
-        this.internals.options.certificate = {key, cert};
-
-        return {
-            DONE_add_httpCertificate: () => this.parent
-        }
+        gIsSslCertificateDefined = true;
+        this.internals.options.certificate = useCertificateStore(dirPath, this.internals.hostName);
+        return { DONE_add_httpCertificate: () => this.parent }
     }
 
     generate_letsEncryptCert(email: string) {
+        gIsSslCertificateDefined = true;
+
         const params: LetsEncryptParams = {email};
 
         this.internals.afterHook.push(async webSite => {

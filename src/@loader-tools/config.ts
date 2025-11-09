@@ -16,7 +16,7 @@ export interface PackageJson_jopi {
     webSiteUrl?: string;
 
     /**
-     * It's the url on which the website listens if we don't use
+     * It's the url on which the website listens to if we don't use
      * explicite url when defining the website.
      *
      * Here it's the PRIVATE url.
