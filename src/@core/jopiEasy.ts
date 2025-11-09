@@ -76,7 +76,7 @@ class JopiEasy {
         throw new Error("Invalid package.json configuration. 'jopi.webSiteUrl' or 'jopi.webSiteListeningUrl' must be set");
     }
 
-    use_webSite(url?: string, ref?: RefFor_WebSite): JopiEasyWebSite {
+    create_creatWebSiteServer(url?: string, ref?: RefFor_WebSite): JopiEasyWebSite {
         if (gWebSiteCreated) throw new Error("WebSite already created");
         gWebSiteCreated = true;
 
@@ -89,7 +89,7 @@ class JopiEasy {
         return res;
     }
 
-    use_reverseProxy(url?: string|undefined, ref?: RefFor_WebSite): ReverseProxyBuilder {
+    create_reverseProxyServer(url?: string|undefined, ref?: RefFor_WebSite): ReverseProxyBuilder {
         if (gWebSiteCreated) throw new Error("WebSite already created");
         gWebSiteCreated = true;
 
@@ -100,7 +100,7 @@ class JopiEasy {
         return new ReverseProxyBuilder(url, ref);
     }
 
-    use_fileServer(url?: string|undefined, ref?: RefFor_WebSite): FileServerBuilder {
+    create_fileServer(url?: string|undefined, ref?: RefFor_WebSite): FileServerBuilder {
         if (gWebSiteCreated) throw new Error("WebSite already created");
         gWebSiteCreated = true;
 
@@ -111,7 +111,7 @@ class JopiEasy {
         return new FileServerBuilder(url, ref);
     }
 
-    use_downloader(urlOrigin?: string|undefined): CrawlerDownloader {
+    create_webSiteDownloader(urlOrigin?: string|undefined): CrawlerDownloader {
         if (gWebSiteCreated) throw new Error("WebSite already created");
         gWebSiteCreated = true;
 

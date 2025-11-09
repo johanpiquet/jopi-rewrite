@@ -216,6 +216,11 @@ interface RegistryItem {
 function convertRouteSegment(segment: string): string {
     if (segment.startsWith("[") && segment.endsWith("]")) {
         segment = segment.substring(1, segment.length - 1);
+
+        if ((segment==="...")||(segment==="..")) {
+            return "**";
+        }
+
         return ":" + segment;
     }
 
