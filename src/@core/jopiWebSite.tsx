@@ -322,11 +322,11 @@ export class WebSiteImpl implements WebSite {
                     // For example, it allows enabling / disabling logging requests.
                     //
                     for (let i = 0; i < middlewares_count; i++) {
-                        let res = middlewares[i](req);
+                        let mRes = middlewares[i](req);
 
-                        if (res) {
-                            if (res instanceof Promise) res = await res;
-                            if (res) return res;
+                        if (mRes) {
+                            if (mRes instanceof Promise) mRes = await mRes;
+                            if (mRes) return mRes;
                         }
                     }
                 }
@@ -334,6 +334,8 @@ export class WebSiteImpl implements WebSite {
                 // >>> Take from the cache.
 
                 let mustUseAutoCache = req.mustUseAutoCache;
+                let res: Response|undefined;
+                let isFromCache = false;
 
                 if (mustUseAutoCache) {
                     if (req.routeInfos.beforeCheckingCache) {
@@ -341,22 +343,24 @@ export class WebSiteImpl implements WebSite {
                         if (r) return r;
                     }
 
-                    let res = await req.getFromCache();
+                    res = await req.getFromCache();
 
                     if (res) {
+                        isFromCache = true;
+
                         if (req.routeInfos.afterGetFromCache) {
-                            let r = await req.routeInfos.afterGetFromCache(req, res);
-                            if (r) return r;
-                        } else {
-                            return res;
+                            const r = await req.routeInfos.afterGetFromCache(req, res);
+                            if (r) res = r;
                         }
                     }
                 }
 
                 // >>> Create the content.
 
-                const pRes = handler(req);
-                let res = pRes instanceof Promise ? await pRes : pRes;
+                if (!res) {
+                    const pRes = handler(req);
+                    res = pRes instanceof Promise ? await pRes : pRes;
+                }
 
                 // >>> Add the authentification cookie.
 
@@ -375,7 +379,7 @@ export class WebSiteImpl implements WebSite {
 
                 // >>> Add the result to the cache.
 
-                if (mustUseAutoCache && (res.status === 200)) {
+                if (!isFromCache && mustUseAutoCache && (res.status === 200)) {
                     if (req.routeInfos.beforeAddToCache) {
                         let r = await req.routeInfos.beforeAddToCache(req, res);
                         if (r) res = await req.addToCache(r)!;
