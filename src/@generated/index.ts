@@ -16,6 +16,9 @@ type RouteHandler = (req: JopiRequest) => Promise<Response>;
 function applyAttributes(infos: WebSiteRouteInfos, attributes: RouteAttributs, verb: string) {
     if (attributes.needRoles) {
         infos.requiredRoles = attributes.needRoles[verb];
+
+        let allRoles =  attributes.needRoles["all"];
+        if (allRoles) infos.requiredRoles = infos.requiredRoles?.concat(allRoles);
     }
 }
 
