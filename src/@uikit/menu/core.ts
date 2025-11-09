@@ -1,5 +1,6 @@
 import {HierarchyBuilder} from "./internal.ts";
 import * as jk_events from "jopi-toolkit/jk_events";
+import {isBrowserSide} from "../index.ts";
 
 import {ucFirst} from "../helpers/tools.ts";
 import type {MenuItem} from "./interfaces.ts";
@@ -12,18 +13,21 @@ export class MenuManager {
     private readonly menuBuilders: Record<string, MenuBuilder[]> = {};
 
     constructor(private readonly forceURL?: URL) {
+        let url = (this.forceURL || new URL(window.location.href)).pathname;
+
         jk_events.addListener("user.infosUpdated", () => {
             this.invalidateMenus(true);
         });
 
         jk_events.addListener("app.router.locationUpdated", () => {
             this.updateActiveItems();
-        })
+        });
     }
 
     private getUrlPathName(): string {
-        const url = this.forceURL || new URL(window.location.href);
-        return url.pathname;
+        let url = (this.forceURL || new URL(window.location.href)).pathname;
+        if (!url.endsWith("/")) url += "/";
+        return url;
     }
 
     getMenuItems(name: string): MenuItem[] {
@@ -199,6 +203,8 @@ function menuNormalizer(item: MenuItem) {
             item.title = ucFirst(item.key);
         }
     }
+
+    if (item.url && !item.url.endsWith("/")) item.url += "/";
 }
 
 let gReactKey = 0;

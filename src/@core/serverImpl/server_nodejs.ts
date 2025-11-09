@@ -228,12 +228,24 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
     }
 
     addPage(path: string, pageKey: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos) {
+        let redirectPath = path;
+
+        if (path.endsWith("/")) {
+            redirectPath = path.substring(0, path.length-1);
+        } else {
+            path += "/";
+        }
+
         routeInfos.handler = async (req) => {
             return req.reactPage(pageKey, reactComponent);
         };
 
         routeInfos.handler = this.webSite.applyMiddlewares("GET", path, routeInfos.handler);
         this.addRoute("GET", path, routeInfos);
+
+        this.addRoute("GET", redirectPath, {
+            handler: async () => { return Response.redirect(path, 301); }
+        });
     }
 }
 
