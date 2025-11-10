@@ -174,7 +174,6 @@ export class WebSiteImpl implements WebSite {
     readonly isHttps?: boolean = false;
 
     private http80WebSite?: WebSite;
-
     certificate?: SslCertificatePath;
 
     private globalMiddlewares: Record<string, {value: JopiMiddleware, priority: PriorityLevel, regExp?: RegExp}[]> = {};

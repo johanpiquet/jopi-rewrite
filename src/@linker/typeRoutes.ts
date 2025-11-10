@@ -52,7 +52,7 @@ export default class TypeRoutes extends ArobaseType {
         await jk_fs.writeTextToFile(filePath, this.sourceCode_header + this.sourceCode_body);
 
         writer.genAddToInstallFile(InstallFileType.server, FilePart.imports, `\nimport declareRoutes from "./declareServerRoutes.js";`);
-        writer.genAddToInstallFile(InstallFileType.server, FilePart.footer, "\n    await declareRoutes(registry);");
+        writer.genAddToInstallFile(InstallFileType.server, FilePart.footer, "\n    onWebSiteCreated((webSite) => declareRoutes(webSite));");
     }
 
     async processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }) {

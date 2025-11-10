@@ -5,6 +5,7 @@ import fsc from "node:fs";
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_timer from "jopi-toolkit/jk_timer";
 import * as jk_term from "jopi-toolkit/jk_term";
+import * as jk_events from "jopi-toolkit/jk_events";
 
 import type {Config as TailwindConfig} from 'tailwindcss';
 import {type FetchOptions, type ServerDownResult, ServerFetch, type ServerFetchOptions} from "./serverFetch.ts";
@@ -61,7 +62,7 @@ class JopiApp {
 
 let gWebSiteCreated = false;
 
-class JopiEasy {
+export class JopiEasy {
     private getDefaultUrl(): string {
         let config = getPackageJsonConfig();
 
@@ -379,7 +380,7 @@ class IfServerDownBuilder<T> extends CreateServerFetch<T, CreateServerFetch_Next
 
 //region WebSite
 
-class JopiEasyWebSite {
+export class JopiEasyWebSite {
     protected readonly origin: string;
     protected readonly hostName: string;
     private webSite?: WebSiteImpl;
@@ -389,8 +390,9 @@ class JopiEasyWebSite {
     protected readonly beforeHook: (()=>Promise<void>)[] = [];
 
     protected readonly internals: WebSiteInternal;
-
     protected _isWebSiteReady: boolean = false;
+
+    public readonly events = jk_events.defaultEventGroup;
 
     constructor(url: string) {
         setTimeout(async () => {
@@ -423,11 +425,15 @@ class JopiEasyWebSite {
     }
 
     private async initWebSiteInstance(): Promise<void> {
+        const onWebSiteCreate = (h: (webSite: WebSite) => void|Promise<void>) => {
+            this.internals.afterHook.push(h);
+        }
+
         if (!this.webSite) {
+            await initLinker(this, onWebSiteCreate);
+
             for (let hook of this.beforeHook) await hook();
             this.webSite = new WebSiteImpl(this.origin, this.options);
-
-            await initLinker(this.webSite);
 
             for (const hook of  this.afterHook) {
                 try {

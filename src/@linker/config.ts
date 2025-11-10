@@ -8,7 +8,7 @@ import TypeRoutes from "./typeRoutes.ts";
 // Here it's ASYNC.
 let gServerInstallFileTemplate = `__HEADER
 
-export default async function(registry) {
+export default async function(registry, onWebSiteCreated) {
 __BODY__FOOTER
 }`;
 
