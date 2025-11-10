@@ -137,6 +137,37 @@ export interface WebSite {
     readonly events: EventGroup;
 }
 
+export interface CacheRules {
+    regExp?: RegExp;
+
+    /**
+     * If true, then disable the cache for the routes.
+     */
+    disableAutomaticCache?: boolean;
+
+    /**
+     * Define a function which is called when the response is get from the cache.
+     * If a value is returned, then this value is used as the new value,
+     * allowing to replace what comes from the cache.
+     * @param handler
+     */
+    afterGetFromCache?: (req: JopiRequest, res: Response) => Promise<Response | undefined | void>;
+
+    /**
+     * Defines a function which can alter the response to save into the cache or avoid cache adding.
+     * If returns a response: this response will be added into the cache.
+     * If returns undefined: will not add the response into the cache.
+     */
+    beforeAddToCache?: (req: JopiRequest, res: Response) => Promise<Response | undefined | void>;
+
+    /**
+     * Define a function which is called before checking the cache.
+     * This allows doing some checking, and if needed, it can return
+     * a response and bypass the request cycle.
+     */
+    beforeCheckingCache?: (req: JopiRequest) => Promise<Response | undefined | void>;
+}
+
 export class WebSiteImpl implements WebSite {
     readonly port: number;
     readonly host: string;
@@ -195,15 +226,16 @@ export class WebSiteImpl implements WebSite {
         return this.welcomeUrl;
     }
 
-    async processRequest(handler: RouteHandler, urlParts: any, routeInfos: WebSiteRouteInfos, urlInfos: URL|undefined, coreRequest: Request, coreServer: CoreServer): Promise<Response|undefined> {
+    async processRequest(handler: RouteHandler|undefined, urlParts: any, routeInfos: WebSiteRouteInfos|undefined, urlInfos: URL|undefined, coreRequest: Request, coreServer: CoreServer): Promise<Response|undefined> {
         // For security reasons. Without that, an attacker can break a cache.
         if (urlInfos) urlInfos.hash = "";
 
-        const req = new JopiRequest(this, urlInfos, coreRequest, coreServer, routeInfos);
+        const req = new JopiRequest(this, urlInfos, coreRequest, coreServer, routeInfos!);
         req.urlParts = urlParts;
 
         try {
-            return await handler(req);
+            if (handler) return await handler(req);
+            return req.returnError404_NotFound();
         } catch (e) {
             if (e instanceof SBPE_ServerByPassException) {
                 if (e instanceof SBPE_DirectSendThisResponseException) {
@@ -509,8 +541,8 @@ export class WebSiteImpl implements WebSite {
     //region Cache
 
     mainCache: PageCache;
-
     mustUseAutomaticCache: boolean = true;
+    private cacheRules: CacheRules[] = [];
 
     private headersToCache: string[] = ["content-type", "etag", "last-modified"];
 
@@ -533,6 +565,30 @@ export class WebSiteImpl implements WebSite {
     addHeaderToCache(header: string) {
         header = header.trim().toLowerCase();
         if (!this.headersToCache.includes(header)) this.headersToCache.push(header);
+    }
+
+    setCacheRules(rules: CacheRules[]) {
+        this.cacheRules = rules;
+    }
+
+    private applyCacheRules(routeInfos: WebSiteRouteInfos, path: string) {
+        for (let rule of this.cacheRules) {
+            if (rule.regExp) {
+                if (!rule.regExp.test(path)) continue;
+            }
+
+            if (!routeInfos.afterGetFromCache) {
+                routeInfos.afterGetFromCache = rule.afterGetFromCache;
+            }
+
+            if (!routeInfos.beforeAddToCache) {
+                routeInfos.beforeAddToCache = rule.beforeAddToCache;
+            }
+
+            if (!routeInfos.beforeCheckingCache) {
+                routeInfos.beforeCheckingCache = rule.beforeCheckingCache;
+            }
+        }
     }
 
     //endregion
@@ -622,6 +678,8 @@ export class WebSiteImpl implements WebSite {
         this.saveRouteInfos(verb, path, routeInfos);
 
         this.serverInstanceBuilder.addRoute(verb, path, routeInfos);
+
+        if (verb==="GET") this.applyCacheRules(routeInfos, path);
         return routeInfos;
     }
 

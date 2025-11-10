@@ -150,6 +150,11 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
             tls: params.tls,
             routes: this.serverRoutes,
 
+            fetch: async (req: Request) => {
+                const urlInfos = new URL(req.url);
+                return await this.webSite.processRequest(undefined, {}, undefined, urlInfos, req, this.bunServer!);
+            },
+
             development: this.isReactHmrEnabled && {
                 // Enable browser hot reloading in development
                 hmr: true,
@@ -165,6 +170,7 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
 
         this.serverOptions = options;
 
+        // @ts-ignore
         return this.bunServer = Bun.serve(options);
     }
 }

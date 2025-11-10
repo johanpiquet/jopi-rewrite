@@ -23,16 +23,16 @@ import {
 } from "jopi-rewrite/crawler";
 import {JopiRequest} from "./jopiRequest.ts";
 import {
-    type AuthHandler,
+    type AuthHandler, type CacheRules,
     type JopiRouteHandler,
     type UserInfos,
     type WebSite,
     WebSiteImpl,
     WebSiteOptions
-} from "./jopiWebSite.js";
-import type {PageCache} from "./caches/cache.js";
-import {getServer, type SseEvent} from "./jopiServer.js";
-import {HTTP_VERBS, ONE_KILO_OCTET} from "./publicTools.ts";
+} from "./jopiWebSite.tsx";
+import type {PageCache} from "./caches/cache.ts";
+import {getServer, type SseEvent} from "./jopiServer.ts";
+import {HTTP_VERBS} from "./publicTools.ts";
 import {getPackageJsonConfig} from "jopi-rewrite/loader-tools";
 import {initLinker} from "./linker.ts";
 
@@ -475,10 +475,6 @@ class JopiEasyWebSite {
         return jopiApp;
     }
 
-    enable_automaticCache() {
-        return new WebSite_AutomaticCacheBuilder(this, this.internals);
-    }
-
     add_httpCertificate(): CertificateBuilder {
         return new CertificateBuilder(this, this.internals);
     }
@@ -499,7 +495,7 @@ class JopiEasyWebSite {
         return this;
     }
 
-    add_cache(): WebSite_CacheBuilder {
+    configure_cache(): WebSite_CacheBuilder {
         return new WebSite_CacheBuilder(this, this.internals);
     }
 
@@ -641,162 +637,37 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
 
 class WebSite_CacheBuilder {
     private cache?: PageCache;
+    private readonly rules: CacheRules[] = [];
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
         this.internals.afterHook.push(async webSite => {
+            (webSite as WebSiteImpl).setCacheRules(this.rules);
+
             if (this.cache) {
                 webSite.setCache(this.cache);
             }
         });
     }
 
-    use_inMemoryCache(options?: InMemoryCacheOptions): this {
+    use_inMemoryCache(options?: InMemoryCacheOptions): WebSite_CacheBuilder {
         if (options) initMemoryCache(options);
         this.cache = getInMemoryCache();
 
         return this;
     }
 
-    use_fileSystemCache(rootDir: string): this {
+    use_fileSystemCache(rootDir: string): WebSite_CacheBuilder {
         this.cache = new SimpleFileCache(rootDir);
         return this;
     }
 
-    END_add_cache(): JopiEasyWebSite {
+    add_cacheRules(rules: CacheRules): WebSite_CacheBuilder {
+        this.rules.push(rules);
+        return this;
+    }
+
+    END_configure_cache(): JopiEasyWebSite {
         return this.webSite;
-    }
-}
-
-interface WebSite_AutomaticCacheBuilder_End {
-    END_use_AutomaticCache(): JopiEasyWebSite;
-}
-
-interface WebSite_AutomaticCacheBuilder_End {
-    END_use_AutomaticCache(): JopiEasyWebSite;
-}
-
-interface AutoCacheBuilder_Internal {
-    webSiteInternal: WebSiteInternal;
-    initCache?: (webSite: WebSite) => void;
-}
-
-class WebSite_AutomaticCacheBuilder implements WebSite_AutomaticCacheBuilder_End {
-    private readonly cacheInternal: AutoCacheBuilder_Internal;
-
-    constructor(private readonly webSite: JopiEasyWebSite, internals: WebSiteInternal) {
-        this.cacheInternal = {
-            webSiteInternal: internals,
-        }
-
-        internals.afterHook.push(async webSite => {
-            if (this.cacheInternal.initCache) {
-                this.cacheInternal.initCache(webSite);
-            }
-        });
-
-        new WebSite_AutomaticCacheBuilder_UseMemoryCache(this.webSite, this.cacheInternal);
-    }
-
-    use_memoryCache(): WebSite_AutomaticCacheBuilder_UseMemoryCache {
-        return new WebSite_AutomaticCacheBuilder_UseMemoryCache(this.webSite, this.cacheInternal);
-    }
-
-    use_fileCache(): WebSite_AutomaticCacheBuilder_UseFileCache {
-        return new WebSite_AutomaticCacheBuilder_UseFileCache(this.webSite, this.cacheInternal);
-    }
-
-    END_use_AutomaticCache() {
-        return this.webSite;
-    }
-}
-
-class WebSite_AutomaticCacheBuilder_UseFileCache {
-    private rootDir: string = path.join(jk_app.getTempDir(), "page-cache");
-
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: AutoCacheBuilder_Internal) {
-        this.internals.initCache = (webSite) => {
-            webSite.setCache(new SimpleFileCache(this.rootDir));
-        };
-    }
-
-    setConfig_rootDir(rootDir: string): this {
-        this.rootDir = rootDir;
-        return this;
-    }
-
-    END_use_AutomaticCache() {
-        return this.webSite;
-    }
-}
-
-class WebSite_AutomaticCacheBuilder_UseMemoryCache {
-    private readonly cacheOptions: InMemoryCacheOptions = {};
-
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: AutoCacheBuilder_Internal) {
-        this.internals.initCache = (webSite) => {
-            initMemoryCache(this.cacheOptions);
-            webSite.setCache(getInMemoryCache());
-        };
-    }
-
-    END_use_AutomaticCache() {
-        return this.webSite;
-    }
-
-    /**
-     * The memory cache survives hot-reload.
-     * If a hot-reload occurs, the cache contact is kept as-is.
-     * This option allows changing this behavior and automatically clearing
-     * the memory cache if a hot-reload is detected.
-     */
-    setConfig_clearOnHotReload(value: boolean = true): this {
-        this.cacheOptions.clearOnHotReload = value;
-        return this;
-    }
-
-    /**
-     * If an item is larger than this value, then he will not be added to the cache.
-     * Default value is 600 ko.
-     */
-    setConfig_maxContentLength(value: number = ONE_KILO_OCTET * 600): this {
-        this.cacheOptions.maxContentLength = value;
-        return this;
-    }
-
-    /**
-     * The max number of items in the cache.
-     * Default is 5000.
-     */
-    setConfig_maxItemCount(value: number = 5000): this {
-        this.cacheOptions.maxItemCount = value;
-        return this;
-    }
-
-    /**
-     * A delta which allows not triggering garbage collector too soon.
-     * Default is 10% of maxItemCount.
-     */
-    setConfig_maxItemCountDelta(value: number): this {
-        this.cacheOptions.maxItemCountDelta = value;
-        return this;
-    }
-
-    /**
-     * The max memory usage (mesure is Mo).
-     * Default is 500Mo
-     */
-    setConfig_maxMemoryUsage_mo(value: number = 500): this {
-        this.cacheOptions.maxMemoryUsage_mo = value;
-        return this;
-    }
-
-    /**
-     * A delta which allows not triggering garbage collector too soon.
-     * Default is 10% of maxMemoryUsage_mo.
-     */
-    setConfig_maxMemoryUsageDela_mo(value: number = 500): this {
-        this.cacheOptions.maxMemoryUsageDela_mo = value;
-        return this;
     }
 }
 

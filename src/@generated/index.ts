@@ -40,6 +40,16 @@ export async function routeBindPage(webSite: WebSiteImpl, route: string, attribu
         });
     }
 
+    if (route.startsWith("/error")) {
+        switch (route) {
+            case "/error404":
+                webSite.on404_NotFound(async (req) => {
+                    return req.reactPage(pageKey, reactComponent);
+                });
+                break;
+        }
+    }
+
     applyAttributes(infos, attributes, "PAGE");
 
     await jk_events.sendAsyncEvent("jopi.route.newPage", {route, filePath});

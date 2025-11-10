@@ -197,11 +197,14 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
     async startServer(params: { port: number; tls: any }): Promise<CoreServer> {
         async function fetch(req: Request): Promise<Response|undefined> {
             const urlInfos = new URL(req.url);
-
             const matched = findRoute(router, req.method, urlInfos.pathname);
-            if (!matched) return new Response("", {status: 404});
 
-            return await webSite.processRequest(matched.data.handler, matched.params, matched.data, urlInfos, req, server!);
+            if (matched) {
+                return await webSite.processRequest(matched.data.handler, matched.params, matched.data, urlInfos, req, server!);
+            }
+            else {
+                return await webSite.processRequest(undefined, {}, undefined, urlInfos, req, server!);
+            }
         }
 
         const webSite = this.webSite;
