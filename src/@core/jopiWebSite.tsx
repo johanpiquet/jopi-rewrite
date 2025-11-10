@@ -9,7 +9,6 @@ import jwt from "jsonwebtoken";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import React from "react";
 import {ModuleInitContext, type ModuleInitContext_Host, PageController, type UiUserInfos} from "jopi-rewrite/ui";
-import * as ReactServer from "react-dom/server";
 import type {PageCache} from "./caches/cache.ts";
 import {VoidPageCache} from "./caches/cache.ts";
 import {ONE_DAY} from "./publicTools.ts";
@@ -744,13 +743,6 @@ export class WebSiteImpl implements WebSite {
         this._on401_Unauthorized = handler;
     }
 
-    private cacheFor_404_NotFound?: string;
-
-    /**
-     * Allow resetting the cache if the generator has been updated.
-     */
-    private cacheFor_404_NotFound_ref?: any;
-
     async return404(req: JopiRequest): Promise<Response> {
         const accept = req.headers.get("accept");
         if (!accept || !accept.startsWith("text/html")) return new Response("", {status: 404});
@@ -768,18 +760,7 @@ export class WebSiteImpl implements WebSite {
             }
         }
 
-        // Use a cache. Without that here 404 will trigger a full React rendering.
-        //
-        if ((this.cacheFor_404_NotFound === undefined) || (this.cacheFor_404_NotFound_ref!==G_Default404Template)) {
-            if (G_Default404Template) {
-                this.cacheFor_404_NotFound = ReactServer.renderToStaticMarkup(<G_Default404Template />);
-                this.cacheFor_404_NotFound_ref = G_Default404Template;
-            } else {
-                this.cacheFor_404_NotFound = "404 Not Found";
-            }
-        }
-
-        return new Response(this.cacheFor_404_NotFound, {status: 404, headers: {"content-type": "text/html"}});
+        return new Response("", {status: 404});
     }
 
     async return500(req: JopiRequest, error?: any|string): Promise<Response> {
@@ -804,16 +785,7 @@ export class WebSiteImpl implements WebSite {
             }
         }
 
-        if (req.method!=="GET") {
-            return new Response(error ? error.toString() : "", {status: 500});
-        }
-
-        if (G_Default500Template) {
-            let res = req.reactResponse(<G_Default500Template/>);
-            return new Response(res.body, {status: 500, headers: res.headers});
-        }
-
-        return new Response(error ? error.toString() : "", {status: 500});
+        return new Response("", {status: 500});
     }
 
     async return401(req: JopiRequest, error?: Error|string): Promise<Response> {
@@ -834,12 +806,7 @@ export class WebSiteImpl implements WebSite {
             return new Response(error ? error.toString() : "", {status: 401});
         }
 
-        if (G_Default401Template) {
-            let res = req.reactResponse(<G_Default401Template/>);
-            return new Response(res.body, {status: 401, headers: res.headers});
-        }
-
-        return new Response(error ? error.toString() : "", {status: 401});
+        return new Response("", {status: 401});
     }
 
     //endregion
@@ -941,18 +908,6 @@ export function newWebSite(url: string, options?: WebSiteOptions): WebSite {
     return new WebSiteImpl(url, options);
 }
 
-export function setDefaultPage404Template(reactCpn: React.ComponentType<any>) {
-    G_Default404Template = reactCpn;
-}
-
-export function setDefaultPage500Template(reactCpn: React.ComponentType<any>) {
-    G_Default500Template = reactCpn;
-}
-
-export function setDefaultPage401Template(reactCpn: React.ComponentType<any>) {
-    G_Default401Template = reactCpn;
-}
-
 export type JopiRouteHandler = (req: JopiRequest) => Promise<Response>;
 export type JopiWsRouteHandler = (ws: JopiWebSocket, infos: WebSocketConnectionInfos) => void;
 export type JopiErrorHandler = (req: JopiRequest, error?: Error|string) => Response|Promise<Response>;
@@ -1019,7 +974,3 @@ export interface LoginPassword {
 }
 
 const gVoidCache = new VoidPageCache();
-
-let G_Default404Template: undefined|React.ComponentType<any>;
-let G_Default500Template: undefined|React.ComponentType<any>;
-let G_Default401Template: undefined|React.ComponentType<any>;
