@@ -315,7 +315,9 @@ export class JopiRequest {
         let error = jk_schema.validateSchema(data, schema);
 
         if (error) {
-            throw new SBPE_DirectSendThisResponseException(this.returnError400_BadRequest("Invalid data"));
+            throw new SBPE_DirectSendThisResponseException(() => {
+                return this.returnError400_BadRequest("Invalid data")
+            });
         }
     }
 
@@ -401,20 +403,20 @@ export class JopiRequest {
         return new Response(json, {status: statusCode, headers: {"content-type": "application/json;charset=utf-8"}});
     }
 
-    returnError404_NotFound(): Response | Promise<Response> {
+    returnError404_NotFound(): Promise<Response> {
         return this.webSite.return404(this);
     }
 
-    returnError500_ServerError(error?: Error | string): Response | Promise<Response> {
+    returnError500_ServerError(error?: any | string): Promise<Response> {
         return this.webSite.return500(this, error);
     }
 
-    returnError401_Unauthorized(error?: Error | string): Response | Promise<Response> {
+    returnError401_Unauthorized(error?: Error | string): Promise<Response> {
         return this.webSite.return401(this, error);
     }
 
-    returnError400_BadRequest(error?: Error | string): Response {
-        return new Response(error ? error.toString() : "Bad request", {status: 400});
+    returnError400_BadRequest(error?: Error | string): Promise<Response> {
+        return Promise.resolve(new Response(error ? error.toString() : "Bad request", {status: 400}));
     }
 
     //endregion
@@ -799,14 +801,14 @@ export class JopiRequest {
      * Used while refactoring the renderer.
      * Used while refactoring the renderer.
      */
-    reactPage(routeKey: string, C: React.FC<any>): Response {
+    async reactPage(routeKey: string, C: React.FC<any>): Promise<Response> {
         try {
             let html = this.renderPageToHtml(routeKey, C);
             return new Response(html, {status: 200, headers: {"content-type": "text/html;charset=utf-8"}});
         }
-        catch (e) {
+        catch (e: any) {
             console.error(e);
-            return new Response("Error", {status: 500, headers: {"content-type": "text/html;charset=utf-8"}});
+            return await this.returnError500_ServerError(e);
         }
     }
 

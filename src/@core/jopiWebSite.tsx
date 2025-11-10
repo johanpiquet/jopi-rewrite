@@ -66,13 +66,13 @@ export interface WebSite {
     addSseEVent(path: string|string[], handler: SseEvent): void;
 
     on404_NotFound(handler: JopiRouteHandler): void;
-    return404(req: JopiRequest): Response | Promise<Response>;
+    return404(req: JopiRequest): Promise<Response>;
 
     on500_Error(handler: JopiRouteHandler): void;
-    return500(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
+    return500(req: JopiRequest, error?: any | string): Promise<Response>;
 
     on401_Unauthorized(handler: JopiRouteHandler): void;
-    return401(req: JopiRequest, error?: Error | string): Response | Promise<Response>;
+    return401(req: JopiRequest, error?: Error | string): Promise<Response>;
 
     /**
      * Try to authenticate a user.
@@ -239,7 +239,12 @@ export class WebSiteImpl implements WebSite {
         } catch (e) {
             if (e instanceof SBPE_ServerByPassException) {
                 if (e instanceof SBPE_DirectSendThisResponseException) {
-                    return e.response;
+                    if (e.response instanceof Response) {
+                        return e.response;
+                    }
+                    else {
+                        return await e.response(req);
+                    }
                 } else if (e instanceof SBPE_NotAuthorizedException) {
                     return req.textResponse(e.message, 401);
                 } else if (e instanceof SBPE_MustReturnWithoutResponseException) {
@@ -758,6 +763,8 @@ export class WebSiteImpl implements WebSite {
                 if (res.status !== 404) {
                     return new Response(res.body, {status: 404, headers: res.headers});
                 }
+
+                return res;
             }
         }
 
@@ -775,11 +782,16 @@ export class WebSiteImpl implements WebSite {
         return new Response(this.cacheFor_404_NotFound, {status: 404, headers: {"content-type": "text/html"}});
     }
 
-    async return500(req: JopiRequest, error?: Error|string): Promise<Response> {
+    async return500(req: JopiRequest, error?: any|string): Promise<Response> {
         const accept = req.headers.get("accept");
         if (!accept || !accept.startsWith("text/html")) return new Response("", {status: 500});
 
         if (this._on500_Error) {
+            // Avoid recursions.
+            req.returnError500_ServerError = async () => {
+                return new Response("Internal server error", {status: 500});
+            }
+
             let res = this._on500_Error(req, error);
             if (res instanceof Promise) res = await res;
 
@@ -787,6 +799,8 @@ export class WebSiteImpl implements WebSite {
                 if (res.status !== 500) {
                     return new Response(res.body, {status: 500, headers: res.headers});
                 }
+
+                return res;
             }
         }
 
@@ -811,6 +825,8 @@ export class WebSiteImpl implements WebSite {
                 if (res.status !== 401) {
                     return new Response(res.body, {status: 401, headers: res.headers});
                 }
+
+                return res;
             }
         }
 
@@ -961,7 +977,7 @@ export class SBPE_NotAuthorizedException extends SBPE_ServerByPassException {
 }
 
 export class SBPE_DirectSendThisResponseException extends SBPE_ServerByPassException {
-    constructor(public readonly response: Response) {
+    constructor(public readonly response: Response| JopiRouteHandler) {
         super();
     }
 }

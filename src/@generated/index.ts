@@ -47,6 +47,18 @@ export async function routeBindPage(webSite: WebSiteImpl, route: string, attribu
                     return req.reactPage(pageKey, reactComponent);
                 });
                 break;
+
+            case "/error500":
+                webSite.on500_Error(async (req) => {
+                    return req.reactPage(pageKey, reactComponent);
+                });
+                break;
+
+            case "/error401":
+                webSite.on401_Unauthorized(async (req) => {
+                    return req.reactPage(pageKey, reactComponent);
+                });
+                break;
         }
     }
 
