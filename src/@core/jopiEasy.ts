@@ -41,11 +41,6 @@ serverInitChronos.start("jopiEasy lib");
 class JopiApp {
     private _isStartAppSet: boolean = false;
 
-    globalConfig(): GlobalConfigBuilder {
-        if (this._isStartAppSet) throw "App is already started";
-        return new GlobalConfigBuilder();
-    }
-
     startApp(importMeta: any, f: (jopiEasy: JopiEasy) => void|Promise<void>): void {
         async function doStart() {
             await jk_app.waitServerSideReady();
@@ -495,8 +490,93 @@ class JopiEasyWebSite {
         return this;
     }
 
+    configure_postCss() {
+        const parent: JopiEasyWebSite = this;
+
+        const me = {
+            setPlugin: (handler: PostCssInitializer) => {
+                getBundlerConfig().postCss.initializer = handler;
+                return me;
+            },
+
+            END_configure_postCss() {
+                return parent;
+            }
+        };
+
+        return me;
+    }
+
     configure_cache(): WebSite_CacheBuilder {
         return new WebSite_CacheBuilder(this, this.internals);
+    }
+
+    configure_bundler() {
+        const parent: JopiEasyWebSite = this;
+
+        const me = {
+            dontEmbed_ReactJS: () => {
+                me.dontEmbedThis("react", "react-dom");
+                return me;
+            },
+
+            dontEmbedThis: (...packages: string[]) => {
+                let config = getBundlerConfig();
+                if (!config.embed.dontEmbedThis) config.embed.dontEmbedThis = [];
+                config.embed.dontEmbedThis.push(...packages);
+                return me;
+            },
+
+            END_configure_bundler(): JopiEasyWebSite {
+                return parent;
+            }
+        }
+
+        return me;
+    }
+
+    configure_tailwindProcessor() {
+        const parent: JopiEasyWebSite = this;
+
+        const me = {
+            disableTailwind: () => {
+                getBundlerConfig().tailwind.disable = true;
+                return me;
+            },
+
+            setGlobalCssContent: (template: string) => {
+                getBundlerConfig().tailwind.globalCssContent = template;
+                return me;
+            },
+
+            setConfig: (config: TailwindConfig) => {
+                getBundlerConfig().tailwind.config = config;
+                return me;
+            },
+
+            /**
+             * Allows adding extra-sources files to scan.
+             * Can also be motifs. Ex: "./myDir/*.{js,ts,jsx,tsx}"
+             */
+            addExtraSourceFiles: (...files: string[]) => {
+                const config = getBundlerConfig().tailwind;
+                if (!config.extraSourceFiles) config.extraSourceFiles = [];
+                config.extraSourceFiles.push(...files);
+                return me;
+            },
+
+            setGlobalCssFilePath: (filePath: string) => {
+                const config = getBundlerConfig().tailwind;
+                config.globalCssFilePath = filePath;
+                return me;
+            },
+
+            END_configure_tailwindProcessor(): JopiEasyWebSite {
+                return parent;
+            }
+        }
+
+        return me;
     }
 
     add_sourceServer<T>(): WebSite_AddSourceServerBuilder<T> {
@@ -1115,71 +1195,6 @@ class JwtTokenAuth_Builder {
 
 let gCorsConstraints: string[] = [];
 let giIsCorsDisabled = false;
-
-class GlobalConfigBuilder {
-    configure_tailwindProcessor() {
-        return {
-            disableTailwind: () => {
-                getBundlerConfig().tailwind.disable = true;
-                return this.configure_tailwindProcessor();
-            },
-
-            setGlobalCssContent: (template: string) => {
-                getBundlerConfig().tailwind.globalCssContent = template;
-                return this.configure_tailwindProcessor();
-            },
-
-            setConfig: (config: TailwindConfig) => {
-                getBundlerConfig().tailwind.config = config;
-                return this.configure_tailwindProcessor();
-            },
-
-            /**
-             * Allows adding extra-sources files to scan.
-             * Can also be motifs. Ex: "./myDir/*.{js,ts,jsx,tsx}"
-             */
-            addExtraSourceFiles: (...files: string[]) => {
-                const config = getBundlerConfig().tailwind;
-                if (!config.extraSourceFiles) config.extraSourceFiles = [];
-                config.extraSourceFiles.push(...files);
-                return this.configure_tailwindProcessor();
-            },
-
-            setGlobalCssFilePath: (filePath: string) => {
-                const config = getBundlerConfig().tailwind;
-                config.globalCssFilePath = filePath;
-                return this.configure_tailwindProcessor();
-            }
-        }
-    }
-
-    configure_postCss() {
-        return {
-            setPlugin: (handler: PostCssInitializer) => {
-                getBundlerConfig().postCss.initializer = handler;
-                return this.configure_postCss()
-            }
-        }
-    }
-
-    configure_bundler() {
-        const me = {
-            dontEmbed_ReactJS: () => {
-                me.dontEmbedThis("react", "react-dom");
-                return me;
-            },
-
-            dontEmbedThis: (...packages: string[]) => {
-                let config = getBundlerConfig();
-                if (!config.embed.dontEmbedThis) config.embed.dontEmbedThis = [];
-                config.embed.dontEmbedThis.push(...packages);
-                return me;
-            }
-        }
-
-        return me;
-    }
-}
 
 //endregion
 
