@@ -453,6 +453,10 @@ class JopiEasyWebSite {
                 }
             }
 
+            if (!giIsCorsDisabled) {
+                this.webSite.enableCors([this.webSite.welcomeUrl, ...gCorsConstraints]);
+            }
+
             myServer.setWebsite(this.webSite);
             await autoStartServer();
         }
@@ -516,6 +520,10 @@ class JopiEasyWebSite {
         this.options.onWebSiteReady!.push(listener);
         return this;
     }
+
+    enable_cors() {
+        return new WebSite_EnableCors(this, this.internals);
+    }
 }
 
 class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
@@ -525,6 +533,32 @@ class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
 
     getInternals(): WebSiteInternal {
         return this.internals;
+    }
+}
+
+class WebSite_EnableCors {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+    }
+
+    add_allowedHost(hostName: string) {
+        try {
+            let url = new URL(hostName);
+            gCorsConstraints.push(url.origin);
+        }
+        catch {
+            throw new Error(`Invalid host name: ${hostName}. Must be a valid URL.`);
+        }
+
+        return this;
+    }
+
+    disable_cors() {
+        giIsCorsDisabled = true;
+        return this;
+    }
+
+    DONE_enableCors(): JopiEasyWebSite {
+        return this.webSite;
     }
 }
 
@@ -1207,6 +1241,9 @@ class JwtTokenAuth_Builder {
 //endregion
 
 //region Config
+
+let gCorsConstraints: string[] = [];
+let giIsCorsDisabled = false;
 
 class GlobalConfigBuilder {
     configure_tailwindProcessor() {
