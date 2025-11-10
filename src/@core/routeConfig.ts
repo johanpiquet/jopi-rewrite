@@ -58,28 +58,44 @@ class RouteConfig_Core {
 }
 
 class RouteConfig_OnGET extends RouteConfig_Core {
-    enableAutomaticCache() {
+    cache_disableAutomaticCache() {
         let routeInfos = this.webSite.getRouteInfos("GET", this.route);
         if (!routeInfos) return;
 
-        routeInfos.mustEnableAutomaticCache = true;
+        routeInfos.mustEnableAutomaticCache = false;
     }
 
-    afterGetFromCache(handler: (req: JopiRequest, res: Response) => Promise<Response | undefined | void>) {
+    /**
+     * Define a function which is called when the response is get from the cache.
+     * If a value is returned, then this value is used as the new value,
+     * allowing to replace what comes from the cache.
+     * @param handler
+     */
+    cache_afterGetFromCache(handler: (req: JopiRequest, res: Response) => Promise<Response | undefined | void>) {
         let routeInfos = this.webSite.getRouteInfos("GET", this.route);
         if (!routeInfos) return;
 
         routeInfos.afterGetFromCache = handler;
     }
 
-    beforeAddToCache(handler: (req: JopiRequest, res: Response) => Promise<Response | undefined | void>) {
+    /**
+     * Defines a function which can alter the response to save into the cache or avoid cache adding.
+     * If returns a response: this response will be added into the cache.
+     * If returns undefined: will not add the response into the cache.
+     */
+    cache_beforeAddToCache(handler: (req: JopiRequest, res: Response) => Promise<Response | undefined | void>) {
         let routeInfos = this.webSite.getRouteInfos("GET", this.route);
         if (!routeInfos) return;
 
         routeInfos.beforeAddToCache = handler;
     }
 
-    beforeCheckingCache(handler: (req: JopiRequest) => Promise<Response | undefined | void>) {
+    /**
+     * Define a function which is called before checking the cache.
+     * This allows doing some checking, and if needed, it can return
+     * a response and bypass the request cycle.
+     */
+    cache_beforeCheckingCache(handler: (req: JopiRequest) => Promise<Response | undefined | void>) {
         let routeInfos = this.webSite.getRouteInfos("GET", this.route);
         if (!routeInfos) return;
 

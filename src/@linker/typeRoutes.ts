@@ -57,7 +57,14 @@ export default class TypeRoutes extends ArobaseType {
 
     async processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }) {
         this.outputDir = getWriter().dir.output_dir;
-        await this.scanDir(p.arobaseDir, "/", await this.scanAttributs(p.arobaseDir));
+
+        let dirAttributs = await this.scanAttributs(p.arobaseDir);
+        //
+        if (dirAttributs.configFile) {
+            this.routeConfig["/"] = dirAttributs.configFile;
+        }
+
+        await this.scanDir(p.arobaseDir, "/", dirAttributs);
     }
 
     private bindPage(route: string, filePath: string, attributs: RouteAttributs) {
@@ -160,13 +167,13 @@ export default class TypeRoutes extends ArobaseType {
                 let segment = convertRouteSegment(dirItem.name);
                 let newRoute = route==="/" ? route + segment : route + "/" + segment;
 
-                attributs = await this.scanAttributs(dirItem.fullPath);
+                let dirAttributs = await this.scanAttributs(dirItem.fullPath);
 
-                if (attributs.configFile) {
-                    this.routeConfig[newRoute] = attributs.configFile;
+                if (dirAttributs.configFile) {
+                    this.routeConfig[newRoute] = dirAttributs.configFile;
                 }
 
-                await this.scanDir(dirItem.fullPath, newRoute, attributs);
+                await this.scanDir(dirItem.fullPath, newRoute, dirAttributs);
             } else if (dirItem.isFile) {
                 let name = dirItem.name;
 

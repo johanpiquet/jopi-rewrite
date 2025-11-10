@@ -1,6 +1,5 @@
 import {HierarchyBuilder} from "./internal.ts";
 import * as jk_events from "jopi-toolkit/jk_events";
-import {isBrowserSide} from "../index.ts";
 
 import {ucFirst} from "../helpers/tools.ts";
 import type {MenuItem} from "./interfaces.ts";

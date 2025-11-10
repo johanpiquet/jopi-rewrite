@@ -182,7 +182,7 @@ export class WebSiteImpl implements WebSite {
         }
 
         this.host = urlInfos.host;
-        this.mainCache = options.cache || gVoidCache;
+        this.mainCache = options.cache || getInMemoryCache();
         this.serverInstanceBuilder = getNewServerInstanceBuilder(this);
 
         this._onWebSiteReady = options.onWebSiteReady;
@@ -508,7 +508,7 @@ export class WebSiteImpl implements WebSite {
 
     //region Cache
 
-    mainCache: PageCache = getInMemoryCache();
+    mainCache: PageCache;
 
     mustUseAutomaticCache: boolean = true;
 
