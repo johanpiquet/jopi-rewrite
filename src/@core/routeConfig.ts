@@ -32,7 +32,7 @@ class RouteConfig_Core {
                 protected readonly method: string) {
     }
 
-    addMiddleware(middleware: JopiMiddleware, priority: PriorityLevel = PriorityLevel.default) {
+    add_middleware(middleware: JopiMiddleware, priority: PriorityLevel = PriorityLevel.default) {
         let routeInfos = this.webSite.getRouteInfos(this.method, this.route);
         if (!routeInfos) return;
 
@@ -40,7 +40,7 @@ class RouteConfig_Core {
         routeInfos.middlewares.push({priority, value: middleware});
     }
 
-    addPostMiddleware(middleware: JopiPostMiddleware, priority: PriorityLevel = PriorityLevel.default) {
+    add_postMiddleware(middleware: JopiPostMiddleware, priority: PriorityLevel = PriorityLevel.default) {
         let routeInfos = this.webSite.getRouteInfos(this.method, this.route);
         if (!routeInfos) return;
 
@@ -48,7 +48,7 @@ class RouteConfig_Core {
         routeInfos.postMiddlewares.push({priority, value: middleware});
     }
 
-    addRequiredRole(...roles: string[]) {
+    add_requiredRole(...roles: string[]) {
         let routeInfos = this.webSite.getRouteInfos(this.method, this.route);
         if (!routeInfos) return;
 

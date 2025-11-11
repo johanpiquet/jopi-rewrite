@@ -24,8 +24,8 @@ import {
 } from "jopi-rewrite/crawler";
 import {JopiRequest} from "./jopiRequest.ts";
 import {
-    type AuthHandler, type CacheRules,
-    type JopiRouteHandler,
+    type AuthHandler, type CacheRules, type HttpMethod, type JopiMiddleware, type JopiPostMiddleware,
+    type JopiRouteHandler, type MiddlewareOptions,
     type UserInfos,
     type WebSite,
     WebSiteImpl,
@@ -480,7 +480,7 @@ export class JopiEasyWebSite {
         return new CertificateBuilder(this, this.internals);
     }
 
-    add_jwtTokenAuth(): JWT_BEGIN {
+    enable_jwtTokenAuth(): JWT_BEGIN {
         const builder = new JwtTokenAuth_Builder(this, this.internals);
 
         return {
@@ -515,6 +515,10 @@ export class JopiEasyWebSite {
 
     configure_cache(): WebSite_CacheBuilder {
         return new WebSite_CacheBuilder(this, this.internals);
+    }
+
+    configure_middlewares(): WebSite_MiddlewareBuilder {
+        return new WebSite_MiddlewareBuilder(this, this.internals);
     }
 
     configure_bundler() {
@@ -718,6 +722,31 @@ class WebSite_AddSourceServerBuilder_NextStep<T> extends CreateServerFetch_NextS
 
     add_sourceServer<T>(): WebSite_AddSourceServerBuilder<T> {
         return new WebSite_AddSourceServerBuilder<T>(this.webSite, this.internals);
+    }
+}
+
+class WebSite_MiddlewareBuilder {
+    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+    }
+
+    add_middleware(method: HttpMethod|undefined, middleware: JopiMiddleware, options?: MiddlewareOptions): WebSite_MiddlewareBuilder {
+        this.internals.afterHook.push(async webSite => {
+            webSite.addGlobalMiddleware(method, middleware, options);
+        });
+
+        return this;
+    }
+
+    add_postMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, options?: MiddlewareOptions): WebSite_MiddlewareBuilder {
+        this.internals.afterHook.push(async webSite => {
+            webSite.addGlobalPostMiddleware(method, middleware, options);
+        });
+
+        return this;
+    }
+
+    END_configure_middlewares(): JopiEasyWebSite {
+        return this.webSite;
     }
 }
 
@@ -1027,7 +1056,7 @@ interface JWT_BEGIN {
 }
 
 interface JWT_FINISH {
-    DONE_add_jwtTokenAuth(): JopiEasyWebSite;
+    DONE_enable_jwtTokenAuth(): JopiEasyWebSite;
 }
 
 interface JWT_StepBegin_SetUserStore {
@@ -1070,7 +1099,7 @@ class JwtTokenAuth_Builder {
 
     FINISH() {
         return {
-            DONE_add_jwtTokenAuth: () => this.parent
+            DONE_enable_jwtTokenAuth: () => this.parent
         }
     }
 

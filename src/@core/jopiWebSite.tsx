@@ -126,8 +126,8 @@ export interface WebSite {
 
     addHeaderToCache(header: string): void;
 
-    addGlobalMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, options?: MiddlewareOptions): void;
-    addGlobalPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, options?: MiddlewareOptions): void;
+    addGlobalMiddleware(method: HttpMethod|"*"|undefined, middleware: JopiMiddleware, options?: MiddlewareOptions): void;
+    addGlobalPostMiddleware(method: HttpMethod|"*"|undefined, middleware: JopiPostMiddleware, options?: MiddlewareOptions): void;
 
     addSourceServer<T>(serverFetch: ServerFetch<T>, weight?: number): void;
 
@@ -275,7 +275,7 @@ export class WebSiteImpl implements WebSite {
         }
     }
 
-    addGlobalMiddleware(method: HttpMethod|undefined, middleware: JopiMiddleware, options: MiddlewareOptions) {
+    addGlobalMiddleware(method: HttpMethod|"*"|undefined, middleware: JopiMiddleware, options: MiddlewareOptions) {
         options = options || {};
 
         let m = method ? method : "*";
@@ -283,7 +283,7 @@ export class WebSiteImpl implements WebSite {
         this.globalMiddlewares[m].push({priority: options.priority||PriorityLevel.default, value: middleware, regExp: options.regExp});
     }
 
-    addGlobalPostMiddleware(method: HttpMethod|undefined, middleware: JopiPostMiddleware, options: MiddlewareOptions) {
+    addGlobalPostMiddleware(method: HttpMethod|"*"|undefined, middleware: JopiPostMiddleware, options: MiddlewareOptions) {
         options = options || {};
 
         let m = method ? method : "*";
