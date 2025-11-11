@@ -1,7 +1,8 @@
 import type {LinkerConfig} from "./engine.ts";
 import * as jk_app from "jopi-toolkit/jk_app";
-import {Type_ArobaseChunk, Type_ArobaseList} from "./arobaseTypes.ts";
+import {Type_ArobaseChunk} from "./arobaseTypes.ts";
 import TypeEvents from "./typeEvents.ts";
+import TypeUiComposite from "./typeUiComposite.ts";
 import ModInstaller from "./modInstaller.ts";
 import TypeRoutes from "./typeRoutes.ts";
 
@@ -31,7 +32,7 @@ export function getDefaultLinkerConfig(): LinkerConfig {
             new Type_ArobaseChunk("uiBlocks"),
             new Type_ArobaseChunk("uiComponents"),
             new Type_ArobaseChunk("uiChunks"),
-            new Type_ArobaseList("uiComposites"),
+            new TypeUiComposite("uiComposites"),
             new TypeEvents("events"),
             new TypeRoutes("routes", "root")
         ],
