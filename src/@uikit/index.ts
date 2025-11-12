@@ -7,7 +7,6 @@ export * from "./helpers/index.ts";
 export * from "./forms/index.ts";
 export * from "./users/index.ts";
 export * from "./menu/index.ts";
-export * from "./components/index.ts";
 export * from "./core/index.ts";
 export * from "./reactRouter/index.ts";
 export * from "./variants/index.tsx";

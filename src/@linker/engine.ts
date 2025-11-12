@@ -274,7 +274,7 @@ async function processModule(moduleDir: string) {
     for (let dirItem of dirItems) {
         if (!dirItem.isDirectory) continue;
         if (dirItem.name[0] !== "@") continue;
-        if (dirItem.name == "@") { arobaseDir = dirItem; continue; }
+        if (dirItem.name == "@alias") { arobaseDir = dirItem; continue; }
 
         let name = dirItem.name.substring(1);
         let arobaseType = gArobaseHandler[name];
