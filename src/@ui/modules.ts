@@ -12,8 +12,6 @@ export interface ModuleInitContext_Host {
 
     getCurrentURL(): URL;
     getUserInfos(): UiUserInfos|undefined;
-    setComponentAlias(alias: ComponentAliasDef): void;
-    getComponentAlias(alias: string): ComponentAliasDef|undefined;
 
     events: jk_events.EventGroup;
 }
@@ -101,9 +99,5 @@ export class ModuleInitContext {
         let userRoles = userInfos.roles;
         if (userRoles) return Promise.resolve();
         return f();
-    }
-
-    setComponentAlias(aliasDef: ComponentAliasDef) {
-        this.host.setComponentAlias(aliasDef);
     }
 }

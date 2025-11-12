@@ -47,26 +47,3 @@ export function Composite({name}: {name: string}) {
 let gCompositeRenderer: CompositeRenderer|undefined;
 
 //endregion
-
-//region ComponentAlias
-
-/**
- * Render a component which real content is defined programmatically.
- * It allows using the plugin system to replace on a component with another one
- * or to define his default implementation. For example, if you want to be able
- * to use a different layout for your page, then using an alias is a good choice.
- * 
- * Defining an alias is done on the `uiInit.tsx file. Example:
- * `modInit.setComponentAlias({alias: "page.layout.admin", component: DefaultPageLayout});`
- */
-export function ComponentAlias({name, children}: {name: string, children?: React.ReactNode}) {
-    const page = _usePage();
-    const alias = page.getComponentAlias(name);
-
-    if (!alias) return <div className="text-red-500">Component alias not found: {name}</div>;
-    const C = alias.component;
-
-    return <C>{children}</C>;
-}
-
-//endregion

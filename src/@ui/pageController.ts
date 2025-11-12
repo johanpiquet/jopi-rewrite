@@ -30,7 +30,6 @@ export class PageController<T = any> implements ModuleInitContext_Host {
     protected state: PageOptions;
     protected serverRequest?: ServerRequestInstance;
     protected userInfos?: UiUserInfos;
-    private readonly componentAlias: Record<string, ComponentAliasDef> = {};
 
     public readonly events = isServerSide ? jk_events.newEventGroup() : jk_events.defaultEventGroup;
     public readonly objectRegistry: IsObjectRegistry = isServerSide ? new ObjectRegistry() : getDefaultObjectRegistry();
@@ -47,22 +46,6 @@ export class PageController<T = any> implements ModuleInitContext_Host {
     data: T = {} as unknown as T;
 
     //region ModuleInitContext_Host
-
-    public setComponentAlias(aliasDef: ComponentAliasDef) {
-        if (isServerSide) {
-            this.componentAlias[aliasDef.alias] = aliasDef;
-        } else {
-            gComponentAlias[aliasDef.alias] = aliasDef;
-        }
-    }
-
-    public getComponentAlias(name: string): ComponentAliasDef|undefined {
-        if (isServerSide) {
-            return this.componentAlias[name];
-        } else {
-            return gComponentAlias[name];
-        }
-    }
 
     /**
      * Return the current page url.
