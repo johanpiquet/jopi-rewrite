@@ -122,6 +122,13 @@ async function generateAll() {
     gBrowserInstallFile = {};
 }
 
+interface WriteCodeFileParams {
+    fileInnerPath: string;
+    srcFileContent: string;
+    distFileContent: string;
+    declarationFile?: string;
+}
+
 export class CodeGenWriter {
     public readonly isTypeScriptOnly = gIsTypeScriptOnly;
 
@@ -138,64 +145,25 @@ export class CodeGenWriter {
         return jk_fs.getRelativePath(this.dir.output_src, path);
     }
 
-    async writeCodeFile(jsFileInnerPath: string, content: string, declarationFile?: string) {
+    async writeCodeFile(params: WriteCodeFileParams) {
         // The file must:
         // - Be a JavaScript file.
         // - Be written into ./src/_jopiLinkerGen  (for alias resolve)
         // - Be written into ./dst/_jopiLinkerGen  (for node.js TypeScript to js compilation)
 
-        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, jsFileInnerPath), content);
+        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, params.fileInnerPath + ".js"), params.srcFileContent);
 
         if (!gIsTypeScriptOnly) {
-            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, jsFileInnerPath), content);
+            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, params.fileInnerPath + ".js"), params.distFileContent);
         }
 
-        if (declarationFile) {
-            let declFileName = jsFileInnerPath.slice(0, -2) + "d.ts";
-            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, declFileName), declarationFile);
+        if (params.declarationFile) {
+            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, params.fileInnerPath + ".d.ts"), params.declarationFile);
 
             if (!gIsTypeScriptOnly) {
-                await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, declFileName), declarationFile);
+                await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, params.fileInnerPath + ".d.ts"), params.declarationFile);
             }
         }
-    }
-
-    async symlinkDir(innerPath: string, targetDirPath_src: string) {
-        if (!targetDirPath_src.startsWith(gDir_ProjectSrc)) {
-            throw declareLinkerError("The target directory must be inside the source directory", targetDirPath_src);
-        }
-
-        let relPath = targetDirPath_src.substring(gDir_ProjectSrc.length);
-
-        let srcNewDir = jk_fs.join(gDir_outputSrc, innerPath);
-
-        if (!gIsTypeScriptOnly) {
-            let targetDirPath_dist = gDir_outputDst + relPath;
-            let distNewDir = jk_fs.join(gDir_outputDst, innerPath);
-
-            if (!await jk_fs.isDirectory(targetDirPath_dist)) {
-                await jk_fs.mkDir(jk_fs.dirname(targetDirPath_dist));
-            }
-
-            await jk_fs.mkDir(jk_fs.dirname(distNewDir));
-
-            // The dir can be a link (through our own action)
-            // or be a directory (if TypeScript/tsc has compiled it).
-            //
-            await jk_fs.unlink(distNewDir);
-            await jk_fs.rmDir(distNewDir);
-
-            await jk_fs.symlink(targetDirPath_dist, distNewDir, "dir");
-        }
-
-        // Warning: must be put AFTER patching the dist.
-        //          otherwise tool like TypeScript (tsc --watch)
-        //          can create a conflit by generating the files
-        //          creating a cross-concurence case.
-        //
-        // The parent dir must exist for symlink.
-        await jk_fs.mkDir(jk_fs.dirname(srcNewDir));
-        await jk_fs.symlink(targetDirPath_src, srcNewDir, "dir");
     }
 
     genAddToInstallFile(who: InstallFileType, where: FilePart, javascriptContent: string) {

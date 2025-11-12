@@ -30,7 +30,7 @@ export interface ArobaseListItem {
 }
 
 export class Type_ArobaseList extends ArobaseType {
-    protected async onListItem(item: ArobaseListItem, list: ArobaseListItem[], dirPath: string): Promise<void> {
+    protected async onListItem(item: ArobaseListItem, list: ArobaseListItem[], _dirPath: string): Promise<void> {
         list.push(item);
     }
 
@@ -191,31 +191,39 @@ export class Type_ArobaseList extends ArobaseType {
     }
 
     protected async generateCodeForList(writer: CodeGenWriter, key: string, list: ArobaseList): Promise<void> {
-        let code = "";
         let count = 1;
-
-        let needJS = !writer.isTypeScriptOnly;
         let outDir_innerPath = this.getGenOutputDir(list);
         let outDir_fullPath = jk_fs.join(writer.dir.output_src, outDir_innerPath);
 
-        code += this.codeGen_generateImports();
+        let srcCode = this.codeGen_generateImports();
+        let distCode = srcCode;
 
         for (let item of list.items) {
             let entryPoint = this.resolveEntryPointFor(list, item);
             let relPath = jk_fs.getRelativePath(outDir_fullPath, entryPoint);
 
-            if (needJS) relPath = writer.toJavascriptFileName(relPath);
-            code += `import I${count} from "${relPath}";\n`;
+            srcCode += `import I${count} from "${relPath}";\n`;
+            distCode += `import I${count} from "${writer.toJavascriptFileName(relPath)}";\n`;
+
             count++;
         }
 
         let array = "";
         let max = list.items.length;
         for (let i = 1; i <= max; i++) array += `I${i},`;
-        code += "\n" + this.codeGen_generateExports("[" + array + "]", list.listName);
 
-        let fileName = key.substring(key.indexOf("!") + 1) + ".js";
-        await writer.writeCodeFile(jk_fs.join(outDir_innerPath, fileName), code, this.codeGen_createDeclarationTypes());
+        let toAdd = "\n" + this.codeGen_generateExports("[" + array + "]", list.listName);
+        srcCode += toAdd;
+        distCode += toAdd;
+
+        let fileName = key.substring(key.indexOf("!") + 1);
+
+        await writer.writeCodeFile({
+            fileInnerPath: jk_fs.join(outDir_innerPath, fileName),
+            declarationFile: this.codeGen_createDeclarationTypes(),
+            srcFileContent: srcCode,
+            distFileContent: distCode
+        });
     }
 
     protected codeGen_generateImports() {
@@ -245,7 +253,7 @@ export interface ArobaseChunk extends RegistryItem {
 }
 
 export class Type_ArobaseChunk extends ArobaseType {
-    async onChunk(chunk: ArobaseChunk, key: string, dirPath: string) {
+    async onChunk(chunk: ArobaseChunk, key: string, _dirPath: string) {
         this.registry_addItem(key, chunk);
     }
 
@@ -292,9 +300,19 @@ export class Type_ArobaseChunk extends ArobaseType {
 
     async generateCodeForItem(writer: CodeGenWriter, key: string, rItem: RegistryItem) {
         const item = rItem as ArobaseChunk;
-        let outDir = this.getGenOutputDir(item);
+
         let targetName = key.substring(key.indexOf("!") + 1);
-        await writer.symlinkDir(jk_fs.join(outDir, targetName), item.itemPath);
+        let outDir = jk_fs.join(writer.dir.output_src, this.getGenOutputDir(item));
+        let entryPoint = jk_fs.getRelativePath(outDir, item.entryPoint);
+
+        let srcCode = `import C from "${entryPoint}";\nexport default C;`;
+        let distCode = `import C from "${writer.toJavascriptFileName(entryPoint)}";\nexport default C;`;
+
+        await writer.writeCodeFile({
+            fileInnerPath: jk_fs.join(this.getGenOutputDir(item), targetName),
+            srcFileContent: srcCode,
+            distFileContent: distCode
+        });
     }
 
     protected getGenOutputDir(_chunk: ArobaseChunk) {
