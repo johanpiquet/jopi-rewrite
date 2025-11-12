@@ -127,6 +127,7 @@ interface WriteCodeFileParams {
     srcFileContent: string;
     distFileContent: string;
     declarationFile?: string;
+    useTypescriptForSource?: boolean;
 }
 
 export class CodeGenWriter {
@@ -151,14 +152,18 @@ export class CodeGenWriter {
         // - Be written into ./src/_jopiLinkerGen  (for alias resolve)
         // - Be written into ./dst/_jopiLinkerGen  (for node.js TypeScript to js compilation)
 
-        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, params.fileInnerPath + ".js"), params.srcFileContent);
+        const ext = params.useTypescriptForSource ? ".ts" : ".js";
+
+        await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, params.fileInnerPath + ext), params.srcFileContent);
 
         if (!gIsTypeScriptOnly) {
             await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, params.fileInnerPath + ".js"), params.distFileContent);
         }
 
         if (params.declarationFile) {
-            await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, params.fileInnerPath + ".d.ts"), params.declarationFile);
+            if (!params.useTypescriptForSource) {
+                await jk_fs.writeTextToFile(jk_fs.join(gDir_outputSrc, params.fileInnerPath + ".d.ts"), params.declarationFile);
+            }
 
             if (!gIsTypeScriptOnly) {
                 await jk_fs.writeTextToFile(jk_fs.join(gDir_outputDst, params.fileInnerPath + ".d.ts"), params.declarationFile);

@@ -222,7 +222,8 @@ export class Type_ArobaseList extends ArobaseType {
             fileInnerPath: jk_fs.join(outDir_innerPath, fileName),
             declarationFile: this.codeGen_createDeclarationTypes(),
             srcFileContent: srcCode,
-            distFileContent: distCode
+            distFileContent: distCode,
+            useTypescriptForSource: true
         });
     }
 
@@ -311,7 +312,8 @@ export class Type_ArobaseChunk extends ArobaseType {
         await writer.writeCodeFile({
             fileInnerPath: jk_fs.join(this.getGenOutputDir(item), targetName),
             srcFileContent: srcCode,
-            distFileContent: distCode
+            distFileContent: distCode,
+            useTypescriptForSource: true
         });
     }
 
