@@ -26,39 +26,44 @@ export async function routeBindPage(webSite: WebSiteImpl, route: string, attribu
     const pageKey = "page_" + jk_crypto.fastHash(route);
     let infos: WebSiteRouteInfos;
 
-    if (route==="/") {
+    if (route.endsWith("*")) {
         infos = webSite.onPage(route, pageKey, reactComponent);
-    } else {
-        infos = webSite.onPage(route + "/", pageKey, reactComponent);
-
-        // Note: with node.js, the router doesn't distinguish with and without /
-        // It's why the redirection is done internally.
-        //
-        webSite.onGET(route, async (req) => {
-            req.urlInfos.pathname += "/";
-            return Response.redirect(req.urlInfos.href, 301);
-        });
     }
+    else {
+        if (route === "/") {
+            infos = webSite.onPage(route, pageKey, reactComponent);
+        } else {
+            infos = webSite.onPage(route + "/", pageKey, reactComponent);
 
-    if (route.startsWith("/error")) {
-        switch (route) {
-            case "/error404":
-                webSite.on404_NotFound(async (req) => {
-                    return req.reactPage(pageKey, reactComponent);
-                });
-                break;
+            // Note: with node.js, the router doesn't distinguish with and without /
+            // It's why the redirection is done internally.
+            //
+            webSite.onGET(route, async (req) => {
+                req.urlInfos.pathname += "/";
+                return Response.redirect(req.urlInfos.href, 301);
+            });
+        }
 
-            case "/error500":
-                webSite.on500_Error(async (req) => {
-                    return req.reactPage(pageKey, reactComponent);
-                });
-                break;
+        if (route.startsWith("/error")) {
+            switch (route) {
+                case "/error404":
+                    webSite.on404_NotFound(async (req) => {
+                        return req.reactPage(pageKey, reactComponent);
+                    });
+                    break;
 
-            case "/error401":
-                webSite.on401_Unauthorized(async (req) => {
-                    return req.reactPage(pageKey, reactComponent);
-                });
-                break;
+                case "/error500":
+                    webSite.on500_Error(async (req) => {
+                        return req.reactPage(pageKey, reactComponent);
+                    });
+                    break;
+
+                case "/error401":
+                    webSite.on401_Unauthorized(async (req) => {
+                        return req.reactPage(pageKey, reactComponent);
+                    });
+                    break;
+            }
         }
     }
 
