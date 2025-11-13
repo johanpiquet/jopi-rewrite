@@ -1036,7 +1036,7 @@ export class JopiRequest {
      * Allow serving a file as a response.
      * Automatically get the file from the url and a root dir.
      */
-    async serverFromDir(filesRootPath: string, options?: ServeFileOptions): Promise<Response> {
+    async serveFromDir(filesRootPath: string, options?: ServeFileOptions): Promise<Response> {
         options = options || gEmptyObject;
 
         if (options.replaceIndexHtml !== false) {

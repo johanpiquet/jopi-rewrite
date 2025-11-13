@@ -11,7 +11,7 @@ export function useLogOutUser(): ()=>void {
     }
 }
 
-export function useUseStateRefresh() {
+export function useUserStateRefresh() {
     const page = _usePage();
 
     return () => {
@@ -37,19 +37,11 @@ export function useUserInfos(): UiUserInfos|undefined {
     return page.getUserInfos();
 }
 
-export function RequireRoles({roles, ifRejected, children}: {
+export function RequireRoles({roles, children}: {
     roles: string[],
-    ifRejected?: string,
     children: React.ReactNode
 }) {
-    const navigate = useRouterNavigate();
     const hasRoles = useUserHasRoles(roles);
-
-    useEffect(() => {
-        if (!hasRoles) {
-            navigate(ifRejected || "/not-authorized");
-        }
-    }, [hasRoles, ifRejected, navigate]);
 
     if (hasRoles) {
         return children;

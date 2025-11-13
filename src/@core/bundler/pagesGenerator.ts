@@ -7,7 +7,7 @@ import {getBrowserRefreshScript, isBrowserRefreshEnabled, isReactHMR} from "jopi
 import {getGlobalCssFileContent} from "jopi-rewrite/bundler";
 
 // *********************************************************************************************************************
-// The goal of this file is to generate the individual pages required for each page found in the root (index.page.tsx).
+// The goal of this file is to generate the individual pages required for each page found in the root (page.tsx).
 // *********************************************************************************************************************
 
 
@@ -31,7 +31,7 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {g
 
     if (isReactHMR()) {
         let globalCss = await getGlobalCssFileContent(config);
-        jk_fs.writeTextToFile(jk_fs.join(genDir, "tailwind-hmr.css"), globalCss);
+        await jk_fs.writeTextToFile(jk_fs.join(genDir, "tailwind-hmr.css"), globalCss);
     }
 
     for (let filePath in gPagePathToRoute) {

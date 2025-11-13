@@ -11,7 +11,7 @@ export interface EsBuildParams extends CreateBundleEvent {
 
 export async function esBuildBundle(params: EsBuildParams) {
     // To know: will generate:
-    // * Some files out/page_xxxx.js, where each page is an "index.page.tsx".
+    // * Some files out/page_xxxx.js, where each page is an "page.tsx".
     // * Some files out/page_xxxx.css with the CSS specific to this page.
 
     const buildOptions: esbuild.BuildOptions = {

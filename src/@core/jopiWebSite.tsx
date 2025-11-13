@@ -244,7 +244,7 @@ export class WebSiteImpl implements WebSite {
                         return await e.response(req);
                     }
                 } else if (e instanceof SBPE_NotAuthorizedException) {
-                    return req.textResponse(e.message, 401);
+                    return req.returnError401_Unauthorized();
                 } else if (e instanceof SBPE_MustReturnWithoutResponseException) {
                     return undefined;
                 }

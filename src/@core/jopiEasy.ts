@@ -847,7 +847,7 @@ class ReverseProxyBuilder {
         return builder;
     }
 
-    DONE_new_reverseProxy(): JopiEasyWebSite_ExposePrivate {
+    DONE_create_reverseProxy(): JopiEasyWebSite_ExposePrivate {
         return this.webSite;
     }
 }
@@ -906,7 +906,7 @@ class FileServerBuilder {
 
         this.internals.afterHook.push(async webSite => {
             webSite.onGET("/**", req => {
-                return req.serverFromDir(this.options.rootDir, {
+                return req.serveFromDir(this.options.rootDir, {
                     replaceIndexHtml: this.options.replaceIndexHtml,
                     onNotFound: this.options.onNotFound
                 });
@@ -924,7 +924,7 @@ class FileServerBuilder {
         return this;
     }
 
-    DONE_new_fileServer(): JopiEasyWebSite_ExposePrivate {
+    DONE_create_fileServer(): JopiEasyWebSite_ExposePrivate {
         return this.webSite;
     }
 }

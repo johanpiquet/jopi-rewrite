@@ -182,7 +182,7 @@ export default class TypeRoutes extends ArobaseType {
                     name = name.substring(0, idx);
 
                     switch (name) {
-                        case "index.page":
+                        case "page":
                             this.addToRegistry({verb: "PAGE", route, filePath: dirItem.fullPath, attributs});
                             break;
                         case "onGET":

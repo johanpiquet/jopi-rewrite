@@ -11,7 +11,7 @@ export function installBundleServer(webSite: WebSite) {
 
     webSite.onGET("/_bundle/**", async (req) => {
         req.urlInfos.pathname = req.urlInfos.pathname.substring("/_bundle".length);
-        return req.serverFromDir(gDirToServe!);
+        return req.serveFromDir(gDirToServe!);
     });
 
     // Serve /_bundle_s/** resources.
