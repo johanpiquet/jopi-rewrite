@@ -155,7 +155,18 @@ export class MenuManager {
             return isActive;
         }
 
-        const pathName = this.getUrlPathName();
+        let pathName = this.getUrlPathName();
+
+        if (this.mustRemoveTrailingSlashs) {
+            if (pathName.endsWith("/")) {
+                pathName = pathName.slice(0, -1);
+            }
+        } else {
+            if (!pathName.endsWith("/")) {
+                pathName += "/";
+            }
+        }
+
         let matchingMenuItem: MenuItem|undefined;
 
         if (menuName) {
