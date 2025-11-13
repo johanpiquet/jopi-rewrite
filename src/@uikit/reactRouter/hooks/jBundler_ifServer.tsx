@@ -41,7 +41,7 @@ export function useSendRouterLocationUpdateEvent(_eventName?: string) {
  * and the route is http://mywebsite/[product]/list
  * then urlParts contains {product: "product-name"}
  */
-export function usePageParams(): any {
+export function useParams(): any {
     return useServerRequest().urlParts;
 }
 

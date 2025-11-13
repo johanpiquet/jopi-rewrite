@@ -10,8 +10,6 @@ import {
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_app from "jopi-toolkit/jk_app";
 import type {RouteAttributs} from "jopi-rewrite/generated";
-import {WebSiteImpl} from "../@core";
-import React from "react";
 
 export default class TypeRoutes extends ArobaseType {
     private sourceCode_header = `import {routeBindPage, routeBindVerb} from "jopi-rewrite/generated";`;
@@ -76,7 +74,7 @@ export default class TypeRoutes extends ArobaseType {
         filePath = jk_app.getCompiledFilePathFor(filePath);
         let distFilePath = jk_fs.getRelativePath(this.outputDir, filePath);
 
-        let routeBindingParams = {route, attributs, filePath};
+        let routeBindingParams = {route, attributs, filePath: srcFilePath};
 
         this.sourceCode_header += `\nimport c_${routeId} from "${distFilePath}";`;
         this.sourceCode_body += `\n    await routeBindPage(webSite, c_${routeId}, ${JSON.stringify(routeBindingParams)});`

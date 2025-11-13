@@ -31,7 +31,7 @@ export function useRouterLocation(): Path {
 
 let gPageParams: any|undefined;
 
-export function usePageParams(): any {
+export function useParams(): any {
     if (gPageParams===undefined) {
         let pathname = new URL(window.location.href).pathname;
         let route = ((window as any)["__JOPI_ROUTE__"]) as string;
