@@ -626,7 +626,7 @@ export class JopiEasyWebSite {
     }
 
     enable_cors() {
-        return new WebSite_EnableCors(this, this.internals);
+        return new WebSite_EnableCors(this);
     }
 }
 
@@ -641,7 +641,7 @@ class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
 }
 
 class WebSite_EnableCors {
-    constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
+    constructor(private readonly webSite: JopiEasyWebSite) {
     }
 
     add_allowedHost(hostName: string) {
@@ -1231,8 +1231,8 @@ class JwtTokenAuth_Builder {
 
     setTokenStore_useCookie(expirationDuration_hours: number = 3600) {
         this.internals.afterHook.push(async webSite => {
-            webSite.setJwtTokenStore((_token, cookieValue, req, res) => {
-                req.addCookie(res, "authorization", cookieValue, {maxAge: jk_timer.ONE_HOUR * expirationDuration_hours})
+            webSite.setJwtTokenStore((_token, cookieValue, req) => {
+                req.addCookie("authorization", cookieValue, {maxAge: jk_timer.ONE_HOUR * expirationDuration_hours})
             });
         });
 

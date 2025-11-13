@@ -8,6 +8,7 @@ import * as ReactServer from "react-dom/server";
 import * as cheerio from "cheerio";
 import type {SearchParamFilterFunction} from "./searchParamFilter.ts";
 import * as jk_schema from "jopi-toolkit/jk_schema";
+import * as jk_what from "jopi-toolkit/jk_what";
 import Page from "./PageComponent.tsx";
 
 import {initCheerio} from "./jQuery.ts";
@@ -739,6 +740,18 @@ export class JopiRequest {
 
     //endregion
 
+    //region Post process
+
+    private postProcess: ((res: Response) => Response)[] | undefined;
+
+    applyPostProcess(res: Response): Response {
+        if (!this.postProcess) return res;
+        this.postProcess.forEach(hook => res = hook(res));
+        return res;
+    }
+
+    //endregion
+
     //region Cookies
 
     hasCookie(name: string, value?: string): boolean {
@@ -766,7 +779,7 @@ export class JopiRequest {
         return Promise.resolve(res);
     }
 
-    addCookie(res: Response, cookieName: string, cookieValue: string, options?: CookieOptions) {
+    addCookie(cookieName: string, cookieValue: string, options?: CookieOptions) {
         let cookie = `${cookieName}=${cookieValue};`;
 
         if (options) {
@@ -775,10 +788,30 @@ export class JopiRequest {
             }
         }
 
-        let current = res.headers.get("set-cookie");
-        if (current) cookie = current + cookie;
+        if (!this.postProcess) this.postProcess = [];
 
-        res.headers.append("set-cookie", cookie);
+        this.postProcess.push((res: Response) => {
+            let current = res.headers.get("set-cookie");
+            if (current) cookie = current + cookie;
+
+            // With node, res.headers is immutable.
+            // And a Response object is also immutable.
+            // It's why we need to create a new response.
+            //
+            if (jk_what.isNodeJS) {
+                const headers = new Headers(res.headers);
+                headers.append("set-cookie", cookie);
+
+                res = new Response(res.body, {
+                    headers: headers,
+                    status: res.status
+                });
+            } else {
+                res.headers.append("set-cookie", cookie);
+            }
+
+            return res;
+        });
     }
 
     //endregion
@@ -908,8 +941,7 @@ export class JopiRequest {
             this.userJwtToken = authResult.authToken;
             this.userInfos = authResult.userInfos!;
 
-            // --> The cookie will be stored inside the response
-            //     through the WebSite.applyMiddlewares / call to storeJwtToken.
+            (this.webSite as WebSiteImpl).storeJwtToken(this);
 
             return authResult;
         }

@@ -235,7 +235,11 @@ export class WebSiteImpl implements WebSite {
         req.urlParts = urlParts;
 
         try {
-            if (handler) return await handler(req);
+            if (handler) {
+                let res = await handler(req);
+                res = req.applyPostProcess(res);
+                return res;
+            }
             return req.returnError404_NotFound();
         } catch (e) {
             if (e instanceof SBPE_ServerByPassException) {
@@ -400,12 +404,6 @@ export class WebSiteImpl implements WebSite {
                     res = pRes instanceof Promise ? await pRes : pRes;
                 }
 
-                // >>> Add the authentification cookie.
-
-                if (req.getJwtToken()) {
-                    webSite.storeJwtToken(req, res);
-                }
-
                 // >>> Apply the post-middlewares.
 
                 if (postMiddlewares) {
@@ -456,12 +454,6 @@ export class WebSiteImpl implements WebSite {
 
                 const pRes = handler(req);
                 let res = pRes instanceof Promise ? await pRes : pRes;
-
-                // >>> Add the authentification cookie.
-
-                if (req.getJwtToken()) {
-                    webSite.storeJwtToken(req, res);
-                }
 
                 // >>> Apply the post-middlewares.
 
@@ -606,14 +598,14 @@ export class WebSiteImpl implements WebSite {
     private authHandler?: AuthHandler<any>;
     private jwtTokenStore?: JwtTokenStore;
 
-    public storeJwtToken(req: JopiRequest, res: Response) {
+    public storeJwtToken(req: JopiRequest) {
         const token = req.getJwtToken();
 
         if (this.jwtTokenStore) {
-            this.jwtTokenStore(req.getJwtToken()!, "jwt " + token, req, res);
+            this.jwtTokenStore(req.getJwtToken()!, "jwt " + token, req);
         } else {
             // Note: here we don't set the "Authorization" header, since it's an input-only header.
-            req.addCookie(res, "authorization", "jwt " + token, {maxAge: ONE_DAY * 7});
+            req.addCookie("authorization", "jwt " + token, {maxAge: ONE_DAY * 7});
         }
     }
 
@@ -927,7 +919,7 @@ export type ResponseModifier = (res: Response, req: JopiRequest) => Response|Pro
 export type TextModifier = (text: string, req: JopiRequest) => string|Promise<string>;
 export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
 
-export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest, res: Response) => void;
+export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest) => void;
 export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
 
 export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response|null> | null;
