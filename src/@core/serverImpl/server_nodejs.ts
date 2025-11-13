@@ -236,13 +236,28 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
     }
 
     addPage(path: string, pageKey: string, reactComponent: React.FC<any>, routeInfos: WebSiteRouteInfos) {
+        const mustRemoveTrailingSlashs = this.webSite.mustRemoveTrailingSlashs;
+
         routeInfos.handler = async (req) => {
             let path = req.urlInfos.pathname;
 
-            if (!path.endsWith("/")) {
-                req.urlInfos.pathname += "/";
-                let redirectUrl = req.urlInfos.href;
-                return Response.redirect(redirectUrl, 301);
+            if (path!=="/") {
+                // Node.js router don't distinguish url ending with / and without.
+                // It's why we must check it.
+                //
+                if (mustRemoveTrailingSlashs) {
+                    if (path.endsWith("/")) {
+                        req.urlInfos.pathname = req.urlInfos.pathname.slice(0, -1);
+                        let redirectUrl = req.urlInfos.href;
+                        return Response.redirect(redirectUrl, 302);
+                    }
+                } else {
+                    if (!path.endsWith("/")) {
+                        req.urlInfos.pathname += "/";
+                        let redirectUrl = req.urlInfos.href;
+                        return Response.redirect(redirectUrl, 302);
+                    }
+                }
             }
 
             return req.reactPage(pageKey, reactComponent);
