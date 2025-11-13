@@ -45,18 +45,33 @@ export async function routeBindPage(webSite: WebSiteImpl, reactComponent: React.
         infos = webSite.onPage(params.route, pageKey, reactComponent);
     }
     else {
+        //const REDIRECT_CODE = 301; // definitive
+        const REDIRECT_CODE = 302; // temporare
+
         if (params.route === "/") {
             infos = webSite.onPage(params.route, pageKey, reactComponent);
         } else {
-            infos = webSite.onPage(params.route + "/", pageKey, reactComponent);
+            if (webSite.mustRemoveTrailingSlashs) {
+                infos = webSite.onPage(params.route, pageKey, reactComponent);
 
-            // Note: with node.js, the router doesn't distinguish with and without /
-            // It's why the redirection is done internally.
-            //
-            webSite.onGET(params.route, async (req) => {
-                req.urlInfos.pathname += "/";
-                return Response.redirect(req.urlInfos.href, 301);
-            });
+                // Note: with node.js, the router doesn't distinguish with and without /
+                // It's why the redirection is done internally.
+                //
+                webSite.onGET(params.route + "/", async (req) => {
+                    req.urlInfos.pathname = req.urlInfos.pathname.slice(0, -1);
+                    return Response.redirect(req.urlInfos.href, REDIRECT_CODE);
+                });
+            } else {
+                infos = webSite.onPage(params.route + "/", pageKey, reactComponent);
+
+                // Note: with node.js, the router doesn't distinguish with and without /
+                // It's why the redirection is done internally.
+                //
+                webSite.onGET(params.route, async (req) => {
+                    req.urlInfos.pathname += "/";
+                    return Response.redirect(req.urlInfos.href, REDIRECT_CODE);
+                });
+            }
         }
 
         if (params.route.startsWith("/error")) {

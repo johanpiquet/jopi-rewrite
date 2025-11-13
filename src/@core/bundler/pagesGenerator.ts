@@ -5,6 +5,7 @@ import {type BundlerConfig} from "./config.ts";
 import {getBrowserInstallScript} from "jopi-rewrite/linker";
 import {getBrowserRefreshScript, isBrowserRefreshEnabled, isReactHMR} from "jopi-rewrite/loader-client";
 import {getGlobalCssFileContent} from "jopi-rewrite/bundler";
+import type {WebSiteImpl} from "../jopiWebSite.tsx";
 
 // *********************************************************************************************************************
 // The goal of this file is to generate the individual pages required for each page found in the root (page.tsx).
@@ -26,7 +27,10 @@ jk_events.addListener("jopi.route.newPage", async ({route, filePath}: {route: st
 // - Add this file to EsBuild entryPoints to build it with shared resources.
 // - It will also generate a "page_xxxx.html" for Bun.js / React HMR.
 //
-jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {genDir: string, tailwindCss: string, config: BundlerConfig}) => {
+jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config, webSite}: {
+    webSite: WebSiteImpl, genDir: string,
+    tailwindCss: string, config: BundlerConfig
+}) => {
     const installScript = getBrowserInstallScript();
 
     if (isReactHMR()) {
@@ -45,6 +49,7 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config}: {g
         txt = txt.replace("__PATH__", filePath);
         txt = txt.replace("__INSTALL__", installScript);
         txt = txt.replace("__ROUTE__", JSON.stringify(route));
+        txt = txt.replace("__OPTIONS__", JSON.stringify({removeTrailingSlashs: webSite.mustRemoveTrailingSlashs}));
 
         if (isReactHMR()) {
             // Bun.js use his own SSE events.
@@ -99,9 +104,10 @@ import {useParams} from "jopi-rewrite/uikit";
 import installer from "__INSTALL__";
 __EXTRA_IMPORTS__
 
-installer(new UiKitModule());
-
 window["__JOPI_ROUTE__"] = __ROUTE__;
+window["__JOPI_OPTIONS__"] = __OPTIONS__;
+
+installer(new UiKitModule());
 
 function start() {
     const container = document.body;

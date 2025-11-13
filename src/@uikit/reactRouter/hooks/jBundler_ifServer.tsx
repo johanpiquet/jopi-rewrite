@@ -12,7 +12,7 @@ export function useRouterNavigate(): NavigateFunction {
 
 export function useRouterSearchParams(): URLSearchParams {
     let req = useServerRequest();
-    return req.urlParts!.searchParams;
+    return req.urlInfos!.searchParams;
 }
 
 interface Path {

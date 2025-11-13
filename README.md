@@ -79,6 +79,7 @@ The documentation is organized as a cookbook: you want to do this, here is how.
 [Enable developer mode.](_doc/basic/enable_developper_mode.md)
 [Enable HTTPS.](_doc/basic/enable_https.md)
 [Enable CORS.](_doc/basic/use_cors_middleware.md)
+[Manage trailing slashs.](_doc/basic/manage_trailing_slashs.md)
 
 [Use a middleware.](_doc/basic/use_middleware.md)
 [Use with a reverse-proxy.](_doc/basic/use_with_reverse_proxy.md)

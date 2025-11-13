@@ -12,6 +12,7 @@ export interface ModuleInitContext_Host {
 
     getCurrentURL(): URL;
     getUserInfos(): UiUserInfos|undefined;
+    mustRemoveTrailingSlashs: boolean;
 
     events: jk_events.EventGroup;
 }
@@ -28,8 +29,8 @@ type UiInitializer = () => void;
  * of your module `uiInit.tsx`. It allows configuring things
  * allowing your plugin to initialize your UI.
  * 
- * * On server-side, it's executed for each page.
- * * On browser-side, it's executed for each browser refresh.
+ * * On the server side, it's executed for each page.
+ * * On the browser side, it's executed for each browser refresh.
  */
 export class ModuleInitContext {
     public readonly objectRegistry: IsObjectRegistry;

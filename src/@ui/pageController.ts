@@ -34,7 +34,7 @@ export class PageController<T = any> implements ModuleInitContext_Host {
     public readonly events = isServerSide ? jk_events.newEventGroup() : jk_events.defaultEventGroup;
     public readonly objectRegistry: IsObjectRegistry = isServerSide ? new ObjectRegistry() : getDefaultObjectRegistry();
 
-    constructor(public readonly isDetached = false, options?: PageOptions) {
+    constructor(public readonly isDetached = false, public readonly mustRemoveTrailingSlashs: boolean = false, options?: PageOptions) {
         options = options || {};
 
         this.state = {...options};

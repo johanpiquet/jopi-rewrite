@@ -433,6 +433,7 @@ export class JopiEasyWebSite {
             await initLinker(this, onWebSiteCreate);
 
             for (let hook of this.beforeHook) await hook();
+
             this.webSite = new WebSiteImpl(this.origin, this.options);
 
             for (const hook of  this.afterHook) {
@@ -509,6 +510,23 @@ export class JopiEasyWebSite {
                 return parent;
             }
         };
+
+        return me;
+    }
+
+    configure_behaviors() {
+        const parent: JopiEasyWebSite = this;
+
+        const me = {
+            removeTrailingSlashs(value: boolean = true) {
+                parent.options.removeTrailingSlash = value;
+                return me;
+            },
+
+            END_configure_behaviors() {
+                return parent;
+            }
+        }
 
         return me;
     }

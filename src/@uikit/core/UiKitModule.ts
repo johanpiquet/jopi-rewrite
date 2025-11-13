@@ -9,7 +9,8 @@ export class UiKitModule extends ModuleInitContext {
                 return getDefaultMenuManager();
             }
 
-            return new MenuManager(this.getCurrentURL());
+            const mustRemoveTrailingSlashs = this.host.mustRemoveTrailingSlashs;
+            return new MenuManager(mustRemoveTrailingSlashs, this.getCurrentURL());
         });
     }
 

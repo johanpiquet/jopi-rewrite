@@ -810,7 +810,9 @@ export class JopiRequest {
             };
 
             // Allow faking the environment of the page.
-            const controller = new PageController_ExposePrivate<unknown>(false, options);
+            const controller = new PageController_ExposePrivate<unknown>(
+                false, (this.webSite as WebSiteImpl).mustRemoveTrailingSlashs, options);
+
             controller.setServerRequest(this);
             (this.webSite as WebSiteImpl).executeBrowserInstall(controller);
 

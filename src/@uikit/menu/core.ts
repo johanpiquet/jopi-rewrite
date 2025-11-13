@@ -11,9 +11,7 @@ export class MenuManager {
     private allMenus: Record<string, AppMenu> = {};
     private readonly menuBuilders: Record<string, MenuBuilder[]> = {};
 
-    constructor(private readonly forceURL?: URL) {
-        let url = (this.forceURL || new URL(window.location.href)).pathname;
-
+    constructor(private readonly mustRemoveTrailingSlashs: boolean, private readonly forceURL?: URL) {
         jk_events.addListener("user.infosUpdated", () => {
             this.invalidateMenus(true);
         });
@@ -78,7 +76,7 @@ export class MenuManager {
             let builders = this.menuBuilders[menuName];
 
             const menu = new AppMenu({key: menuName});
-            menu.setNormalizer(menuNormalizer);
+            menu.setNormalizer(this.mustRemoveTrailingSlashs ? menuNormalizer_removeTrailingSlash : menuNormalizer_addTrailingSlash);
             this.allMenus[menuName] = menu;
 
             for (const builder of builders) {
@@ -196,14 +194,22 @@ export class MenuManager {
 class AppMenu extends HierarchyBuilder<MenuItem> {
 }
 
-function menuNormalizer(item: MenuItem) {
+function normalizeMenuItem(item: MenuItem) {
     if (!item.title) {
         if (item.key) {
             item.title = ucFirst(item.key);
         }
     }
+}
 
+function menuNormalizer_addTrailingSlash(item: MenuItem) {
+    normalizeMenuItem(item);
     if (item.url && !item.url.endsWith("/")) item.url += "/";
+}
+
+function menuNormalizer_removeTrailingSlash(item: MenuItem) {
+    normalizeMenuItem(item);
+    if (item.url && item.url.endsWith("/")) item.url = item.url.slice(0, -1);;
 }
 
 let gReactKey = 0;

@@ -188,6 +188,8 @@ export class WebSiteImpl implements WebSite {
 
     public readonly events: EventGroup = jk_events.defaultEventGroup;
 
+    public readonly mustRemoveTrailingSlashs: boolean;
+
     constructor(url: string, options?: WebSiteOptions) {
         if (!options) options = {};
 
@@ -213,6 +215,7 @@ export class WebSiteImpl implements WebSite {
         this.host = urlInfos.host;
         this.mainCache = options.cache || getInMemoryCache();
         this.serverInstanceBuilder = getNewServerInstanceBuilder(this);
+        this.mustRemoveTrailingSlashs = options.removeTrailingSlash !== false;
 
         this._onWebSiteReady = options.onWebSiteReady;
 
@@ -844,6 +847,12 @@ export class WebSiteOptions {
      * A list of listeners which must be called when the website is fully operational.
      */
     onWebSiteReady?: (()=>void)[];
+
+    /**
+     * If false, will remove the trailing-slash at the end of the urls.
+     * The default is true.
+     */
+    removeTrailingSlash?: boolean;
 }
 
 export interface WebSiteRouteInfos {

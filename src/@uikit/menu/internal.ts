@@ -208,7 +208,8 @@ const gDetachedHierarchyBuilder = new HierarchyBuilder({key: ""});
 
 export function getDefaultMenuManager(): MenuManager {
     if (!gMenuManager) {
-        gMenuManager = new MenuManager();
+        let mustRemoveTrailingSlashs = (window as any)["__JOPI_OPTIONS__"].removeTrailingSlashs === true
+        gMenuManager = new MenuManager(mustRemoveTrailingSlashs);
     }
 
     return gMenuManager;
