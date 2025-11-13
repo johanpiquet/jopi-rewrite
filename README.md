@@ -1,89 +1,123 @@
-📚 [Documentation](#documentation) - 🚀 [Tutorials](#tutorials) - 💬 [Discord](#discord)
 
-Jopi Rewrite is a framework for *node.js* and *bun.js* that integrates a set of technologies to build powerful server applications.
-It's very simple to use: that is its strength. And it's very fast (optimised for the bun.js version).
+## Qu'est-ce que Jopi Rewrite ?
 
-With Jopi Rewrite you will quickly be able to:
+Jopi Rewrite est un framework Bun.js, avec compatibilité Node.js, permettant de créer des sites internet ultra-rapides en utilisant React.js.
 
-✓ Build a **high-performance** server application.  
-✓ Do **React SSR** and **React Hydrate** (like NextJS).  
-✓ With file router, where a simple file declares a route and his content (also like NextJS).  
-✓ Tailwind and PostCSS support pre-configured in the engine.  
-✓ Use **JWT Token** for authentification.  
-✓ Use **LetsEncrypt** for HTTPS, with autorenew (without restart).  
-... all these make very simple through an intent focused API!
+Son principe de fonctionnement est fortement comparable à Next.js :
+* Côté serveur, React.js est utilisé pour générer le HTML des pages, lesquelles sont compatibles avec les moteurs de recherche (Google, Bing, ...). Côté navigateur, le HTML généré est automatiquement remplacé par son équivalent entièrement fonctionnel.
+* Les pages et les API (GET/POST/...) sont définis en positionnant des fichiers dans des répertoires dont les noms sont directement reliés à la structure de l'url.
 
-But it's not the main point, since with Jopi Rewrite you can also:
+L'objectif de Jopi Rewrite, est la simplicité : pouvoir créer une application sans se noyer dans les aspects techniques. C'est pourquoi Jopi Rewrite n'est pas un simple serveur, mais aussi un framework. Il est minimaliste, mais avec des ajouts très appréciables :
 
-✓ Build a **crawler** to convert your site to a static one.
-✓ Add **cache** features, to optimize performance.  
-✓ Build a smart proxy with **load-balancing**.  
+* L'intégration native de Tailwind, qui déjà préconfiguré. Tout comme l'intégration de la technologie React HMR afin que la moindre modification du code de l'UI se répercute à la vitesse de l'éclair dans le navigateur.
+* L'inclusion d'un script Docker afin de convertir immédiatement votre projet en une VM Docker très légère.
+* La gestion de l'authentification avec JWT est intégré et activé de base, avec la possibilité de créer très simplement un répertoire d'utilisateur : un système minimaliste, très facile à comprendre et donc très facile à enrichir pour vos propres besoins.
+* La gestion des droits utilisateurs (rôles) est incluse. Elle permet de limiter l'accès à certaines resources et de personnaliser des comportements selon les rôles de l'utilisateur.
+* La gestion d'un cache rendant votre site aussi rapide qu'un site statique. Vous avez le contrôle complet sur ce cache, qui peut être global, par utilisateur, pour faire une distinction desktop / mobile, ...
+* Créer un certificat SSL (pour le https) est trivial : Jopi génère des certificats de développement (machine locale) et gère aussi Let Encrypts : avec un renouvellement automatique et sans perte de connexion.
 
-One of the nice things with Jopi Rewrite is **hot reload**. Hot-reload allows updating our code and see your server do
-an automatic restart: but without stopping what he is doing. If he is processing requests, then the server will continue
-to process them, and in the same time the new version will process the new incoming requests.
 
-✓ **Hot-reload is like with PHP**: you can update your server without breaking what he is currently doing.  
-✓ Server update can be done safely, and when you want.  
-✓ This without latencies: important things can be kept in memory, like caches.
+## Organisation d'une application
 
-✓ LetsEncrypt support
-  * For free https certificates.
-  * With automatic certificate renew.
-  * And this, without a server restart required!
+### Structure d'une application
 
-✓ Tailwind and PostCSS support
-  * Is automatic, no configuration required!
-    * Is fast, thanks to a blazing fast compiler!
-    * Browser auto-refresh: save and the browser refresh instantly!
+Une application type ressemble à ceci en terme de dossiers.
 
-# No natif Windows support
+**Exemple de projet Jopi**
+```
+|- node_modules/
+|- package.json
+|- tsconfig.json                       < If you use node.js / typescript
+|- src/
+   |- mod_moduleA                      < Code is always divided into modules
+   |- mod_moduleB
+	  |- @alias                        < Allows sharing between modules 
+      |- @routes/admin                 < Define items bound to urls
+         |- page.tsx                   < Bound to http://mysite/admin
+         |- onPOST.ts                  < Catch all POST call to this url
+         |- config.ts                  < If you want to configure some options
+         |- pageNeedRole_admin.cond    < You can also use special file names
+         |- postNeedRole_write.cond    < to avoidd use of config.ts
+```
 
-**For performance reasons, this project is not compatible with Windows OS.**
-**Use WSL2 if you use Windows.**
+Comme indiqué en commentaire, il y a deux particularités : le code est toujours divisé en modules, tandis que les dossiers débutant par un arobase sont utilisés par des mécanismes de génération de code. Notamment le dossier `@alias` qui permet de partager des éléments entre les modules.
+### La puissance d'une application modulaire
 
-# Tutorials
+**L'organisation en modules*** permet d'introduire des séparations claires entre les différents aspects de votre code, et surtout il permet de réutiliser / partager des bloques de code entre plusieurs applications, tout en facilitant la division du travail dans une équipe. Par exemple, un module gère la structure du site, tandis qu'un autre gère la gestion des authentifications, et un troisième ajoute les pages correspondant aux produits commercialisés.
 
-You can found articles and tutorials on my Dev.to page [link](https://dev.to/johanpiquet).
+**Les modules peuvent partager des dépendances*** avec les autres modules grâce à des puissants mécanismes utilisant les fonctionnalités d'alias. Par exemple un module définit un composant MyComp, qui devient accessible pour tous les modules en faisant`import MyComp from @/uiBlocks/MyComp`.
 
-# Discord
+Le système de modules de Jopi, a le grand avantage d'être compatible avec le pruning du code, que réalise son bundler interne afin de minimiser la taille des fichiers javascript générés (tout comme le font Vite.js et WebPack). C'est une précision importante, car ce prunning fait que certains motifs intéressants qui sont facilement réalisable côté serveur, deviennent la source d'erreur étrange, difficilement explicable, côté navigateur : car le bundler peut supprimer accidentellement certains morceaux de codes alors qu'ils sont nécessaires. C'est le cas des motifs événement / écouteurs. 
 
-You can contact me on Discord. [link](https://discord.com/channels/1397868681253490728/1397868681253490731).
+Cette complexité est la raison pour laquelle Jopi fournit lui-même les mécanismes, à travers une implémentation sans effets de bords avec les bundlers, et sans générer des fichiers javascript anormalement gros côté navigateur. 
 
-# Documentation
+* **Evénement / écouteurs** - Ce mécanisme permet aux modules de communiquer par un système souple de type "prévient moins lorsqu'il se passe ça".
+* **Les composites** Ce mécanisme permet d'avoir des composants React.js dont le contenu est enrichi par des modules. Par exemple pour qu'un module puisse ajouter du contenu dans une barre d'outil.
+* **Exposition et remplacement** Les modules peuvent exposer des éléments partagés entre eux. Par exemple un module pour exposer un composant `Product` faisant le rendu d'un produit. Tandis qu'un autre module peut décider de remplacer ce composant par une nouvelle version : ce qui se fait par un système de priorité. Le nouveau composant à une priorité plus élevée, et c'est pourquoi il remplace l'ancien. 
 
-* How to start
-    * [Installing Bun.js](_doc/how_to_start/installing_bunjs.md)
-    * [Installing JOPIN](_doc/how_to_start/installing_jopin.md)
-    * [Creating a project](_doc/how_to_start/creating_a_project.md)
-* Build a website with React Server Side
-    * [Create a simple website](_doc/reactjs/create_a_website.md)
-    * [Using ReactJS](_doc/reactjs/using_reactjs.md)
-    * [Using Tailwind CSS](_doc/reactjs/using_tailwind.md)
-    * [Using Automatic Router](_doc/reactjs/use_automatic_route.md)
-    * [Using Automatic cache](_doc/reactjs/automatic_cache.md)
-* Cookbook
-  * [Handling request data](_doc/cookbook/handling_request_data.md)
-  * [Using page cache](_doc/cookbook/using_page_cache.md)
-  * [Create a reverse proxy](_doc/cookbook/create_a_reverse_proxy.md)
-  * [Docker and serverless](_doc/cookbook/docker_and_serverless.md)
-  * [Restart without losing connection](_doc/cookbook/restart_without_losing_connection.md)
-  * [Rewriting HTML](_doc/cookbook/rewriting_html.md)
-  * [Serving files](_doc/cookbook/serving_files.md)
-  * [Building a static website](_doc/cookbook/static_web_site.md)
-* React Hooks
-    * [useExecuteOnce](_doc/hooks/use_execute_once.md)
-    * [usePage](_doc/hooks/use_page.md)
-    * [usePageTitle](_doc/hooks/use_page_title.md)
-    * [useUserInfos / logOut](_doc/hooks/use_user_infos.md)
-    * [useCookie / deleteCookie](_doc/hooks/use_cookie.md)
-    * [useFormSubmit](_doc/hooks/use_form_submit.md)
-    * [useRefresh](_doc/hooks/use_refresh.md)
+### Code serveur only, browser only?
 
-* Security
-    * [Filtering Search Params](_doc/security/filtering-search-params.md)
-    * [Enabling CORS](_doc/security/enabling-cors.md)
-    * [Using JWT Token](_doc/security/using-jwt-token.md)
-    * [Checking user roles](_doc/security/checking-user-roles.md)
-* Utilities
-    * [Application shutdown helper](_doc/utilities/application-shutdown-helper.md)
+Afin d'être rapide, Jopi n'a pas de système d'analyse du code et de retrait du code serveur. Cependant un mécanisme très intéressant a été ajouté afin de compenser: dès que le mot **jopiBundler_ifServer** est rencontré, alors il est remplacé par le mot **jopiBundler_ifBrowser**. Ainsi `import * as myLib from "./jopiBundler_ifServer.ts"` devient `import * as myLib from "./jopiBundler_ifBrowser.ts"` lorsque Jopi crée le javascript pour le navigateur.
+
+En plus d'être performant, ce mécanisme permet d'être plus facile d'usage, tout en offrant des possibilité intéressate.
+
+En interne, Jopi Rewrite utilise une librairie nommée **Jopi Toolkit**. Cette librairie regroupe tout un ensemble d'outils non spécifiques à Jopi Rewrite et pouvant être utilisé dans des projets indépendants. Cette librairie a la particularité d'utiliser ce mécanisme de traduction (jopiBundler_ifServer vers jopiBundler_ifBrowser) afin que tout le code serveur soit automatiquement retiré ou remplacé par une partie spécifique au navigateur.
+## Cookbook
+
+La documentation est organisée sous la forme d'un cookbook : vous voulez faire ça, voici comment faire.
+
+### Les bases
+[Démarrer un nouveau projet.](new_project.md)
+[Les 4 fichiers d'initialisation.](init_files.md)
+
+[Associer une page à une url.](bind_page_to_url.md)
+[Utiliser des urls paramètrées.](use_parametred_url.md)
+[Utiliser des urls catch-all.](use_catchall_url.md)
+[Remplacer une route existante.](override_an_existing_route.md)
+
+[Activer le mode développeur.](enable_developper_mode.md.md)
+[Activer le HTTPS.](enable_https.md)
+[Activer le CORS.](use_cors_middleware.md)
+
+[Utiliser un middleware.](use_middleware.md)
+[Utiliser avec un reverse-proxy.](use_with_reverse_proxy.md)
+[Utiliser le cache de page.](use_page_cache.md)
+
+[Définir les pages d'erreur 401, 404 et 500](define_error_pages.md)
+### Vos pages React.js
+
+[Utiliser React Server Side](what_is_react_ssr.md)
+[Utiliser Tailwind CSS](use_tailwind_css.md)
+
+[Importer une CSS](import_css.md)
+[Utiliser un module CSS](use_css_modules.md)
+[Importer une image](import_image.md)
+
+[Modifier le titre de la page](set_page_title.md)
+[Utiliser les menus](use_menus.md)
+### Utiliser des modules
+
+[Créer un module.](create_a_module.md)
+
+[Partager des composants React.](sharing_react_components.md)
+[Remplacer un composant déjà partagé.](replace_shared_component.md)
+
+[Utiliser les composites.](use_composites.md)
+[Communiquer avec les modules.](communicate_between_modules.md)
+### Répondre à une requête
+
+[Créer une réponse JSON](json_response.md)
+[Créer une réponse HTML avec React](returns_html_with_react.md)
+[Renvoyer du JSON.](./request/returns_json.md)
+
+[Obtenir les données d'entrée.](get_received_data.md)
+[Gérer les fichiers reçus.](manage_received_files.md)
+[Vérifier les données d'entrée.](check_received_data.md)
+[Renvoyer des fichiers.](return_files.md)
+### Utilisateurs et rôles
+
+[Définir une banque d'utilisateurs.](user_data_store.md)
+[Authentifier un utilisateur.](login_the_user.md)
+
+[Connaître l'utilisateur et ses rôles.](known_user_and_roles.md)
+[Limiter l'accès à des rôles.](limit_access_to_roles.md)
