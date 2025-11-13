@@ -9,6 +9,15 @@ export interface RouteAttributs {
     disableCache?: boolean;
     priority?: PriorityLevel;
     configFile?: string;
+
+    /**
+     * When doing a catch-all, a slug can be set.
+     * Here we store this slug name.
+     *
+     * Catch-all: /my/route/[...]
+     * Catch-all with slug: /my/route/[...slugName]
+     */
+    catchAllSlug?: string;
 }
 
 type RouteHandler = (req: JopiRequest) => Promise<Response>;
@@ -22,30 +31,36 @@ function applyAttributes(infos: WebSiteRouteInfos, attributes: RouteAttributs, v
     }
 }
 
-export async function routeBindPage(webSite: WebSiteImpl, route: string, attributes: RouteAttributs, reactComponent: React.FC<any>, filePath: string) {
-    const pageKey = "page_" + jk_crypto.fastHash(route);
+interface RouteBindPageParams {
+    route: string;
+    attributs: RouteAttributs;
+    filePath: string;
+}
+
+export async function routeBindPage(webSite: WebSiteImpl, reactComponent: React.FC<any>, params: RouteBindPageParams) {
+    const pageKey = "page_" + jk_crypto.fastHash(params.route);
     let infos: WebSiteRouteInfos;
 
-    if (route.endsWith("*")) {
-        infos = webSite.onPage(route, pageKey, reactComponent);
+    if (params.route.endsWith("*")) {
+        infos = webSite.onPage(params.route, pageKey, reactComponent);
     }
     else {
-        if (route === "/") {
-            infos = webSite.onPage(route, pageKey, reactComponent);
+        if (params.route === "/") {
+            infos = webSite.onPage(params.route, pageKey, reactComponent);
         } else {
-            infos = webSite.onPage(route + "/", pageKey, reactComponent);
+            infos = webSite.onPage(params.route + "/", pageKey, reactComponent);
 
             // Note: with node.js, the router doesn't distinguish with and without /
             // It's why the redirection is done internally.
             //
-            webSite.onGET(route, async (req) => {
+            webSite.onGET(params.route, async (req) => {
                 req.urlInfos.pathname += "/";
                 return Response.redirect(req.urlInfos.href, 301);
             });
         }
 
-        if (route.startsWith("/error")) {
-            switch (route) {
+        if (params.route.startsWith("/error")) {
+            switch (params.route) {
                 case "/error404":
                     webSite.on404_NotFound(async (req) => {
                         return req.reactPage(pageKey, reactComponent);
@@ -67,12 +82,16 @@ export async function routeBindPage(webSite: WebSiteImpl, route: string, attribu
         }
     }
 
-    applyAttributes(infos, attributes, "PAGE");
+    applyAttributes(infos, params.attributs, "PAGE");
 
-    await jk_events.sendAsyncEvent("jopi.route.newPage", {route, filePath});
+    await jk_events.sendAsyncEvent("jopi.route.newPage", params);
 }
 
-export async function routeBindVerb(webSite: WebSiteImpl, route: string, verb: HttpMethod, attributes: RouteAttributs, handler: RouteHandler) {
-    const infos = webSite.onVerb(verb, route + "/", handler);
-    applyAttributes(infos, attributes, verb);
+interface RouteBindVerbParams extends RouteBindPageParams {
+    verb: HttpMethod;
+}
+
+export async function routeBindVerb(webSite: WebSiteImpl, handler: RouteHandler, params: RouteBindVerbParams) {
+    const infos = webSite.onVerb(params.verb, params.route + "/", handler);
+    applyAttributes(infos, params.attributs, params.verb);
 }

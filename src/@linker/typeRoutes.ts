@@ -10,6 +10,8 @@ import {
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_app from "jopi-toolkit/jk_app";
 import type {RouteAttributs} from "jopi-rewrite/generated";
+import {WebSiteImpl} from "../@core";
+import React from "react";
 
 export default class TypeRoutes extends ArobaseType {
     private sourceCode_header = `import {routeBindPage, routeBindVerb} from "jopi-rewrite/generated";`;
@@ -74,16 +76,19 @@ export default class TypeRoutes extends ArobaseType {
         filePath = jk_app.getCompiledFilePathFor(filePath);
         let distFilePath = jk_fs.getRelativePath(this.outputDir, filePath);
 
+        let routeBindingParams = {route, attributs, filePath};
+
         this.sourceCode_header += `\nimport c_${routeId} from "${distFilePath}";`;
-        this.sourceCode_body += `\n    await routeBindPage(webSite, ${JSON.stringify(route)}, ${JSON.stringify(attributs)}, c_${routeId}, ${JSON.stringify(srcFilePath)});`
+        this.sourceCode_body += `\n    await routeBindPage(webSite, c_${routeId}, ${JSON.stringify(routeBindingParams)});`
     }
 
     private bindVerb(verb: string, route: string, filePath: string, attributs: RouteAttributs) {
         let routeId = "r" + (this.routeCount++);
         let relPath = jk_fs.getRelativePath(this.outputDir, filePath);
 
+        let routeBindingParams = {verb, route, attributs, filePath};
         this.sourceCode_header += `\nimport f_${routeId} from "${relPath}";`;
-        this.sourceCode_body += `\n    await routeBindVerb(webSite,  ${JSON.stringify(route)}, ${JSON.stringify(verb)}, ${JSON.stringify(attributs)}, f_${routeId});`
+        this.sourceCode_body += `\n    await routeBindVerb(webSite, f_${routeId}, ${JSON.stringify(routeBindingParams)});`
     }
 
     protected normalizeFeatureName(feature: string): string|undefined {
@@ -167,6 +172,10 @@ export default class TypeRoutes extends ArobaseType {
                 let segmentInfos = convertRouteSegment(dirItem.name);
                 let newRoute = route==="/" ? route + segmentInfos.routePart : route + "/" + segmentInfos.routePart;
                 let dirAttributs = await this.scanAttributs(dirItem.fullPath);
+
+                if (segmentInfos.isCatchAll && segmentInfos.name) {
+                    dirAttributs.catchAllSlug = segmentInfos.name;
+                }
 
                 if (dirAttributs.configFile) {
                     this.routeConfig[newRoute] = dirAttributs.configFile;
