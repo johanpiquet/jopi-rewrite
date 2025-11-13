@@ -1,32 +1,42 @@
-# Utiliser un reverse-proxy
+# Use with a reverse proxy
 
-Un reverse-proxy est un serveur exposé publiquement sur internet, dont le but est de relier un serveur interne au réseau publique. Il prend chaque requête destinées à ce serveur, les lui envoie, puis il retourne la réponse de ce serveur.
+When deploying behind a reverse proxy (Nginx, Caddy, Traefik, etc.):
 
-L'usage d'un reverse-proxy nécessite de distinguer deux choses :
-- L'url publique du site : ce que les visiteurs saisissent dans leur navigateur.
-- L'url technique du serveur : sur laquelle il écoute pour recevoir des messages.
+- Forward original Host and X-Forwarded-* headers (X-Forwarded-For, X-Forwarded-Proto).
+- Terminate TLS at the proxy or pass TLS through to your app depending on architecture.
+- Configure websockets and HMR proxying if you need live reload in production-like setups.
 
-Lorsqu'un serveur est directement exposé sur internet, alors ces deux urls sont les même. Mais lorsque vous utilisez un reverse-proxy, alors elles se mettent à différer. L'url publique pointe sur le reverse-proxy, lequel doit utiliser l'url technique du serveur pour pouvoir discuter avec lui.
+Deployment tips:
+- Keep proxy configuration minimal and secure.
+- Let the proxy handle certificate management when possible (or integrate Let's Encrypt).
 
-Les variables d'environnement JOPI_WEBSITE_URL et permettent de définir ces url JOPI_WEBSITE_LISTENING_URL.
+A reverse proxy is a server exposed publicly on the internet whose purpose is to connect an internal server to the public network. It receives each request intended for that internal server, forwards it to that server, then returns the server's response.
 
-* JOPI_WEBSITE_URL : définit l'url publique du serveur, celle utilisée pour former les urls dans les pages et informations renvoyées par le serveur.
-* JOPI_WEBSITE_LISTENING_URL : définit l'url technique du serveur, celle que le reverse-proxy utilise pour joindre notre serveur.
+Using a reverse proxy requires distinguishing two things:
+- The site's public URL: what visitors type in their browser.
+- The server's technical URL: the address where the server listens to receive requests.
 
-> Si JOPI_WEBSITE_LISTENING_URL n'est pas défini, alors Jopi prendra automatiquement JOPI_WEBSITE_URL
+When a server is directly exposed to the internet these two URLs are the same. When using a reverse proxy they differ: the public URL points to the reverse proxy, which must use the server's technical URL to communicate with the internal server.
 
-**Exemple for /src/index.ts**
+The environment variables JOPI_WEBSITE_URL and JOPI_WEBSITE_LISTENING_URL can be used to define these URLs.
+
+* JOPI_WEBSITE_URL: sets the site's public URL, used to build links in pages and responses returned by the server.
+* JOPI_WEBSITE_LISTENING_URL: sets the server's technical URL, the one the reverse proxy uses to reach our server.
+
+> If JOPI_WEBSITE_LISTENING_URL is not defined, Jopi will automatically use JOPI_WEBSITE_URL.
+
+**Example for /src/index.ts**
 ```typescript
-import {jopiApp} from "jopi-rewrite";  
-  
-jopiApp.startApp(import.meta, jopiEasy => { 
-	// Here I explicitely set the website url. 
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(import.meta, jopiEasy => {
+	// Here I explicitly set the website url.
     jopiEasy.create_creatWebSiteServer("https://localhost");
-     
+
     // Here I don't set it.
     // It will use process.env.JOPI_WEBSITE_LISTENING_URL.
     // With a fallback to process.env.JOPI_WEBSITE_URL.
     //
-    jopiEasy.create_creatWebSiteServer(); 
+    jopiEasy.create_creatWebSiteServer();
 });
 ```

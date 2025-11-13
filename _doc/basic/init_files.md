@@ -1,70 +1,70 @@
-# Les trois fichiers d'initialisation
+# The 4 initialization files
 
-Jopi offre quatre façon d'initialiser un projet.
+Jopi projects commonly rely on four initialization files to bootstrap the application:
 
-```
-|- package.json
-|- src/
-   |- index.ts            < (A) First init file
-   |- mod_moduleA
-   |- mod_moduleB
-      |- serverInit.ts    < (B) Per module init file
-      |- uiInit.tsx       < (C) Browser & React SSR init file
-      |- @routes/
-         |- products/
-            |- page.tsx
-            |- config.ts  < (D) Allow configuring the route.
-```
+1. package.json
+   - Project metadata, dependencies and scripts (dev, build, start).
+   - Define scripts for development with Bun/Node and production start.
+2. tsconfig.json (optional)
+   - TypeScript configuration when using TypeScript.
+   - Set compiler options, path aliases and module resolution as needed.
+3. jopi.config.js (or jopi.config.ts)
+   - Framework configuration: module order/priorities, aliases, cache and auth settings.
+   - Register global middlewares, menus and module-specific options.
+4. src/
+   - The source folder containing modules (mod_*) and their special directories such as @routes and @alias.
 
-Le fichier `index.ts` (A) est le point d'entée du programme. C'est là où le serveur est créé.
+Keep these files minimal at first and extend them as your application grows. The framework expects the src layout to determine routing and module registration.
 
-**Exemple de fichier de configuration**
+The file `index.ts` (A) is the program entry point. This is where the server is created.
+
+Example configuration file:
 ```typescript
-import {jopiApp} from "jopi-rewrite";  
-import myUsers from "./myUsers.json" with { type: "json" };  
-  
-jopiApp.startApp(import.meta, jopiEasy => {  
-    jopiEasy.create_creatWebSiteServer()  
-        
-        .configure_cache()  
+import {jopiApp} from "jopi-rewrite";
+import myUsers from "./myUsers.json" with { type: "json" };
+
+jopiApp.startApp(import.meta, jopiEasy => {
+    jopiEasy.create_creatWebSiteServer()
+
+        .configure_cache()
 	        // ...
-            .END_configure_cache()  
-  
-        .enable_cors()  
+            .END_configure_cache()
+
+        .enable_cors()
 		    // ...
-            .DONE_enableCors()  
-  
-        .enable_jwtTokenAuth()  
+            .DONE_enableCors()
+
+        .enable_jwtTokenAuth()
             // ...
-            .DONE_enable_jwtTokenAuth()  
+            .DONE_enable_jwtTokenAuth()
     });
 ```
 
-Chaque module a un fichier `serverInit.ts` qui est automatiquement appelé après avoir évalué le fichier `index.ts`. Il exporte une fonction par défaut, qui reçoit la valeur renvoyée par `jopiEasy.create_creatWebSiteServer()`.
+Each module has a `serverInit.ts` file that is automatically called after evaluating the `index.ts` file. It exports a default function that receives the value returned by `jopiEasy.create_creatWebSiteServer()`.
 
-**Exemple de fichier serverInit.ts**
+Example `serverInit.ts` file:
 ```typescript
-import {JopiEasyWebSite} from "jopi-rewrite";  
-    
-export default async function(webSite: JopiEasyWebSite) {  
+import {JopiEasyWebSite} from "jopi-rewrite";
+
+export default async function(webSite: JopiEasyWebSite) {
     // webSite is the result of "jopiEasy.create_creatWebSiteServer()".
-    webSite.configure_cache()  
+    webSite.configure_cache()
 		// ...
-		.END_configure_cache()  
+		.END_configure_cache()
 }
 ```
 
-Chaque peut aussi avoir un fichier `uiInit.ts`. Il est appelé à chaque fois que le serveur fait le rendu d'une page React (correspondant à un fichier `index.page.ts`). Il est aussi exécuté dans le navigateur à chaque chargement. Il est donc exécuté plusieurs fois côté serveur, et une seule fois côté navigateur.
+Each module can also have a `uiInit.ts` (or `uiInit.tsx`). It is called every time the server renders a React page (corresponding to an `index.page.ts` file). It is also executed in the browser on each load. As a result, it runs multiple times on the server and once in the browser.
 
-**Exemple de fichier uiInit.tsx**
+Example `uiInit.tsx` file:
 ```typescript
-import {UiKitModule, MenuName} from "jopi-rewrite/uikit";  
-import {isBrowser} from "jopi-toolkit/jk_what";  
-    
-// Note: the default class received is "ModuleInitContext"  
+import {UiKitModule, MenuName} from "jopi-rewrite/uikit";
+import {isBrowser} from "jopi-toolkit/jk_what";
+
+// Note: the default class received is "ModuleInitContext"
 // but ui-kit overrides the creation step to provide an
-// instance of UiKitModule. 
+// instance of UiKitModule.
 //
-export default function(myModule: UiKitModule) {   
+export default function(myModule: UiKitModule) {
 }
 ```

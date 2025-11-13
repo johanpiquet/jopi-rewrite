@@ -1,39 +1,48 @@
+# Enable HTTPS
 
-# Activer le HTTPS
+Jopi supports HTTPS for local development and production.
 
-Pour activer le HTTPS, deux choses sont nécessaires:
-* Définir une adresse en HTTPS.
-* Associer un certificat SSL, afin de permettre le cryptage des communications.
+Local development:
+- The framework can generate self-signed certificates for your machine.
+- Use the HTTPS dev option in the config or run the dev server with TLS enabled.
 
-## Définir l'url du site
+Production:
+- Integrate Let's Encrypt to obtain trusted certificates automatically.
+- Configure automatic renewal and ensure your server or proxy reloads certificates without downtime.
 
-Avec Jopi, vous avez deux façons de faire pour définir l'url du site internet. Soit en indiquant explicitement l'url, soit en utilisant la variable d'environnement JOPI_WEBSITE_LISTENING_URL (ou JOPI_WEBSITE_URL).
+Security tips:
+- Use strong cipher suites and keep your TLS dependencies up to date.
+- For production, avoid self-signed certificates and rely on a trusted CA.
+
+## Define the site URL
+
+With Jopi, you have two ways to define the website URL. Either explicitly set the URL, or use the environment variable JOPI_WEBSITE_LISTENING_URL (or JOPI_WEBSITE_URL).
 
 ```typescript
-import {jopiApp} from "jopi-rewrite";  
-  
-jopiApp.startApp(import.meta, jopiEasy => { 
-	// Here I explicitely set the website url. 
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(import.meta, jopiEasy => {
+	// Here I explicitely set the website url.
     jopiEasy.create_creatWebSiteServer("https://localhost");
-     
+
     // Here I don't set it.
     // It will use process.env.JOPI_WEBSITE_LISTENING_URL.
     // With a fallback to process.env.JOPI_WEBSITE_URL.
     //
-    jopiEasy.create_creatWebSiteServer(); 
+    jopiEasy.create_creatWebSiteServer();
 });
 ```
 
-## Utiliser un certificat SSL
+## Using an SSL certificate
 
-Jopi propose trois façon de fournir un certificat SSL:
-* Implicitement, en déposant votre certificat dans le dossier "./certs" (à côté de package.json).
-* En demandant à Jopi de générer un certificat de développement (utilisable en local uniquement).
-* En demandant à Jopi d'utiliser LetsEncrypt.
+Jopi offers three ways to provide an SSL certificate:
+* Implicitly, by placing your certificate in the "./certs" folder (next to package.json).
+* By requesting Jopi to generate a development certificate (usable only locally).
+* By requesting Jopi to use LetsEncrypt.
 
-### Utiliser le dossier certs
+### Use the certs folder
 
-En supposant que votre si a l'url `https://mysite.com:3000` voici où déposer  le certificat.
+Assuming your site has the URL `https://mysite.com:3000`, here's where to place the certificate.
 
 ```
 |- package.json
@@ -43,31 +52,31 @@ En supposant que votre si a l'url `https://mysite.com:3000` voici où déposer  
 	 |- certificate.crt.key
 ```
 
-## Utiliser un certificat de développement
+## Use a development certificate
 
 ```typescript
-import {jopiApp} from "jopi-rewrite";  
-  
-jopiApp.startApp(import.meta, jopiEasy => {  
-	jopiEasy.create_creatWebSiteServer()             
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(import.meta, jopiEasy => {
+	jopiEasy.create_creatWebSiteServer()
 	  .add_httpCertificate()
 	    .generate_localDevCert()
 	    .DONE_add_httpCertificate()
 });
 ```
 
-### Utiliser LetsEncrypt
+### Use LetsEncrypt
 
 ```typescript
-import {jopiApp} from "jopi-rewrite";  
-  
-jopiApp.startApp(import.meta, jopiEasy => {  
-    jopiEasy.create_creatWebSiteServer(`https://mysite.com:3000`)  
-        .add_httpCertificate()  
-            .generate_letsEncryptCert("myemail@me.com")  
-            .force_expireAfter_days(30) // Optional  
-            .enable_production(true) // Optional  
-            .disable_log() // Optional  
-            .DONE_add_httpCertificate();  
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(import.meta, jopiEasy => {
+    jopiEasy.create_creatWebSiteServer(`https://mysite.com:3000`)
+        .add_httpCertificate()
+            .generate_letsEncryptCert("myemail@me.com")
+            .force_expireAfter_days(30) // Optional
+            .enable_production(true) // Optional
+            .disable_log() // Optional
+            .DONE_add_httpCertificate();
 });
 ```

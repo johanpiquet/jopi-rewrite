@@ -1,41 +1,19 @@
-# Créer une réponse JSON
+# Create a JSON response
 
-Jopi expose la fonction `jsonResponse` afin de vous aider à renvoyer facilement une réponse JSON.
+To return JSON from an API route in Jopi:
 
-**File onPOST.ts**
-```typescript
-import {JopiRequest, type LoginPassword} from "jopi-rewrite";  
-  
-export default async function(req: JopiRequest) {  
-	const myJson = {isOk: true};
-	
-	// Is equivalent to:
-	// return new Response(JSON.stringify(myJson), {  
-	//    status: 200,
-	//    headers: {"content-type": "application/json;charset=utf-8"}  
-    // });
-	//
-	req.jsonResponse(myJson);  
+Example:
+```js
+export async function onGET(request) {
+  const payload = { ok: true, data: [] };
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 ```
 
-La fonction `jsonStringResponse` est similaire, mais reçoit un JSON déjà encodé sous forme d'une chaîne de caractère.
-
-**File onPOST.ts**
-```typescript
-import {JopiRequest, type LoginPassword} from "jopi-rewrite";  
-  
-export default async function(req: JopiRequest) {  
-	const myJsonString = readTextFile("./data.json");
-	
-	// Is equivalent to:
-	// return new Response(myJsonString, {  
-	//    status: 200,
-	//    headers: {"content-type": "application/json;charset=utf-8"}  
-    // });
-	//
-	req.jsonStringResponse(myJsonString);  
-}
-```
-
-> En complément, la fonction `req.returnResultMessage` peut être utile pour renvoyer une réponse json de type `{isOk: true, message: myValue}`.
+Guidelines:
+- Use appropriate HTTP status codes.
+- Include informative error messages for failures.
+- Set caching headers when the response is cacheable.

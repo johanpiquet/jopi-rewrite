@@ -1,42 +1,55 @@
-# Authentifier un utilisateur
+# Authenticate a user
 
-Jopi gère automatiquement tout un ensemble de choses. Cependant il vous faudra ajouter vous-même un écran et connexion et un point de terminaison pour vérifier le login / mot de passe.
+Jopi uses JWT by default for authentication.
 
-L'exemple suivant montre comment authentifier l'utilisateur côté serveur. Elle est appelé lorsque l'utilisateur saisi son login / mot de passe depuis un formulaire de connexion (champs texte login et password). 
+Flow:
+1. User submits credentials to a login route.
+2. Verify credentials against the user store.
+3. On success, issue a JWT token containing user id and roles.
+4. Return the token in a secure cookie or in the JSON response.
 
-**Exemple de traitement du login/password**
+Security:
+- Sign tokens with a strong secret and set appropriate expiration.
+- Use HttpOnly and Secure cookies for browser storage when possible.
+- Validate tokens on every protected request.
+
+Jopi automatically handles many details. However, you will need to add your own login screen and an endpoint to verify the username/password.
+
+The following example shows how to authenticate the user on the server. It is called when the user enters their username/password from a login form (text fields "login" and "password").
+
+**Example handling login/password**
 ```typescript
-import {JopiRequest, type LoginPassword} from "jopi-rewrite";  
-  
-export default async function(req: JopiRequest) {  
-    const data = await req.getBodyData();  
-    const authResult = await req.tryAuthWithJWT(data as LoginPassword);  
-  
-    if (!authResult.isOk) console.log("Auth failed");  
-  
-    // Will automatically set a cookie containing information.  
-    // It why we don't return these information here.    
-    return req.jsonResponse({isOk: authResult.isOk});  
+import {JopiRequest, type LoginPassword} from "jopi-rewrite";
+
+export default async function(req: JopiRequest) {
+    const data = await req.getBodyData();
+    const authResult = await req.tryAuthWithJWT(data as LoginPassword);
+
+    if (!authResult.isOk) console.log("Auth failed");
+
+    // Will automatically set a cookie containing information.
+    // That's why we don't return these information here.
+    return req.jsonResponse({isOk: authResult.isOk});
 }
 ```
 
-Quand l'authentification a réussi, Jopi enrichit automatiquement la réponse avec un cookie contenant le token JWT. 
+When authentication succeeds, Jopi automatically enriches the response with a cookie containing the JWT token.
 
-Si votre application est de type SPA (Single Page Application) il faudra que le code côté navigateur utilise le hook `useUserStateRefresh` afin de prévenir le système que le cookie d'authentification a changé et qu'il doit mettre à jour son état interne.
+If your application is a SPA (Single Page Application), client-side code should use the hook `useUserStateRefresh` to notify the system that the authentication cookie changed and that it should update its internal state.
 
-**Exemple côté React***
+**Client-side React example**
 ```typescript
 // Here we are inside a React component.
 
 // Calling declareUserStateChange allows refreshing the auth state.
-const declareUserStateChange = useUserStateRefresh();  
-  
+const declareUserStateChange = useUserStateRefresh();
+
 // useFormSubmit is a form helper function.
-const [submitForm, _] = useFormSubmit((res) => {  
+const [submitForm, _] = useFormSubmit((res) => {
 	// Auth success?
-    if (res.isOk) { 
-	    // Then update the state. 
+    if (res.isOk) {
+	    // Then update the state.
         declareUserStateChange();
-    }  
+    }
 });
 ```

@@ -1,29 +1,39 @@
-# Remplacer un composant partagé
+# Replace a shared component
 
-Chaque module peut exposer des composants React que les autres modules peuvent utiliser. Parfois, pour les besoins de votre application, vous aimeriez pouvoir remplacer un composant par un autre version.
+Modules can replace exposed components using a priority mechanism.
 
-Pour remplacer un composant, il suffit de déclarer un composant de même nom, et de lui donner une priorité plus élevée.
+How it works:
+- Create a replacement component in another module exposing the same export name.
+- Assign a higher module priority so the framework resolves to your replacement.
+
+Considerations:
+- Keep the replacement API compatible with the original to avoid breaking consumers.
+- Document why the replacement was made and list differences if any.
+
+Each module can expose React components that other modules can use. Sometimes, for your application's needs, you'd like to replace a component with a different version.
+
+To replace a component, declare a component with the same name and give it a higher priority.
 
 ```
 |- mod_moduleA
 |  |- @alias/uiBlocks/page.header
 |     |- index.tsx
-|     |- default.priority          < Automatically aded if no priority
+|     |- default.priority          < Automatically added if no priority
 |- mod_moduleB
 |  |- @alias/uiBlocks/page.header
 |     |- index.tsx
-|     |- high.priority             < Is higher priority
+|     |- high.priority             < Has higher priority
 ```
 
-Ici, le composant `page.header` du module moduleB a une priorité plus élevée. C'est pourquoi sa version du composant est celle qui sera utilisée.
+Here, the `page.header` component from moduleB has a higher priority. That's why its version of the component will be used.
 
-Les différents niveaux de priorités sont :
+The different priority levels are:
 * verylow.priority
 * low.priority
 * default.priority
 * high.priority
 * veryhigh.priority
 
-Le système supporte plusieurs variantes de nomage, pour ces fichiers. Il le passe en minuscule et retirer les caractère tirets et traits-bas. Ainsi vous pouvez écrire `Very-Low.priority`ou `very_low.priority`. Ils seront automatiquement renommés en `verylow.priority`.
+The system supports several naming variants for these files. It lowercases the name and removes hyphens and underscores. Thus you can write `Very-Low.priority` or `very_low.priority`; they will be normalized to `verylow.priority`.
 
-L'intérêt des niveaux verylow et low, est qu'un élément sans priorité, ce qui signifié une priorité de niveau default, va automatiquement écraser l'existant. Utiliser verylow et low, est donc une façon de définir une valeur par défaut pour un élément.
+The point of the verylow and low levels is that an element without a priority (which means a default.priority) will automatically override existing lower-priority items. Using verylow and low is therefore a way to provide a default value for an item.

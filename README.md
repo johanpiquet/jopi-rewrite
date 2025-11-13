@@ -1,29 +1,28 @@
+## What is Jopi Rewrite?
 
-## Qu'est-ce que Jopi Rewrite ?
+Jopi Rewrite is a Bun.js framework, with Node.js compatibility, for building ultra-fast websites using React.js.
 
-Jopi Rewrite est un framework Bun.js, avec compatibilité Node.js, permettant de créer des sites internet ultra-rapides en utilisant React.js.
+Its operating principle is very similar to Next.js:
+* On the server side, React.js is used to generate the HTML of pages, which are search-engine friendly (Google, Bing, ...). On the browser side, the generated HTML is automatically replaced by its fully interactive equivalent.
+* Pages and APIs (GET/POST/...) are defined by placing files in directories whose names correspond directly to the URL structure.
 
-Son principe de fonctionnement est fortement comparable à Next.js :
-* Côté serveur, React.js est utilisé pour générer le HTML des pages, lesquelles sont compatibles avec les moteurs de recherche (Google, Bing, ...). Côté navigateur, le HTML généré est automatiquement remplacé par son équivalent entièrement fonctionnel.
-* Les pages et les API (GET/POST/...) sont définis en positionnant des fichiers dans des répertoires dont les noms sont directement reliés à la structure de l'url.
+The goal of Jopi Rewrite is simplicity: to be able to create an application without drowning in technical details. That's why Jopi Rewrite is not just a server, but also a framework. It is minimalist, but with very useful additions:
 
-L'objectif de Jopi Rewrite, est la simplicité : pouvoir créer une application sans se noyer dans les aspects techniques. C'est pourquoi Jopi Rewrite n'est pas un simple serveur, mais aussi un framework. Il est minimaliste, mais avec des ajouts très appréciables :
-
-* L'intégration native de Tailwind, qui déjà préconfiguré. Tout comme l'intégration de la technologie React HMR afin que la moindre modification du code de l'UI se répercute à la vitesse de l'éclair dans le navigateur.
-* L'inclusion d'un script Docker afin de convertir immédiatement votre projet en une VM Docker très légère.
-* La gestion de l'authentification avec JWT est intégré et activé de base, avec la possibilité de créer très simplement un répertoire d'utilisateur : un système minimaliste, très facile à comprendre et donc très facile à enrichir pour vos propres besoins.
-* La gestion des droits utilisateurs (rôles) est incluse. Elle permet de limiter l'accès à certaines resources et de personnaliser des comportements selon les rôles de l'utilisateur.
-* La gestion d'un cache rendant votre site aussi rapide qu'un site statique. Vous avez le contrôle complet sur ce cache, qui peut être global, par utilisateur, pour faire une distinction desktop / mobile, ...
-* Créer un certificat SSL (pour le https) est trivial : Jopi génère des certificats de développement (machine locale) et gère aussi Let Encrypts : avec un renouvellement automatique et sans perte de connexion.
+* Native Tailwind integration, already preconfigured. As well as React HMR integration so that any UI code change is instantly reflected in the browser.
+* Inclusion of a Docker script to quickly convert your project into a very lightweight Docker VM.
+* Built-in JWT authentication enabled by default, with the ability to easily create a user directory: a minimalist system that is easy to understand and extend for your own needs.
+* User role management is included. It allows limiting access to certain resources and customizing behavior according to user roles.
+* A cache management system that makes your site as fast as a static site. You have full control over this cache, which can be global, per-user, to distinguish desktop/mobile, ...
+* Creating an SSL certificate (for https) is trivial: Jopi generates development certificates (local machine) and also handles Let's Encrypt: with automatic renewal and no connection loss.
 
 
-## Organisation d'une application
+## Application organization
 
-### Structure d'une application
+### Application structure
 
-Une application type ressemble à ceci en terme de dossiers.
+A typical application looks like this in terms of folders.
 
-**Exemple de projet Jopi**
+**Example Jopi project**
 ```
 |- node_modules/
 |- package.json
@@ -31,97 +30,98 @@ Une application type ressemble à ceci en terme de dossiers.
 |- src/
    |- mod_moduleA                      < Code is always divided into modules
    |- mod_moduleB
-	  |- @alias                        < Allows sharing between modules 
+      |- @alias                        < Allows sharing between modules
       |- @routes/admin                 < Define items bound to urls
          |- page.tsx                   < Bound to http://mysite/admin
          |- onPOST.ts                  < Catch all POST call to this url
          |- config.ts                  < If you want to configure some options
          |- pageNeedRole_admin.cond    < You can also use special file names
-         |- postNeedRole_write.cond    < to avoidd use of config.ts
+         |- postNeedRole_write.cond    < to avoid using config.ts
 ```
 
-Comme indiqué en commentaire, il y a deux particularités : le code est toujours divisé en modules, tandis que les dossiers débutant par un arobase sont utilisés par des mécanismes de génération de code. Notamment le dossier `@alias` qui permet de partager des éléments entre les modules.
-### La puissance d'une application modulaire
+As noted in the comments, there are two particularities: code is always divided into modules, while folders beginning with an at sign are used by code generation mechanisms. Notably the `@alias` folder which allows sharing elements between modules.
 
-**L'organisation en modules*** permet d'introduire des séparations claires entre les différents aspects de votre code, et surtout il permet de réutiliser / partager des bloques de code entre plusieurs applications, tout en facilitant la division du travail dans une équipe. Par exemple, un module gère la structure du site, tandis qu'un autre gère la gestion des authentifications, et un troisième ajoute les pages correspondant aux produits commercialisés.
+### The power of a modular application
 
-**Les modules peuvent partager des dépendances*** avec les autres modules grâce à des puissants mécanismes utilisant les fonctionnalités d'alias. Par exemple un module définit un composant MyComp, qui devient accessible pour tous les modules en faisant`import MyComp from @/uiBlocks/MyComp`.
+The module organization allows clear separations between different aspects of your code, and above all it allows reusing/sharing code blocks between multiple applications, while facilitating division of work in a team. For example, one module manages the site structure, another handles authentication, and a third adds pages for the products sold.
 
-Le système de modules de Jopi, a le grand avantage d'être compatible avec le pruning du code, que réalise son bundler interne afin de minimiser la taille des fichiers javascript générés (tout comme le font Vite.js et WebPack). C'est une précision importante, car ce prunning fait que certains motifs intéressants qui sont facilement réalisable côté serveur, deviennent la source d'erreur étrange, difficilement explicable, côté navigateur : car le bundler peut supprimer accidentellement certains morceaux de codes alors qu'ils sont nécessaires. C'est le cas des motifs événement / écouteurs. 
+Modules can share dependencies with other modules thanks to powerful alias mechanisms. For example a module defines a component MyComp, which becomes accessible to all modules by importing `import MyComp from @/uiBlocks/MyComp`.
 
-Cette complexité est la raison pour laquelle Jopi fournit lui-même les mécanismes, à travers une implémentation sans effets de bords avec les bundlers, et sans générer des fichiers javascript anormalement gros côté navigateur. 
+Jopi's module system has the major advantage of being compatible with code pruning performed by its internal bundler to minimize the size of generated JavaScript files (similar to Vite.js and WebPack). This pruning means some patterns that are easy to implement on the server can become the source of strange errors in the browser because the bundler may accidentally remove pieces of code that are actually needed. This is the case for event/listener patterns.
 
-* **Evénement / écouteurs** - Ce mécanisme permet aux modules de communiquer par un système souple de type "prévient moins lorsqu'il se passe ça".
-* **Les composites** Ce mécanisme permet d'avoir des composants React.js dont le contenu est enrichi par des modules. Par exemple pour qu'un module puisse ajouter du contenu dans une barre d'outil.
-* **Exposition et remplacement** Les modules peuvent exposer des éléments partagés entre eux. Par exemple un module pour exposer un composant `Product` faisant le rendu d'un produit. Tandis qu'un autre module peut décider de remplacer ce composant par une nouvelle version : ce qui se fait par un système de priorité. Le nouveau composant à une priorité plus élevée, et c'est pourquoi il remplace l'ancien. 
+This complexity is why Jopi provides its own mechanisms, implemented without side effects for bundlers, and without generating abnormally large JavaScript files for the browser.
 
-### Code serveur only, browser only?
+* Events / listeners — This mechanism lets modules communicate via a flexible "notify when this happens" system.
+* Composites — This mechanism allows React components to have content enriched by modules. For example, so that a module can add content to a toolbar.
+* Exposure and replacement — Modules can expose elements shared among them. For example one module exposes a `Product` component that renders a product. Another module can decide to replace this component with a new version: this is done through a priority system. The new component has a higher priority, and therefore replaces the old one.
 
-Afin d'être rapide, Jopi n'a pas de système d'analyse du code et de retrait du code serveur. Cependant un mécanisme très intéressant a été ajouté afin de compenser: dès que le mot **jopiBundler_ifServer** est rencontré, alors il est remplacé par le mot **jopiBundler_ifBrowser**. Ainsi `import * as myLib from "./jopiBundler_ifServer.ts"` devient `import * as myLib from "./jopiBundler_ifBrowser.ts"` lorsque Jopi crée le javascript pour le navigateur.
+### Server-only code, browser-only code?
 
-En plus d'être performant, ce mécanisme permet d'être plus facile d'usage, tout en offrant des possibilité intéressate.
+To be fast, Jopi does not include code analysis and server-side code removal. However, a very useful mechanism compensates for this: whenever the token **jopiBundler_ifServer** is encountered, it is replaced by the token **jopiBundler_ifBrowser**. Thus `import * as myLib from "./jopiBundler_ifServer.ts"` becomes `import * as myLib from "./jopiBundler_ifBrowser.ts"` when Jopi creates the JavaScript for the browser.
 
-En interne, Jopi Rewrite utilise une librairie nommée **Jopi Toolkit**. Cette librairie regroupe tout un ensemble d'outils non spécifiques à Jopi Rewrite et pouvant être utilisé dans des projets indépendants. Cette librairie a la particularité d'utiliser ce mécanisme de traduction (jopiBundler_ifServer vers jopiBundler_ifBrowser) afin que tout le code serveur soit automatiquement retiré ou remplacé par une partie spécifique au navigateur.
+Besides being performant, this mechanism is easier to use while offering interesting possibilities.
+
+Internally, Jopi Rewrite uses a library called **Jopi Toolkit**. This library gathers a set of tools not specific to Jopi Rewrite and usable in independent projects. This library also uses the translation mechanism (jopiBundler_ifServer to jopiBundler_ifBrowser) so that all server code is automatically removed or replaced by a browser-specific part.
 ## Cookbook
 
-La documentation est organisée sous la forme d'un cookbook : vous voulez faire ça, voici comment faire.
+The documentation is organized as a cookbook: you want to do this, here is how.
 
-### Les bases
+### Basics
 
-[Démarrer un nouveau projet.](_doc/basic/new_project.md)
-[Les 4 fichiers d'initialisation.](_doc/basic/init_files.md)
+[Start a new project.](_doc/basic/new_project.md)
+[The 4 initialization files.](_doc/basic/init_files.md)
 
-[Associer une page à une url.](_doc/basic/bind_page_to_url.md)
-[Utiliser des urls paramètrées.](_doc/basic/use_parametred_url.md)
-[Utiliser des urls catch-all.](_doc/basic/use_catchall_url.md)
-[Remplacer une route existante.](_doc/basic/override_an_existing_route.md)
+[Bind a page to a url.](_doc/basic/bind_page_to_url.md)
+[Use parameterized urls.](_doc/basic/use_parametred_url.md)
+[Use catch-all urls.](_doc/basic/use_catchall_url.md)
+[Override an existing route.](_doc/basic/override_an_existing_route.md)
 
-[Activer le mode développeur.](_doc/basic/enable_developper_mode.md)
-[Activer le HTTPS.](_doc/basic/enable_https.md)
-[Activer le CORS.](_doc/basic/use_cors_middleware.md)
+[Enable developer mode.](_doc/basic/enable_developper_mode.md)
+[Enable HTTPS.](_doc/basic/enable_https.md)
+[Enable CORS.](_doc/basic/use_cors_middleware.md)
 
-[Utiliser un middleware.](_doc/basic/use_middleware.md)
-[Utiliser avec un reverse-proxy.](_doc/basic/use_with_reverse_proxy.md)
-[Utiliser le cache de page.](_doc/basic/use_page_cache.md)
+[Use a middleware.](_doc/basic/use_middleware.md)
+[Use with a reverse-proxy.](_doc/basic/use_with_reverse_proxy.md)
+[Use the page cache.](_doc/basic/use_page_cache.md)
 
-[Définir les pages d'erreur 401, 404 et 500](_doc/basic/define_error_pages.md)
+[Define 401, 404 and 500 error pages](_doc/basic/define_error_pages.md)
 
-### Les pages React.js
+### React pages
 
-[Utiliser React Server Side.](_doc/react/what_is_react_ssr.md)
-[Utiliser Tailwind CSS.](_doc/react/use_tailwind_css.md)
+[Use React Server Side.](_doc/react/what_is_react_ssr.md)
+[Use Tailwind CSS.](_doc/react/use_tailwind_css.md)
 
-[Importer une CSS.](_doc/react/import_css.md)
-[Utiliser un module CSS.](_doc/react/use_css_modules.md)
-[Importer une image.](_doc/react/import_image.md)
+[Import a CSS file.](_doc/react/import_css.md)
+[Use a CSS module.](_doc/react/use_css_modules.md)
+[Import an image.](_doc/react/import_image.md)
 
-[Modifier le titre de la page.](_doc/react/set_page_title.md)
-[Utiliser les menus.](_doc/react/use_menus.md)
+[Change the page title.](_doc/react/set_page_title.md)
+[Use menus.](_doc/react/use_menus.md)
 
-### Utiliser des modules
+### Using modules
 
-[Créer un module.](_doc/module/create_a_module.md)
+[Create a module.](_doc/module/create_a_module.md)
 
-[Partager des composants React.](_doc/module/sharing_react_components.md)
-[Remplacer un composant déjà partagé.](_doc/module/replace_shared_component.md)
+[Share React components.](_doc/module/sharing_react_components.md)
+[Replace an already shared component.](_doc/module/replace_shared_component.md)
 
-[Utiliser les composites.](_doc/module/use_composites.md)
-[Communiquer avec les modules.](_doc/module/communicate_between_modules.md)
+[Use composites.](_doc/module/use_composites.md)
+[Communicate between modules.](_doc/module/communicate_between_modules.md)
 
-### Répondre à une requête
+### Responding to a request
 
-[Créer une réponse JSON](_doc/request/json_response.md)
-[Créer une réponse HTML avec React](_doc/request/returns_html_with_react.md)
+[Create a JSON response](_doc/request/json_response.md)
+[Create an HTML response with React](_doc/request/returns_html_with_react.md)
 
-[Obtenir les données d'entrée.](_doc/request/get_received_data.md)
-[Gérer les fichiers reçus.](_doc/request/manage_received_files.md)
-[Vérifier les données d'entrée.](_doc/request/check_received_data.md)
-[Renvoyer des fichiers.](_doc/request/return_files.md)
+[Get received input data.](_doc/request/get_received_data.md)
+[Handle received files.](_doc/request/manage_received_files.md)
+[Validate input data.](_doc/request/check_received_data.md)
+[Return files.](_doc/request/return_files.md)
 
-### Utilisateurs et rôles
+### Users and roles
 
-[Définir une banque d'utilisateurs.](_doc/users/user_data_store.md)
-[Authentifier un utilisateur.](_doc/users/login_the_user.md)
+[Define a user store.](_doc/users/user_data_store.md)
+[Authenticate a user.](_doc/users/login_the_user.md)
 
-[Connaître l'utilisateur et ses rôles.](_doc/users/known_user_and_roles.md)
-[Limiter l'accès à des rôles.](_doc/users/limit_access_to_roles.md)
+[Know the user and their roles.](_doc/users/known_user_and_roles.md)
+[Restrict access by roles.](_doc/users/limit_access_to_roles.md)

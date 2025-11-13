@@ -1,22 +1,23 @@
-# Obtenir les donnés d'entrées
+# Get received input data
 
-Plusieurs fonctions permettent d'obtenir les données envoyées au serveur.
+Read incoming data depending on content type.
 
-* `req.getBodyData` renvoie les données venant du body. Elle détecte l'encodage de ces données et les décode correctement.
-* `req.urlSearchParams` renvoie les informations encodée dans l'url (après le `?`).
-* `req.getReqData` renvoie la concaténation de toutes les données. Celles venant de l'url et celles venant du body.
-
-Si vous connaissez avec certitude la source de donnés (url ou body) et son encodage, alors vous pouvez utiliser une méthode plus directe et légèrement plus performante.
-* `req.reqBodyAsJson` pour un body au format JSON.
-* `req.reqBodyAsFormData`pour un body au format form-data.
-* `res.isReqBodyXFormUrlEncoded` pour une url au format x-form.
-
-**Sample onPOST.ts file**
-```typescript
-import {JopiRequest} from "jopi-rewrite";  
-  
-export default async function(req: JopiRequest) {  
-    const myData = await req.getBodyData();  
-    return req.jsonResponse(myData);  
-}
+JSON:
+```js
+const body = await request.json();
 ```
+
+Form data:
+```js
+const form = await request.formData();
+```
+
+Query parameters:
+```js
+const url = new URL(request.url);
+const param = url.searchParams.get('q');
+```
+
+Best practices:
+- Validate and sanitize all incoming data.
+- Return clear validation errors with appropriate status codes (400/422).

@@ -1,34 +1,49 @@
+# Enable CORS
 
-# Activer la protection CORS
+To accept cross-origin requests, enable and configure the CORS middleware.
 
-## Qu'est-ce que le CORS ?
+Typical options:
+- allowedOrigins: `*` or an explicit list of domains
+- allowedMethods: `GET, POST, PUT, DELETE, OPTIONS`
+- allowedHeaders: `Content-Type, Authorization, X-Requested-With`
 
-Dans un but de protection, lorsque vous accédez à une ressource serveur alors le navigateur vérifie que le site actuel a bien le droit d'accéder au serveur.
+Example usage:
+- Register the middleware globally or for specific API routes.
+- For public APIs you may allow `*`; for private APIs restrict origins.
 
-Si c'est important, c'est afin de réduire la possibilité qu'un site internet malveillant aille communiquer avec un site sur lequel vous êtes identifié, cela à votre insu.
+Security note:
+- Be cautious with wildcard origins when requests include credentials (cookies or auth headers).
 
-* Ce ne réduit pas les attaques d'un pirate contre votre serveur.
-* Ça réduit les attaques de type usurpation d'identité.
+Enable CORS protection
 
-Activer le CORS, est dont une façon de protéger les visiteurs de votre site. C'est pourquoi **CORS est automatiquement activé**.
+## What is CORS?
 
-## Modifier le CORS
+For security, when you access a server resource the browser checks that the current site is allowed to access that server.
 
-Le CORS peut être modifié depuis le fichier de configuration central `src/index.ts.
+This matters because it reduces the possibility that a malicious website will communicate with a site where you are authenticated, without your knowledge.
+
+* This does not prevent attacks by an attacker directly against your server.
+* It reduces impersonation (cross-site request forgery / unauthorized cross-site requests).
+
+Enabling CORS is therefore a way to protect your visitors. That's why CORS is enabled automatically.
+
+## Modify CORS
+
+CORS can be adjusted from the central configuration file `src/index.ts`.
 
 ```typescript
-import {jopiApp} from "jopi-rewrite";  
-  
-jopiApp.startApp(import.meta, jopiEasy => {  
-    jopiEasy.create_creatWebSiteServer()  
-        .enable_cors()  
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(import.meta, jopiEasy => {
+    jopiEasy.create_creatWebSiteServer()
+        .enable_cors()
 	        // The current website is always added automatically.
-	        // Here it's a second allows website.
+	        // Here it's a second allowed website.
             .add_allowedHost("http://mywebsiteB")
-            
+
             // If you want to disable automatic CORS activation.
 			.disable_cors()
-  
-            .DONE_enableCors();  
+
+            .DONE_enableCors();
     });
 ```

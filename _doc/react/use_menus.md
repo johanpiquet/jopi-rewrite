@@ -1,60 +1,74 @@
+# Use menus
 
-# Utiliser les menus
+Jopi provides helpers to define and render navigation menus.
 
-Un site internet, ou une application, utilise très souvent des menus. Ces menus sont souvent conditionné aux rôles de l'utilisateur : en fonction de ses droits, le menu affichera ou cachera certaines entrées.
+How to define:
+- Declare menu items in module configuration or a dedicated menu file.
+- Each item typically includes a label, URL and optional roles or visibility rules.
 
-Ce mécanisme de menus est déjà intégré à Jopi afin de vous faire gagner du temps. Il permet de définir des menues, les personnaliser selon les rôles de l'utilisateur, et d'obtenir les données formant ces menus.
+How to render:
+- Use provided menu components or render the menu data directly in your layout.
 
-La déclaration des menus se fait dans le fichier `uiInit.tsx` se trouvant à la racine d'un module. Chaque module a un tel fichier, qui est appelé lorsqu'une page est affiché afin de pouvoir personnaliser ses informations.
+Tips:
+- Use role-based visibility to show/hide items for authenticated users.
+- Keep menu definitions centralized when possible for easier maintenance.
 
-**Exemple de déclaration d'un menu**
+## Use menus
+
+A website or application very often uses menus. These menus are frequently conditioned by the user's roles: depending on their rights, the menu will show or hide certain entries.
+
+This menu mechanism is already integrated into Jopi to save you time. It allows defining menus, customizing them according to user roles, and obtaining the data that forms these menus.
+
+Menu declarations are done in the `uiInit.tsx` file located at the root of a module. Each module has such a file, which is called when a page is displayed so it can customize its information.
+
+**Example of declaring a menu**
 ```typescript jsx
-import {UiKitModule, MenuName} from "jopi-rewrite/uikit";  
-  
+import {UiKitModule, MenuName} from "jopi-rewrite/uikit";
+
 export default function(myModule: UiKitModule) {
 	// Allow accessing the menus.
-    const menuManager = myModule.getMenuManager();  
-  
+    const menuManager = myModule.getMenuManager();
+
 	// Set a function which is called when
-	// the menu is asked for the first time.
+	// the menu is requested for the first time.
 	//
-	// Here the target is the menu shown at the left-side
-	// of our application / website. The MenuName objet
-	// is only an helper for common menu names.
+	// Here the target is the menu shown at the left side
+	// of our application / website. The MenuName object
+	// is only a helper for common menu names.
 	//
     menuManager.addMenuBuilder(MenuName.LEFT_MENU, (leftMenu) => {
 		// Here we select the menu "Users" and the sub-menu "List users".
 		// They are created if missing.
 		//
 		leftMenu.selectItem(["Users", "List users"])
-					// We set the url call when clicking
+					// We set the url called when clicking
 					// the menu entry. Other properties
 					// can be set, like the menu title
-					// and an incon.
+					// and an icon.
 					//
-		            .value = {url: "/users/list"};  
-	
-		// ifUserHasRoles call his function if the
+		            .value = {url: "/users/list"};
+
+		// ifUserHasRoles calls this function if the
 		// user has all the roles (here admin + useradmin).
 		//
-        myModule.ifUserHasRoles(["admin", "useradmin"], () => {  
+        myModule.ifUserHasRoles(["admin", "useradmin"], () => {
             leftMenu.selectItem(["Users", "Add user"])
-	            .value = {url: "/users/add"};  
-        });  
-    }); 
+	            .value = {url: "/users/add"};
+        });
+    });
 }
 ```
 
-Le hook `useMenu` permet d'obtenir les données décrivant un menu, cela depuis un composant React. Le hook `useMatchingMenuItem` permet d'obtenir une référence à l'élément du menu pointant vers l'url actuelle. Donc celui sur lequel nous venons de cliquer.
+The `useMenu` hook lets you obtain the data describing a menu from a React component. The `useMatchingMenuItem` hook returns a reference to the menu item pointing to the current URL — i.e., the one that was just clicked.
 
-**Exemple d'usage d'un menu**
+**Example of using a menu**
 ```typescript tsx
 import {useMatchingMenuItem, useMenu} from "jopi-rewrite/uikit";
 
 export default function() {
 	const items = useMenu(MenuName.LEFT_MENU);
 	const current = useMatchingMenuItem();
-	
+
 	return <div>{JSON.stringify(items)}</div>
 }
 ```
