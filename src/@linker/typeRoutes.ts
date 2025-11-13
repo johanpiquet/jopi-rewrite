@@ -164,9 +164,8 @@ export default class TypeRoutes extends ArobaseType {
             if (dirItem.name[0] === '.') continue;
 
             if (dirItem.isDirectory) {
-                let segment = convertRouteSegment(dirItem.name);
-                let newRoute = route==="/" ? route + segment : route + "/" + segment;
-
+                let segmentInfos = convertRouteSegment(dirItem.name);
+                let newRoute = route==="/" ? route + segmentInfos.routePart : route + "/" + segmentInfos.routePart;
                 let dirAttributs = await this.scanAttributs(dirItem.fullPath);
 
                 if (dirAttributs.configFile) {
@@ -220,16 +219,29 @@ interface RegistryItem {
     attributs: RouteAttributs;
 }
 
-function convertRouteSegment(segment: string): string {
+function convertRouteSegment(segment: string): {routePart: string, isCatchAll?: boolean, name?: string} {
     if (segment.startsWith("[") && segment.endsWith("]")) {
         segment = segment.substring(1, segment.length - 1);
 
-        if ((segment==="...")||(segment==="..")) {
-            return "**";
+        if (segment.startsWith("..")) {
+            segment = segment.substring(2);
+            while (segment[0]===".") segment=segment.substring(1);
+
+            return {
+                routePart: "**",
+                isCatchAll: true,
+                name: segment.length ? segment : undefined
+            };
         }
 
-        return ":" + segment;
+        return {
+            routePart: ":" + segment,
+            isCatchAll: false,
+            name: segment
+        };
     }
 
-    return segment;
+    return {
+        routePart: segment
+    };
 }
