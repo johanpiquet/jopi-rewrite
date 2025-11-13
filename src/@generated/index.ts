@@ -107,6 +107,11 @@ interface RouteBindVerbParams extends RouteBindPageParams {
 }
 
 export async function routeBindVerb(webSite: WebSiteImpl, handler: RouteHandler, params: RouteBindVerbParams) {
-    const infos = webSite.onVerb(params.verb, params.route + "/", handler);
+    let infos = webSite.onVerb(params.verb, params.route, handler);
     applyAttributes(infos, params.attributs, params.verb);
+
+    if (params.route!=="/") {
+        infos = webSite.onVerb(params.verb, params.route + "/", handler);
+        applyAttributes(infos, params.attributs, params.verb);
+    }
 }
