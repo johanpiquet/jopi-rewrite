@@ -67,57 +67,61 @@ En interne, Jopi Rewrite utilise une librairie nommée **Jopi Toolkit**. Cette l
 La documentation est organisée sous la forme d'un cookbook : vous voulez faire ça, voici comment faire.
 
 ### Les bases
-[Démarrer un nouveau projet.](new_project.md)
-[Les 4 fichiers d'initialisation.](init_files.md)
 
-[Associer une page à une url.](bind_page_to_url.md)
-[Utiliser des urls paramètrées.](use_parametred_url.md)
-[Utiliser des urls catch-all.](use_catchall_url.md)
-[Remplacer une route existante.](override_an_existing_route.md)
+[Démarrer un nouveau projet.](_doc/basic/new_project.md)
+[Les 4 fichiers d'initialisation.](_doc/basic/init_files.md)
 
-[Activer le mode développeur.](enable_developper_mode.md.md)
-[Activer le HTTPS.](enable_https.md)
-[Activer le CORS.](use_cors_middleware.md)
+[Associer une page à une url.](_doc/basic/bind_page_to_url.md)
+[Utiliser des urls paramètrées.](_doc/basic/use_parametred_url.md)
+[Utiliser des urls catch-all.](_doc/basic/use_catchall_url.md)
+[Remplacer une route existante.](_doc/basic/override_an_existing_route.md)
 
-[Utiliser un middleware.](use_middleware.md)
-[Utiliser avec un reverse-proxy.](use_with_reverse_proxy.md)
-[Utiliser le cache de page.](use_page_cache.md)
+[Activer le mode développeur.](_doc/basic/enable_developper_mode.md)
+[Activer le HTTPS.](_doc/basic/enable_https.md)
+[Activer le CORS.](_doc/basic/use_cors_middleware.md)
 
-[Définir les pages d'erreur 401, 404 et 500](define_error_pages.md)
-### Vos pages React.js
+[Utiliser un middleware.](_doc/basic/use_middleware.md)
+[Utiliser avec un reverse-proxy.](_doc/basic/use_with_reverse_proxy.md)
+[Utiliser le cache de page.](_doc/basic/use_page_cache.md)
 
-[Utiliser React Server Side](what_is_react_ssr.md)
-[Utiliser Tailwind CSS](use_tailwind_css.md)
+[Définir les pages d'erreur 401, 404 et 500](_doc/basic/define_error_pages.md)
 
-[Importer une CSS](import_css.md)
-[Utiliser un module CSS](use_css_modules.md)
-[Importer une image](import_image.md)
+### Les pages React.js
 
-[Modifier le titre de la page](set_page_title.md)
-[Utiliser les menus](use_menus.md)
+[Utiliser React Server Side.](_doc/react/what_is_react_ssr.md)
+[Utiliser Tailwind CSS.](_doc/react/use_tailwind_css.md)
+
+[Importer une CSS.](_doc/react/import_css.md)
+[Utiliser un module CSS.](_doc/react/use_css_modules.md)
+[Importer une image.](_doc/react/import_image.md)
+
+[Modifier le titre de la page.](_doc/react/set_page_title.md)
+[Utiliser les menus.](_doc/react/use_menus.md)
+
 ### Utiliser des modules
 
-[Créer un module.](create_a_module.md)
+[Créer un module.](_doc/module/create_a_module.md)
 
-[Partager des composants React.](sharing_react_components.md)
-[Remplacer un composant déjà partagé.](replace_shared_component.md)
+[Partager des composants React.](_doc/module/sharing_react_components.md)
+[Remplacer un composant déjà partagé.](_doc/module/replace_shared_component.md)
 
-[Utiliser les composites.](use_composites.md)
-[Communiquer avec les modules.](communicate_between_modules.md)
+[Utiliser les composites.](_doc/module/use_composites.md)
+[Communiquer avec les modules.](_doc/module/communicate_between_modules.md)
+
 ### Répondre à une requête
 
-[Créer une réponse JSON](json_response.md)
-[Créer une réponse HTML avec React](returns_html_with_react.md)
-[Renvoyer du JSON.](./request/returns_json.md)
+[Créer une réponse JSON](_doc/request/json_response.md)
+[Créer une réponse HTML avec React](_doc/request/returns_html_with_react.md)
 
-[Obtenir les données d'entrée.](get_received_data.md)
-[Gérer les fichiers reçus.](manage_received_files.md)
-[Vérifier les données d'entrée.](check_received_data.md)
-[Renvoyer des fichiers.](return_files.md)
+[Obtenir les données d'entrée.](_doc/request/get_received_data.md)
+[Gérer les fichiers reçus.](_doc/request/manage_received_files.md)
+[Vérifier les données d'entrée.](_doc/request/check_received_data.md)
+[Renvoyer des fichiers.](_doc/request/return_files.md)
+
 ### Utilisateurs et rôles
 
-[Définir une banque d'utilisateurs.](user_data_store.md)
-[Authentifier un utilisateur.](login_the_user.md)
+[Définir une banque d'utilisateurs.](_doc/users/user_data_store.md)
+[Authentifier un utilisateur.](_doc/users/login_the_user.md)
 
-[Connaître l'utilisateur et ses rôles.](known_user_and_roles.md)
-[Limiter l'accès à des rôles.](limit_access_to_roles.md)
+[Connaître l'utilisateur et ses rôles.](_doc/users/known_user_and_roles.md)
+[Limiter l'accès à des rôles.](_doc/users/limit_access_to_roles.md)
