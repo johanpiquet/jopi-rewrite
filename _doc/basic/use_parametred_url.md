@@ -43,10 +43,15 @@ At the router files level, using brackets defines a URL parameter. What is insid
 
 The following example shows how to use a hook to retrieve URL parameters from React.js.
 
-```typescript
+You can use:
+* The `useParams` hook.
+* The `params` parameter send to the page. 
+
+```typescript tsx
 import {useParams} from "jopi-rewrite/uikit";
 
-export default function Product() {
+export default function Product({params, searchParams}: any) {
+    // params and pageParams are the same.
     const pageParams = useParams();
     return <div>Product is {pageParams.productId}</div>;
 }

@@ -801,30 +801,29 @@ export class JopiRequest {
      * Used while refactoring the renderer.
      * Used while refactoring the renderer.
      */
-    async reactPage(routeKey: string, C: React.FC<any>): Promise<Response> {
+    async reactPage(pageKey: string, C: React.FC<any>): Promise<Response> {
         try {
-            let html = this.renderPageToHtml(routeKey, C);
+            // What we will include in our HTML.
+            const options = {
+                head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + pageKey + ".css"} />],
+                bodyEnd: [<script key="jopi.mainSript" type="module" src={"/_bundle/" + pageKey + ".js"}></script>]
+            };
+
+            // Allow faking the environment of the page.
+            const controller = new PageController_ExposePrivate<unknown>(false, options);
+            controller.setServerRequest(this);
+            (this.webSite as WebSiteImpl).executeBrowserInstall(controller);
+
+            const params = this.urlParts;
+            const searchParams = this.urlInfos.searchParams;
+
+            const html = ReactServer.renderToStaticMarkup(<Page controller={controller} ><C params={params} searchParams={searchParams}/></Page>);
             return new Response(html, {status: 200, headers: {"content-type": "text/html;charset=utf-8"}});
         }
         catch (e: any) {
             console.error(e);
             return await this.returnError500_ServerError(e);
         }
-    }
-
-    renderPageToHtml(pageKey: string, C: React.FC<any>): string {
-        // What we will include in our HTML.
-        const options = {
-            head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + pageKey + ".css"} />],
-            bodyEnd: [<script key="jopi.mainSript" type="module" src={"/_bundle/" + pageKey + ".js"}></script>]
-        };
-
-        // Allow faking the environment of the page.
-        const controller = new PageController_ExposePrivate<unknown>(false, options);
-        controller.setServerRequest(this);
-        (this.webSite as WebSiteImpl).executeBrowserInstall(controller);
-
-        return ReactServer.renderToStaticMarkup(<Page controller={controller} ><C/></Page>);
     }
 
     //endregion

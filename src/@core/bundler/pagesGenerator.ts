@@ -94,6 +94,8 @@ import ReactDOM from "react-dom/client";
 import {PageContext, PageController_ExposePrivate} from "jopi-rewrite/ui";
 import C from "__PATH__";
 import {UiKitModule} from "jopi-rewrite/uikit";
+import {useParams} from "jopi-rewrite/uikit";
+
 import installer from "__INSTALL__";
 __EXTRA_IMPORTS__
 
@@ -104,8 +106,10 @@ window["__JOPI_ROUTE__"] = __ROUTE__;
 function start() {
     const container = document.body;
     const root = ReactDOM.createRoot(container);
+    const params = useParams();
+    const searchParams = new URL(window.location).searchParams;
     root.render(<React.StrictMode><PageContext.Provider value={new PageController_ExposePrivate()}>
-                        <C/></PageContext.Provider></React.StrictMode>);
+                        <C params={params} searchParams={searchParams} /></PageContext.Provider></React.StrictMode>);
 }
 
 __SSE_EVENTS__
