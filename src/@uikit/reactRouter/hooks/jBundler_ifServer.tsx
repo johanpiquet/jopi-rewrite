@@ -1,8 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
 import {useServerRequest} from "jopi-rewrite/ui";
-import {getBundlerConfig} from "jopi-rewrite";
-import {Link} from "react-router";
 import React from "react";
 
 export type NavigateFunction = (to: string) => void;
