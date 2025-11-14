@@ -25,8 +25,8 @@
     "LICENSE"
   ],
   "bin": {
-    "jopin": "bin/jopin.js",
-    "jopib": "bin/jopib.js"
+    "jopib": "bin/jopib.js",
+    "jopin": "bin/jopin.js"
   },
   "scripts": {
     "clean": "rm -rf ./dist .turbo tsconfig.tsbuildinfo",
@@ -98,17 +98,14 @@
     "./bun-server-static": "./src/@loader/bunHtmlCompiler.mjs",
     "./loader-tools": "./dist/@loader-tools/index.js",
     "./loader-client": "./dist/@loader-client/index.js",
-
     "./linker": {
       "bun": "./src/@linker/index.ts",
       "default": "./dist/@linker/index.js"
     },
-
     "./tool-jopinb": {
       "bun": "./src/@tool-jopinb/index.ts",
       "default": "./dist/@tool-jopinb/index.js"
     },
-
     "./types": "./src/@loader-types/extensions.d.ts"
   }
 }
