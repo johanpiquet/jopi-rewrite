@@ -523,7 +523,7 @@ export class JopiEasyWebSite {
                 return me;
             },
 
-            END_configure_behaviors() {
+            END_configure_behaviors(): JopiEasyWebSite {
                 return parent;
             }
         }
