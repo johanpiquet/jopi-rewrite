@@ -514,10 +514,10 @@ export class JopiEasyWebSite {
         return me;
     }
 
-    configure_behaviors() {
+    configure_behaviors(): WebSite_ConfigureBehaviors {
         const parent: JopiEasyWebSite = this;
 
-        const me = {
+        const me: WebSite_ConfigureBehaviors = {
             removeTrailingSlashs(value: boolean = true) {
                 parent.options.removeTrailingSlash = value;
                 return me;
@@ -802,6 +802,11 @@ class WebSite_CacheBuilder {
     END_configure_cache(): JopiEasyWebSite {
         return this.webSite;
     }
+}
+
+interface WebSite_ConfigureBehaviors {
+    removeTrailingSlashs(value: boolean|undefined): WebSite_ConfigureBehaviors;
+    END_configure_behaviors(): JopiEasyWebSite;
 }
 
 //endregion
