@@ -409,17 +409,16 @@ export class ServerFetch<T> {
                 if (ct !== undefined && ct === '0') console.log(`Response content-length: ${length}`);
             }
 
-            // Avoid a bug where r.body isn't encoded while the head say he his.
-            let encoding = r.headers.get("content-encoding");
-
-            if (encoding!==null) {
-                if (isNodeJS) {
-                    let headers = new Headers(r.headers);
-                    headers.delete("content-encoding");
-                    r = new Response(r.body, {headers: headers, status: r.status});
-                } else {
-                    r.headers.delete("content-encoding");
-                }
+            // The response is received gzipped but is deflated.
+            // It's why his content-length and content-encoding must be reset.
+            if (isNodeJS) {
+                let headers = new Headers(r.headers);
+                headers.delete("content-length");
+                headers.delete("content-encoding");
+                r = new Response(r.body, {headers: headers, status: r.status});
+            } else {
+                r.headers.delete("content-encoding");
+                r.headers.delete("content-encoding");
             }
 
             return r;
