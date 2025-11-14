@@ -112,6 +112,8 @@ export class LoadBalancer {
         if (server.isServerDown) return;
         server.isServerDown = true;
 
+        // Will try to restart the server automatically.
+        //
         if (!this.isTimerStarted) {
             newInterval(2000, () => this.onTimer())
         }

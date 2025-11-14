@@ -413,7 +413,13 @@ export class ServerFetch<T> {
             let encoding = r.headers.get("content-encoding");
 
             if (encoding!==null) {
-                r.headers.delete("content-encoding");
+                if (isNodeJS) {
+                    let headers = new Headers(r.headers);
+                    headers.delete("content-encoding");
+                    r = new Response(r.body, {headers: headers, status: r.status});
+                } else {
+                    r.headers.delete("content-encoding");
+                }
             }
 
             return r;

@@ -27,6 +27,7 @@ import {
 import {parseCookies} from "./internalTools.ts";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_fs from "jopi-toolkit/jk_fs";
+import {isNodeJS} from "jopi-toolkit/jk_what";
 
 export class JopiRequest {
     public cache: PageCache;
@@ -575,10 +576,23 @@ export class JopiRequest {
 
     async hookIfHtml(res: Response, ...hooks: TextModifier[]): Promise<Response> {
         if (this.isHtml(res)) {
-            return new Response(
-                await this.applyTextModifiers(res, hooks),
-                {status: res.status, headers: res.headers}
-            );
+            if (isNodeJS) {
+                let headers = new Headers(res.headers);
+                headers.delete("content-length");
+                headers.delete("content-encoding");
+
+                let newHTML = await this.applyTextModifiers(res, hooks);
+                return new Response(newHTML, {status: res.status, headers});
+            }
+            else {
+                res.headers.delete("content-length");
+                res.headers.delete("content-encoding");
+
+                return new Response(
+                    await this.applyTextModifiers(res, hooks),
+                    {status: res.status, headers: res.headers}
+                );
+            }
         }
 
         return Promise.resolve(res);
