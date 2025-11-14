@@ -640,6 +640,27 @@ export class JopiRequest {
         return res;
     }
 
+    async replaceWebSiteOrigin(res: Response, toReplace: string, redirectionCode?: number): Promise<Response> {
+        let location = res.headers.get("location");
+
+        if (location) {
+            const thisOrigin = this.webSite.getWelcomeUrl();
+            location = location.replace(toReplace, thisOrigin);
+            if (location.startsWith("/")) location = thisOrigin + location;
+            res = Response.redirect(location, redirectionCode ? redirectionCode : res.status);
+        } else {
+            // It's a helper function that allows decoding
+            // and re-encoding a response if his content is of type HTML.
+            //
+            res = await this.hookIfHtml(res, (html) => {
+                const thisOrigin = this.webSite.getWelcomeUrl();
+                return html.replaceAll(toReplace, thisOrigin);
+            });
+        }
+
+        return res;
+    }
+
     //endregion
 
     //region Spy
