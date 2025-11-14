@@ -126,3 +126,7 @@ The documentation is organized as a cookbook: you want to do this, here is how.
 
 [Know the user and their roles.](_doc/users/known_user_and_roles.md)
 [Restrict access by roles.](_doc/users/limit_access_to_roles.md)
+
+### Other
+
+[Using fetch and auto-starting server](_doc/others/use_fetch_and_autostart.md)
