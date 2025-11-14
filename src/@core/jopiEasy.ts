@@ -239,19 +239,19 @@ class CrawlerDownloader {
             onUrlProcessed(infos) {
                 switch (infos.state) {
                     case ProcessUrlResult.IGNORED:
-                        console.log("👎 Website downloader, url IGNORED:", infos.sourceUrl);
+                        console.log("👎  Website downloader, url IGNORED:", infos.sourceUrl);
                         break;
 
                     case ProcessUrlResult.ERROR:
-                        console.log("❌ Website downloader, url ERROR:", infos.sourceUrl);
+                        console.log("❌  Website downloader, url ERROR:", infos.sourceUrl);
                         break;
 
                     case ProcessUrlResult.OK:
-                        console.log("✅ Website downloader, url DOWNLOADED:", infos.sourceUrl);
+                        console.log("✅  Website downloader, url DOWNLOADED:", infos.sourceUrl);
                         break;
 
                     case ProcessUrlResult.REDIRECTED:
-                        console.log("🚫 Website downloader, url REDIRECTED:", infos.sourceUrl);
+                        console.log("🚫  Website downloader, url REDIRECTED:", infos.sourceUrl);
                         break;
                 }
 

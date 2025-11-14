@@ -130,3 +130,4 @@ The documentation is organized as a cookbook: you want to do this, here is how.
 ### Other
 
 [Using fetch and auto-starting server](_doc/others/use_fetch_and_autostart.md)
+[Crawling a website to a flat one](_doc/others/crawling_to_flat_website.md)
