@@ -316,6 +316,10 @@ export class ServerFetch<T> {
         return this.doFetch(req.method, req.urlInfos.href, req.body, req.headers);
     }
 
+    async fetchWith(req: JopiRequest) {
+        return this.doFetch(req.method, req.urlInfos.href, req.body, req.headers);
+    }
+
     async fetch(method: string, url: URL, body?: SendingBody, headers?: Headers) {
         return this.doFetch(method, url.toString(), body, headers);
     }
