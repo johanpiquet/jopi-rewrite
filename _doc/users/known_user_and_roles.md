@@ -36,7 +36,7 @@ export default async function(req: JopiRequest) {
 
 A React component can use the hook `useUserInfos` to obtain a `UiUserInfos` object. This works both in the browser and on the server (React SSR).
 
-```typescript
+```typescript jsx
 import {useUserInfos} from "jopi-rewrite/uikit";
 
 export default async function() {

@@ -15,7 +15,6 @@ The goal of Jopi Rewrite is simplicity: to be able to create an application with
 * A cache management system that makes your site as fast as a static site. You have full control over this cache, which can be global, per-user, to distinguish desktop/mobile, ...
 * Creating an SSL certificate (for https) is trivial: Jopi generates development certificates (local machine) and also handles Let's Encrypt: with automatic renewal and no connection loss.
 
-
 ## Application organization
 
 ### Application structure
@@ -62,6 +61,7 @@ To be fast, Jopi does not include code analysis and server-side code removal. Ho
 Besides being performant, this mechanism is easier to use while offering interesting possibilities.
 
 Internally, Jopi Rewrite uses a library called **Jopi Toolkit**. This library gathers a set of tools not specific to Jopi Rewrite and usable in independent projects. This library also uses the translation mechanism (jopiBundler_ifServer to jopiBundler_ifBrowser) so that all server code is automatically removed or replaced by a browser-specific part.
+
 ## Cookbook
 
 The documentation is organized as a cookbook: you want to do this, here is how.
