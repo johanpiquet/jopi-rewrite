@@ -195,7 +195,7 @@ export class Type_ArobaseList extends ArobaseType {
         let outDir_innerPath = this.getGenOutputDir(list);
         let outDir_fullPath = jk_fs.join(writer.dir.output_src, outDir_innerPath);
 
-        let srcCode = this.codeGen_generateImports();
+        let srcCode = writer.AI_INSTRUCTIONS + this.codeGen_generateImports();
         let distCode = srcCode;
 
         for (let item of list.items) {
@@ -306,8 +306,8 @@ export class Type_ArobaseChunk extends ArobaseType {
         let outDir = jk_fs.join(writer.dir.output_src, this.getGenOutputDir(item));
         let entryPoint = jk_fs.getRelativePath(outDir, item.entryPoint);
 
-        let srcCode = `import C from "${entryPoint}";\nexport default C;`;
-        let distCode = `import C from "${writer.toJavascriptFileName(entryPoint)}";\nexport default C;`;
+        let srcCode = writer.AI_INSTRUCTIONS + `import C from "${entryPoint}";\nexport default C;`;
+        let distCode = writer.AI_INSTRUCTIONS + `import C from "${writer.toJavascriptFileName(entryPoint)}";\nexport default C;`;
 
         await writer.writeCodeFile({
             fileInnerPath: jk_fs.join(this.getGenOutputDir(item), targetName),

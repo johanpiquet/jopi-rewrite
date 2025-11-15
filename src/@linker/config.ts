@@ -1,4 +1,4 @@
-import type {LinkerConfig} from "./engine.ts";
+import type {LinkerConfig, AI_INSTRUCTIONS} from "./engine.ts";
 import * as jk_app from "jopi-toolkit/jk_app";
 import {Type_ArobaseChunk} from "./arobaseTypes.ts";
 import TypeEvents from "./typeEvents.ts";
@@ -7,14 +7,16 @@ import ModInstaller from "./modInstaller.ts";
 import TypeRoutes from "./typeRoutes.ts";
 
 // Here it's ASYNC.
-let gServerInstallFileTemplate = `__HEADER
+let gServerInstallFileTemplate = `__AI_INSTRUCTIONS
+__HEADER
 
 export default async function(registry, onWebSiteCreated) {
 __BODY__FOOTER
 }`;
 
 // Here it's not async.
-let gBrowserInstallFileTemplate = `__HEADER
+let gBrowserInstallFileTemplate = `__AI_INSTRUCTIONS
+__HEADER
 
 export default function(registry) {
 __BODY__FOOTER
