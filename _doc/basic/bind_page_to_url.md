@@ -60,7 +60,7 @@ Files named **page.tsx** allow the URL to respond with the content of a React pa
 
 Example `page.tsx` file:
 
-```typescript tsx
+```typescript jsx
 import "./my-style.css";
 import {usePageTitle} from "jopi-rewrite/ui";
 
