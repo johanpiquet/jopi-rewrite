@@ -154,7 +154,7 @@ export class JopiRequest {
      * - The search param (query string).
      * - The POST/PUT data if available.
      */
-    async getReqData<T>(options?: {ignoreUrl?: boolean, dataSchema?: jk_schema.Schema}): Promise<T> {
+    async getReqData<T = any>(options?: {ignoreUrl?: boolean, dataSchema?: jk_schema.Schema}): Promise<T> {
         let res: any = {};
 
         if (!(options && options.ignoreUrl)) {
@@ -202,7 +202,7 @@ export class JopiRequest {
     /**
      * Get the request body and decode it properly.
      */
-    async getBodyData<T>(options?: {dataSchema?: jk_schema.Schema}): Promise<T> {
+    async getBodyData<T = any>(options?: {dataSchema?: jk_schema.Schema}): Promise<T> {
         let res: any = {};
 
         if (this.isReqBodyJson) {
@@ -238,7 +238,7 @@ export class JopiRequest {
     /**
      * Returns all the data about the request, organized by category.
      */
-    async getReqDataInfos(): Promise<any> {
+    async getReqDataInfos<T = any>(): Promise<T> {
         let res: any = {};
 
         const searchParams = this.urlInfos.searchParams;

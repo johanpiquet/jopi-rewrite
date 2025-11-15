@@ -64,6 +64,12 @@ export class ModuleInitContext {
         return this.host.getUserInfos();
     }
 
+    getUserRoles(): string[] {
+        let userInfos = this.getUserInfos();
+        if (!userInfos) return [];
+        return userInfos.roles || [];
+    }
+
     userHasRoles(roles: string[]): boolean {
         if (roles.length === 0) return true;
 
@@ -76,29 +82,19 @@ export class ModuleInitContext {
         return !!roles.every(role => userRoles.includes(role));
     }
 
-    ifUserHasRoles(roles: string[], f: () => void): void {
+    ifUserHasRoles(roles: string[], f: (userInfos: UiUserInfos) => void): void {
         if (this.userHasRoles(roles)) {
-            f();
+            f(this.getUserInfos()!);
         }
     }
 
-    ifUserLoggedIn(f: () => Promise<void>) {
-        // On the browser-side, using it outside a React function is safe.
+    ifUserLoggedIn(f: (userInfos: UiUserInfos) => void) {
         let userInfos = this.getUserInfos();
-        if (!userInfos) return Promise.resolve();
-
-        let userRoles = userInfos.roles;
-        if (!userRoles) return Promise.resolve();
-        return f();
+        if (!userInfos) return;
+        return f(userInfos);
     }
 
     ifNotUserLoggedIn(f: () => Promise<void>) {
-        // On the browser-side, using it outside a React function is safe.
-        let userInfos = this.getUserInfos();
-        if (!userInfos) return Promise.resolve();
-
-        let userRoles = userInfos.roles;
-        if (userRoles) return Promise.resolve();
-        return f();
+        if (!this.getUserInfos()) f();
     }
 }
