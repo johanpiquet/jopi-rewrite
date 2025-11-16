@@ -202,7 +202,7 @@ export class MenuManager {
     }
 }
 
-class AppMenu extends HierarchyBuilder<MenuItem> {
+export class AppMenu extends HierarchyBuilder<MenuItem> {
 }
 
 function normalizeMenuItem(item: MenuItem) {
