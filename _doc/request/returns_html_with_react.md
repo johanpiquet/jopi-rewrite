@@ -1,12 +1,12 @@
-# Renvoyer du HTML avec React
+# Returning HTML with React
 
-Jopi permet de facilement transformer un composant React en du HTML, cela à travers deux mécanismes :
+Jopi makes it easy to transform a React component into HTML through two mechanisms:
 
-* Les pages React (voir fichiers `page.tsx` du routeur).
-* La fonction req.reactResponse, qui se contente de convertir un composant React en du code HTML "mort", qui ne réagit pas aux événements.
+*   React pages (see the router's `page.tsx` files).
+*   The `req.reactResponse` function, which simply converts a React component into "dead" HTML code that does not react to events.
 
 **Sample file onGET.tsx**
-```typescript tsx
+```typescript jsx
 import {JopiRequest} from "jopi-rewrite";  
   
 function MyComponent() {  
@@ -20,6 +20,6 @@ export default async function(req: JopiRequest) {
 }
 ```
 
-La fonction `req.reactResponse` a son intérêt lorsque couplé avec quelque chose comme du JQuery, cependant de façon général c'est un intérêt limité.
+The `req.reactResponse` function is useful when coupled with something like JQuery, but in general, its interest is limited.
 
-La fonction `req.reactToString` est similaire, cependant elle se contente de transformer le React.js en une chaîne de caractères.
+The `req.reactToString` function is similar, but it simply transforms the React.js into a string.

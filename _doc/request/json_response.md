@@ -1,6 +1,6 @@
-# Créer une réponse JSON
+# Create a JSON response
 
-Jopi expose la fonction `jsonResponse` afin de vous aider à renvoyer facilement une réponse JSON.
+Jopi exposes the `jsonResponse` function to help you easily return a JSON response.
 
 **File onPOST.ts**
 ```typescript
@@ -19,7 +19,7 @@ export default async function(req: JopiRequest) {
 }
 ```
 
-La fonction `jsonStringResponse` est similaire, mais reçoit un JSON déjà encodé sous forme d'une chaîne de caractère.
+The `jsonStringResponse` function is similar, but receives a JSON already encoded as a string.
 
 **File onPOST.ts**
 ```typescript
@@ -38,4 +38,4 @@ export default async function(req: JopiRequest) {
 }
 ```
 
-> En complément, la fonction `req.returnResultMessage` peut être utile pour renvoyer une réponse json de type `{isOk: true, message: myValue}`.
+> In addition, the `req.returnResultMessage` function can be useful for returning a json response of type `{isOk: true, message: myValue}`.

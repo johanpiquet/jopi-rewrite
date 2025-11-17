@@ -1,7 +1,6 @@
+# Importing an image
 
-# Importer une image
-
-Dans un fichier de route `page.tsx` vous pouvez directement importer une image.
+In a `page.tsx` route file, you can directly import an image.
 
 ```typescript
 import logo from "./bun.png";  
@@ -14,13 +13,13 @@ export default function () {
 ```
 
 
-Ici la variable `logo` contient soit l'url de l'image, soit un data-url : qui est une chaîne de caractère encodant le binaire de l'image, ce qui permet de l'inclure directement dans le HTML généré, sans dépendance à une fichier externe.
+Here the `logo` variable contains either the URL of the image or a data-url: which is a character string encoding the binary of the image, allowing it to be included directly in the generated HTML, without dependency on an external file.
 
-Url ou data-url, le choix est réalisé automatiquement en fonction de la taille de l'image. En dessous de 3Ko l'image est transformée en data-url, sinon vous obtenez juste son url. Le fichier image est alors automatiquement exposé, vous n'avez rien de particulier à faire.
+URL or data-url, the choice is made automatically based on the size of the image. Below 3KB the image is transformed into a data-url, otherwise you just get its URL. The image file is then automatically exposed, you don't have to do anything special.
 
-La taille limite (3ko) peut-être configuré via le fichier `package.json`.
+The size limit (3kb) can be configured via the `package.json` file.
 
-**Exemple de configuration dans package.json**
+**Configuration example in package.json**
 ```json
 {
 	"jopi": {  

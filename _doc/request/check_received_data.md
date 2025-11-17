@@ -1,5 +1,5 @@
-# Vérifier les données d'entrée
+# Check received data
 
-Un mécanisme de schéma est en cours de développement et permettra de vérifier automatiquement la validité des données en entrées, et de générer la documentation de vos API.
+A schema mechanism is under development and will automatically check the validity of input data, and generate your API documentation.
 
-Voir: `jopi-toolkit/jk-schemas`.
+See: `jopi-toolkit/jk-schemas`.

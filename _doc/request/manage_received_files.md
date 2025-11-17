@@ -1,6 +1,6 @@
-# Gérer les fichiers reçus
+# Manage received files
 
-La fonction `req.getBodyData` permet de décoder les données reçu, avec l'avantage de traiter automatiquement le cas de formulaire multi-part transmettant des fichiers. Le client émet ces fichiers depuis un objet FormData, ou un formulaire HTML.
+The `req.getBodyData` function allows decoding the received data, with the advantage of automatically handling the case of multi-part forms transmitting files. The client sends these files from a FormData object, or an HTML form.
 
 **File onPOST.ts**
 ```typescript
@@ -20,4 +20,3 @@ export default async function(req: JopiRequest) {
     return req.returnResultMessage(true);  
 }
 ```
-

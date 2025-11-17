@@ -1,15 +1,15 @@
-# Obtenir les donnés d'entrées
+# Get received data
 
-Plusieurs fonctions permettent d'obtenir les données envoyées au serveur.
+Several functions allow you to obtain the data sent to the server.
 
-* `req.getBodyData` renvoie les données venant du body. Elle détecte l'encodage de ces données et les décode correctement.
-* `req.urlSearchParams` renvoie les informations encodée dans l'url (après le `?`).
-* `req.getReqData` renvoie la concaténation de toutes les données. Celles venant de l'url et celles venant du body.
+* `req.getBodyData` returns the data from the body. It detects the encoding of this data and decodes it correctly.
+* `req.urlSearchParams` returns the information encoded in the URL (after the `?`).
+* `req.getReqData` returns the concatenation of all data. Those from the URL and those from the body.
 
-Si vous connaissez avec certitude la source de donnés (url ou body) et son encodage, alors vous pouvez utiliser une méthode plus directe et légèrement plus performante.
-* `req.reqBodyAsJson` pour un body au format JSON.
-* `req.reqBodyAsFormData`pour un body au format form-data.
-* `res.isReqBodyXFormUrlEncoded` pour une url au format x-form.
+If you know for sure the data source (URL or body) and its encoding, then you can use a more direct and slightly more performant method.
+* `req.reqBodyAsJson` for a body in JSON format.
+* `req.reqBodyAsFormData` for a body in form-data format.
+* `res.isReqBodyXFormUrlEncoded` for a URL in x-form format.
 
 **Sample onPOST.ts file**
 ```typescript

@@ -1,13 +1,12 @@
+# Using menus
 
-# Utiliser les menus
+A website, or an application, very often uses menus. These menus are often conditioned by the user's roles: depending on their rights, the menu will show or hide certain entries.
 
-Un site internet, ou une application, utilise très souvent des menus. Ces menus sont souvent conditionné aux rôles de l'utilisateur : en fonction de ses droits, le menu affichera ou cachera certaines entrées.
+This menu mechanism is already integrated into Jopi to save you time. It allows you to define menus, customize them according to user roles, and obtain the data that forms these menus.
 
-Ce mécanisme de menus est déjà intégré à Jopi afin de vous faire gagner du temps. Il permet de définir des menues, les personnaliser selon les rôles de l'utilisateur, et d'obtenir les données formant ces menus.
+The declaration of menus is done in the `uiInit.tsx` file located at the root of a module. Each module has such a file, which is called when a page is displayed in order to be able to customize its information.
 
-La déclaration des menus se fait dans le fichier `uiInit.tsx` se trouvant à la racine d'un module. Chaque module a un tel fichier, qui est appelé lorsqu'une page est affiché afin de pouvoir personnaliser ses informations.
-
-**Exemple de déclaration d'un menu**
+**Example of a menu declaration**
 ```typescript jsx
 import {UiKitModule, MenuName} from "jopi-rewrite/uikit";  
   
@@ -19,22 +18,22 @@ export default function(myModule: UiKitModule) {
 	// the menu is asked for the first time.
 	//
 	// Here the target is the menu shown at the left-side
-	// of our application / website. The MenuName objet
-	// is only an helper for common menu names.
+	// of our application / website. The MenuName object
+	// is only a helper for common menu names.
 	//
     menuManager.addMenuBuilder(MenuName.LEFT_MENU, (leftMenu) => {
 		// Here we select the menu "Users" and the sub-menu "List users".
 		// They are created if missing.
 		//
 		leftMenu.selectItem(["Users", "List users"])
-					// We set the url call when clicking
+					// We set the url to call when clicking
 					// the menu entry. Other properties
 					// can be set, like the menu title
-					// and an incon.
+					// and an icon.
 					//
 		            .value = {url: "/users/list"};  
 	
-		// ifUserHasRoles call his function if the
+		// ifUserHasRoles calls its function if the
 		// user has all the roles (here admin + useradmin).
 		//
         myModule.ifUserHasRoles(["admin", "useradmin"], () => {  
@@ -45,9 +44,9 @@ export default function(myModule: UiKitModule) {
 }
 ```
 
-Le hook `useMenu` permet d'obtenir les données décrivant un menu, cela depuis un composant React. Le hook `useMatchingMenuItem` permet d'obtenir une référence à l'élément du menu pointant vers l'url actuelle. Donc celui sur lequel nous venons de cliquer.
+The `useMenu` hook allows you to obtain the data describing a menu from a React component. The `useMatchingMenuItem` hook allows you to obtain a reference to the menu item pointing to the current URL. So the one we just clicked on.
 
-**Exemple d'usage d'un menu**
+**Example of using a menu**
 ```typescript tsx
 import {useMatchingMenuItem, useMenu} from "jopi-rewrite/uikit";
 

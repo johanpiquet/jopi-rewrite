@@ -1,32 +1,32 @@
-# Utiliser Tailwind CSS
+# Using Tailwind CSS
 
-## Qu'est-ce que Tailwind CSS ?
+## What is Tailwind CSS?
 
-Tailwind CSS est un ensemble de classes CSS outil, dont l'usage évite l'usage de styles CSS. La particularité de Tailwind, est qu'il propose un très grand nombre de classes CSS outil, mais il n'inclut que celle que vous utilisez.
+Tailwind CSS is a set of utility CSS classes, the use of which avoids the use of CSS styles. The particularity of Tailwind is that it offers a very large number of utility CSS classes, but it only includes the ones you use.
 
-Cette particularité permet que les feuilles de style générées restent petites et optimisée. La contrepartie, est que Tailwind doit scanner votre code et analyser ce qu'il utilise, ce qui implique une étape de configuration parfois fastidieuse : ce qui n'est pas le cas avec Jopi, car **Tailwind est déjà configuré et activé par défaut**.
+This feature allows the generated style sheets to remain small and optimized. The trade-off is that Tailwind must scan your code and analyze what it uses, which implies a sometimes tedious configuration step: which is not the case with Jopi, because **Tailwind is already configured and enabled by default**.
 
-## Désactiver Tailwind CSS
+## Disable Tailwind CSS
 
-Tailwind CSS est déjà configuré et activé. Si son usage n'est pas adapté à votre projet, alors voici comment le désactiver depuis le fichier **index.ts** à la racine de votre projet:
+Tailwind CSS is already configured and enabled. If its use is not suitable for your project, then here is how to disable it from the **index.ts** file at the root of your project:
 
-**Désactivation de Tailwind**
+**Disabling Tailwind**
 ```typescript
 jopiEasy
 	   .configure_tailwindProcessor()
 	   .disableTailwind();
 ```
 
-## Définir la "global.css"
+## Define the "global.css"
 
-Le moteur Tailwind a besoin d'un fichier `global.css` pour fonctionner, qu'il recherchera au démarrage. Il est possible de le définir de plusieurs façons, ce que nous indiquons ici par ordre de priorité.
+The Tailwind engine needs a `global.css` file to work, which it will look for on startup. It is possible to define it in several ways, which we indicate here in order of priority.
 
-1. En indiquant programatiquement où il se trouve, ou son contenu.
-2. Si vous utilisez **ShadCN** alors la configuration du fichier `components.json`sera utilisé.
-3. Si un fichier `global.css` est trouvé à la racine du projet alors il sera utilisé (à côté de `package.json`).
-4. Autrement, il utilisera directement le contenu `@import "tailwindcss";`
+1. By programmatically indicating where it is located, or its content.
+2. If you use **ShadCN** then the configuration of the `components.json` file will be used.
+3. If a `global.css` file is found at the root of the project then it will be used (next to `package.json`).
+4. Otherwise, it will directly use the content `@import "tailwindcss";`
 
-Voici un exemple montrant comment définir programatiquement l'endroit où se trouve ce fichier (option 1).
+Here is an example showing how to programmatically define the location of this file (option 1).
 
 ```typescript
 jopiEasy 

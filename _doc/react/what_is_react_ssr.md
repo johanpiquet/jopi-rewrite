@@ -1,22 +1,23 @@
-## Qu'est-ce que React SSR ?
+## What is React SSR?
 
-Jopi utilise une technique nommée React SSR. Afin de comprendre ce que c'est voici le déroulement d'une requête.
+Jopi uses a technique called React SSR. To understand what it is, here is the flow of a request.
 
-1. Le serveur reçoit une requête GET.
-2. En interne il monte un composant React correpondant au rendu visuel de notre page web.
-3. Il transforme ce composant React en du HTML pure, sans écouteur d'événements.
-4. Le navigateur reçoit et affiche ce HTML.
-5. Une fois les dépendances javascript chargées, le navigateur monte le composant React.
-6. Il remplace le HTML par ce composant React : l'un et l'autre ayant un rendu complètement identique, le visiteur ne voit aucune différence.
+1. The server receives a GET request.
+2. Internally, it mounts a React component corresponding to the visual rendering of our web page.
+3. It transforms this React component into pure HTML, without event listeners.
+4. The browser receives and displays this HTML.
+5. Once the JavaScript dependencies are loaded, the browser mounts the React component.
+6. It replaces the HTML with this React component: since both have a completely identical rendering, the visitor sees no difference.
 
-Cette technique a plusieurs avantages:
-- Le HTML généré, est indexable par les moteurs de recherche puis qu'il s'agit de HTML décrivant un visuel parfaitement identique à ce que vos composants React doivent montrer.
-- Le visiteur de votre site, voit une page s'afficher très rapidement. Même si il s'agit du premier rendu et que les dépendances mettent du temps à charger.
-- Vous utilisez React pour créer le HTML de votre site, ce qui signifie utiliser un système de composants ayant fait ses preuves en terme de gain de temps.
+This technique has several advantages:
+- The generated HTML is indexable by search engines since it is HTML describing a visual that is perfectly identical to what your React components should show.
+- The visitor to your site sees a page display very quickly. Even if it is the first render and the dependencies take time to load.
+- You use React to create your site's HTML, which means using a component system that has proven to be a time-saver.
 
-## C'est une fonctionnalité native avec Jopi
+## It's a native feature with Jopi
 
-Avec Jopi Rewrite, l'usage de React SSR est un élément fondamental. C'est pourquoi vous n'avez rien de particulier à faire pour activer cette fonctionnalité.
-## Une intégration ultra-rapide
+With Jopi Rewrite, the use of React SSR is a fundamental element. That's why you don't have to do anything special to activate this feature.
 
-Jopi Rewrite diffère des outils tel que Vite.js et Next.js par le fait qu'il n'y a pas de phase de compilation ou d'optimisation préalable. Les compilations se font page par page au moment de la première demande, et cela en moins d'un dixième de seconde. C'est pourquoi avec Jopi Rewrite, souvent redémarrer le serveur afin de faire des tests n'est pas un problème.
+## Ultra-fast integration
+
+Jopi Rewrite differs from tools like Vite.js and Next.js in that there is no prior compilation or optimization phase. Compilations are done page by page at the time of the first request, and this in less than a tenth of a second. This is why with Jopi Rewrite, often restarting the server to run tests is not a problem.

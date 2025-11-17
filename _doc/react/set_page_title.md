@@ -1,6 +1,6 @@
-# Modifier le titre de la page
+# Change the page title
 
-Dans une page, le hook `usePageTitle` permet de modifier le titre de la page.
+In a page, the `usePageTitle` hook allows you to change the page title.
 
 ```typescript tsx
 import {usePageTitle} from "jopi-rewrite/ui";  
