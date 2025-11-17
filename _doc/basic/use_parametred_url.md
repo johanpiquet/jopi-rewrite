@@ -1,21 +1,21 @@
-# Utiliser des urls paramétrées
+# Using parameterized URLs
 
-## Définir une url paramétrée
+## Define a parameterized URL
 
-Supposons que vous avec les urls suivantes :
+Suppose you have the following URLs:
 
-* http://monsite/product/productAA
-* http://monsite/product/productAB
+* http://mysite/product/productAA
+* http://mysite/product/productAB
 * ...
-* http://monsite/product/productZZ
+* http://mysite/product/productZZ
 
-Ici l'url permet de connaître l'identifiant du produit que nous désirons afficher. Cependant ce que nous aimerions, c'est avoir le même code pour gérer tout ces produits.
+Here the URL allows you to know the identifier of the product we want to display. However, what we would like is to have the same code to manage all these products.
 
-C'est là où les urls paramétrées sont indispensables.
+This is where parameterized URLs are essential.
 
-Au niveau des fichiers du routeur, l'usage de crochet permet de définir un paramètre d'url. Ce qui est entre les crochet, est le nom du paramètre.
+At the level of the router files, the use of square brackets allows you to define a URL parameter. What is between the brackets is the name of the parameter.
 
-**Exemple de définition du paramètre productId**
+**Example of defining the productId parameter**
 ```
 @routes/
 |- product/                < mapped to url http://mysite/product
@@ -23,11 +23,11 @@ Au niveau des fichiers du routeur, l'usage de crochet permet de définir un para
      |- page.tsx           < define the visual
 ```
 
-## Retrouver l'information
+## Retrieve the information
 
-### A l'aide d'un hook React
+### Using a React hook
 
-L'exemple suivant montre comment utiliser un hook pour retrouver les paramètres d'url depuis React.js.
+The following example shows how to use a hook to retrieve URL parameters from React.js.
 
 ```typescript
 import {usePageParams} from "jopi-rewrite/uikit";  
@@ -38,9 +38,9 @@ export default function Product() {
 }
 ```
 
-### Depuis un écouteur de type onPOST.ts
+### From an onPOST.ts type listener
 
-L'exemple suivant permet de retrouver les paramètres d'url depuis un objet JopiRequest, tel que transmis dans les fichier `onPOST.ts`, `onPUT.ts`, ...
+The following example allows you to retrieve URL parameters from a JopiRequest object, as transmitted in the `onPOST.ts`, `onPUT.ts`, ... files.
 
 ```typescript
 import {JopiRequest} from "jopi-rewrite";  

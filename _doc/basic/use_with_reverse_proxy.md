@@ -1,21 +1,21 @@
-# Utiliser un reverse-proxy
+# Using a reverse-proxy
 
-Un reverse-proxy est un serveur exposé publiquement sur internet, dont le but est de relier un serveur interne au réseau publique. Il prend chaque requête destinées à ce serveur, les lui envoie, puis il retourne la réponse de ce serveur.
+A reverse-proxy is a server publicly exposed on the internet, whose purpose is to connect an internal server to the public network. It takes each request intended for this server, sends it to it, and then returns the server's response.
 
-L'usage d'un reverse-proxy nécessite de distinguer deux choses :
-- L'url publique du site : ce que les visiteurs saisissent dans leur navigateur.
-- L'url technique du serveur : sur laquelle il écoute pour recevoir des messages.
+The use of a reverse-proxy requires distinguishing between two things:
+- The public URL of the site: what visitors type into their browser.
+- The technical URL of the server: on which it listens to receive messages.
 
-Lorsqu'un serveur est directement exposé sur internet, alors ces deux urls sont les même. Mais lorsque vous utilisez un reverse-proxy, alors elles se mettent à différer. L'url publique pointe sur le reverse-proxy, lequel doit utiliser l'url technique du serveur pour pouvoir discuter avec lui.
+When a server is directly exposed on the internet, then these two URLs are the same. But when you use a reverse-proxy, they start to differ. The public URL points to the reverse-proxy, which must use the server's technical URL to be able to communicate with it.
 
-Les variables d'environnement JOPI_WEBSITE_URL et permettent de définir ces url JOPI_WEBSITE_LISTENING_URL.
+The environment variables JOPI_WEBSITE_URL and JOPI_WEBSITE_LISTENING_URL allow you to define these URLs.
 
-* JOPI_WEBSITE_URL : définit l'url publique du serveur, celle utilisée pour former les urls dans les pages et informations renvoyées par le serveur.
-* JOPI_WEBSITE_LISTENING_URL : définit l'url technique du serveur, celle que le reverse-proxy utilise pour joindre notre serveur.
+* JOPI_WEBSITE_URL: defines the public URL of the server, the one used to form the URLs in the pages and information returned by the server.
+* JOPI_WEBSITE_LISTENING_URL: defines the technical URL of the server, the one that the reverse-proxy uses to reach our server.
 
-> Si JOPI_WEBSITE_LISTENING_URL n'est pas défini, alors Jopi prendra automatiquement JOPI_WEBSITE_URL
+> If JOPI_WEBSITE_LISTENING_URL is not defined, then Jopi will automatically take JOPI_WEBSITE_URL
 
-**Exemple for /src/index.ts**
+**Example for /src/index.ts**
 ```typescript
 import {jopiApp} from "jopi-rewrite";  
   
