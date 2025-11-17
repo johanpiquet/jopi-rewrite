@@ -481,7 +481,7 @@ export class JopiEasyWebSite {
         return new CertificateBuilder(this, this.internals);
     }
 
-    enable_jwtTokenAuth(): JWT_BEGIN {
+    configure_jwtTokenAuth(): JWT_BEGIN {
         const builder = new JwtTokenAuth_Builder(this, this.internals);
 
         return {
@@ -1079,7 +1079,7 @@ interface JWT_BEGIN {
 }
 
 interface JWT_FINISH {
-    DONE_enable_jwtTokenAuth(): JopiEasyWebSite;
+    DONE_configure_jwtTokenAuth(): JopiEasyWebSite;
 }
 
 interface JWT_StepBegin_SetUserStore {
@@ -1122,7 +1122,7 @@ class JwtTokenAuth_Builder {
 
     FINISH() {
         return {
-            DONE_enable_jwtTokenAuth: () => this.parent
+            DONE_configure_jwtTokenAuth: () => this.parent
         }
     }
 

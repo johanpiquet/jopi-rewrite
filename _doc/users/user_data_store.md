@@ -38,7 +38,7 @@ import myUsers from "./myUsers.json" with { type: "json" };
 jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.create_creatWebSiteServer()
 
-        .enable_jwtTokenAuth()
+        .configure_jwtTokenAuth()
             // WARNING: you must change this key!
             .step_setPrivateKey("my-private-key")
 
@@ -47,7 +47,7 @@ jopiApp.startApp(import.meta, jopiEasy => {
                     .addMany(myUsers)
                     .DONE_use_simpleLoginPassword()
                 .DONE_setUserStore()
-            .DONE_enable_jwtTokenAuth()
+            .DONE_configure_jwtTokenAuth()
     });
 ```
 
