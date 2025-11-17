@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {JopiRequest} from "./jopiRequest.tsx";
+import {type FakeNoUserListener, JopiRequest} from "./jopiRequest.tsx";
 import {ServerFetch} from "./serverFetch.ts";
 import {LoadBalancer} from "./loadBalancing.ts";
 import {type CoreServer, type SseEvent, type WebSocketConnectionInfos} from "./jopiServer.ts";
@@ -400,6 +400,9 @@ export class WebSiteImpl implements WebSite {
                 // >>> Create the content.
 
                 if (!res) {
+                    // This allows generating an anonymous page.
+                    if (mustUseAutoCache) req.fakeNoUsers();
+
                     const pRes = handler(req);
                     res = pRes instanceof Promise ? await pRes : pRes;
                 }
@@ -539,9 +542,9 @@ export class WebSiteImpl implements WebSite {
     //region Cache
 
     mainCache: PageCache;
+    fakeNoUser?: FakeNoUserListener;
     mustUseAutomaticCache: boolean = true;
     private cacheRules: CacheRules[] = [];
-
     private headersToCache: string[] = ["content-type", "etag", "last-modified"];
 
     getCache(): PageCache {
@@ -567,6 +570,10 @@ export class WebSiteImpl implements WebSite {
 
     setCacheRules(rules: CacheRules[]) {
         this.cacheRules = rules;
+    }
+
+    setOnFakeNoUser(listener: FakeNoUserListener) {
+        this.fakeNoUser = listener;
     }
 
     private applyCacheRules(routeInfos: WebSiteRouteInfos, path: string) {

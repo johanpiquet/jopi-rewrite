@@ -992,12 +992,46 @@ export class JopiRequest {
      * Once done, the data is saved and can be read through req.userTokenData.
      */
     private decodeJwtToken(): UserInfos | undefined {
+        if (this.isFakingNoUsers) return undefined;
+
         const token = this.getJwtToken();
         if (!token) return undefined;
         return this.webSite.decodeJwtToken(token);
     }
 
+    /**
+     * Allow faking a state where there is no user connected.
+     * Is mainly used by the automatic cache to generate
+     * a generic anonymous page.
+     */
+    public fakeNoUsers() {
+        let fakeNoUser: FakeNoUserListener|undefined;
+
+        if (this._onFakeNoUser) {
+            fakeNoUser = this._onFakeNoUser;
+        } else if ((this.webSite as WebSiteImpl).fakeNoUser) {
+            fakeNoUser = (this.webSite as WebSiteImpl).fakeNoUser;
+        }
+
+        if (fakeNoUser) {
+            let r = fakeNoUser(this);
+            if (r === false) return;
+        }
+
+        this.isFakingNoUsers = true;
+    }
+
+    /**
+     * Allows setting a listener which is call when `fakeNoUsers`is called.
+     * If this listener explicitly returns false, then the call to fakeNoUsers is ignored.
+     */
+    public onFakeNoUser(handler: (req: JopiRequest) => void|boolean) {
+        this._onFakeNoUser = handler;
+    }
+
     public getUserInfos(): UserInfos | undefined {
+        if (this.isFakingNoUsers) return undefined;
+
         if (this.userInfos) return this.userInfos;
         if (this.hasNoUserInfos) return undefined;
 
@@ -1017,6 +1051,9 @@ export class JopiRequest {
         if (!userInfos) throw new SBPE_NotAuthorizedException();
         return userInfos;
     }
+
+    private isFakingNoUsers: boolean = false;
+    private _onFakeNoUser?: FakeNoUserListener;
 
     private hasNoUserInfos: boolean = false;
     private userInfos?: UserInfos;
@@ -1153,6 +1190,8 @@ export interface JopiRequestSpyData {
 }
 
 export type JopiRequestSpy = (data: JopiRequestSpyData, req: JopiRequest) => void;
+
+export type FakeNoUserListener = (req: JopiRequest) => void|boolean;
 
 export enum ContentTypeCategory {
     OTHER,

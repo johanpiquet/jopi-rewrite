@@ -22,7 +22,7 @@ import {
     WebSiteCrawler,
     type WebSiteCrawlerOptions
 } from "jopi-rewrite/crawler";
-import {JopiRequest} from "./jopiRequest.ts";
+import {type FakeNoUserListener, JopiRequest} from "./jopiRequest.ts";
 import {
     type UserAuthentificationFunction, type CacheRules, type HttpMethod, type JopiMiddleware, type JopiPostMiddleware,
     type JopiRouteHandler, type MiddlewareOptions,
@@ -794,16 +794,23 @@ class WebSite_MiddlewareBuilder {
 
 class WebSite_CacheBuilder {
     private cache?: PageCache;
+    private onFakeNoUser?: FakeNoUserListener;
     private readonly rules: CacheRules[] = [];
 
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
         this.internals.afterHook.push(async webSite => {
             (webSite as WebSiteImpl).setCacheRules(this.rules);
+            (webSite as WebSiteImpl).setOnFakeNoUser(this.onFakeNoUser);
 
             if (this.cache) {
                 webSite.setCache(this.cache);
             }
         });
+    }
+
+    on_fakeNoUser(listener: FakeNoUserListener): WebSite_CacheBuilder {
+        this.onFakeNoUser = listener;
+        return this;
     }
 
     use_inMemoryCache(options?: InMemoryCacheOptions): WebSite_CacheBuilder {
