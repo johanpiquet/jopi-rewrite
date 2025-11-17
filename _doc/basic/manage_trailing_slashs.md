@@ -15,6 +15,6 @@ jopiApp.startApp(import.meta, jopiEasy => {
         .configure_behaviors()
             // Now we will have / at the end of each url.
             .removeTrailingSlashs(false)
-            .END_configure_behaviors()
+            .DONE_configure_behaviors()
     });
 ```

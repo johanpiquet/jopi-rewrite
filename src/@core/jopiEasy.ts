@@ -523,7 +523,7 @@ export class JopiEasyWebSite {
                 return me;
             },
 
-            END_configure_behaviors(): JopiEasyWebSite {
+            DONE_configure_behaviors(): JopiEasyWebSite {
                 return parent;
             }
         }
@@ -806,7 +806,7 @@ class WebSite_CacheBuilder {
 
 interface WebSite_ConfigureBehaviors {
     removeTrailingSlashs(value: boolean|undefined): WebSite_ConfigureBehaviors;
-    END_configure_behaviors(): JopiEasyWebSite;
+    DONE_configure_behaviors(): JopiEasyWebSite;
 }
 
 //endregion
