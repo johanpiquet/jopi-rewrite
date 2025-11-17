@@ -24,7 +24,7 @@ import {
 } from "jopi-rewrite/crawler";
 import {JopiRequest} from "./jopiRequest.ts";
 import {
-    type AuthHandler, type CacheRules, type HttpMethod, type JopiMiddleware, type JopiPostMiddleware,
+    type UserAuthentificationFunction, type CacheRules, type HttpMethod, type JopiMiddleware, type JopiPostMiddleware,
     type JopiRouteHandler, type MiddlewareOptions,
     type UserInfos,
     type WebSite,
@@ -489,6 +489,20 @@ export class JopiEasyWebSite {
         }
     }
 
+    fastConfigure_jwtTokenAuth<T>(privateKey: string, store: any[] | UserAuthentificationFunction<T>): JopiEasyWebSite {
+        const builder = new JwtTokenAuth_Builder(this, this.internals);
+        let config = builder.setPrivateKey_STEP(privateKey).step_setUserStore();
+
+        if (store instanceof Array) {
+            config.use_simpleLoginPassword().addMany(store)
+        }
+        else {
+            config.use_customStore(store);
+        }
+
+        return this;
+    }
+
     add_SseEvent(path: string|string[], handler: SseEvent) {
         this.internals.afterHook.push((webSite) => {
             webSite.addSseEVent(path, handler);
@@ -627,6 +641,16 @@ export class JopiEasyWebSite {
 
     configure_cors() {
         return new WebSite_ConfigureCors(this);
+    }
+
+    fastConfigure_cors(allowedHosts?: string[]): JopiEasyWebSite {
+        const b = new WebSite_ConfigureCors(this);
+
+        if (allowedHosts) {
+            allowedHosts.forEach(o => b.add_allowedHost(o));
+        }
+
+        return this;
     }
 }
 
@@ -1089,7 +1113,7 @@ interface JWT_StepBegin_SetUserStore {
 interface JWT_Step_SetUserStore {
     use_simpleLoginPassword(): JWT_UseSimpleLoginPassword;
 
-    use_customStore<T>(store: AuthHandler<T>): JWT_UseCustomStore;
+    use_customStore<T>(store: UserAuthentificationFunction<T>): JWT_UseCustomStore;
 }
 
 interface JWT_UseCustomStore {
@@ -1158,7 +1182,7 @@ class JwtTokenAuth_Builder {
                 return this.useSimpleLoginPassword_BEGIN()
             },
 
-            use_customStore<T>(store: AuthHandler<T>) { return self.useCustomStore_BEGIN<T>(store) }
+            use_customStore<T>(store: UserAuthentificationFunction<T>) { return self.useCustomStore_BEGIN<T>(store) }
         }
     }
 
@@ -1171,7 +1195,7 @@ class JwtTokenAuth_Builder {
 
     //region useCustomStore
 
-    useCustomStore_BEGIN<T>(store: AuthHandler<T>) {
+    useCustomStore_BEGIN<T>(store: UserAuthentificationFunction<T>) {
         this.internals.afterHook.push(async webSite => {
             webSite.setAuthHandler(store);
         })

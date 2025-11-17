@@ -14,11 +14,9 @@ Example usage:
 Security note:
 - Be cautious with wildcard origins when requests include credentials (cookies or auth headers).
 
-Enable CORS protection
-
 ## What is CORS?
 
-For security, when you access a server resource the browser checks that the current site is allowed to access that server.
+For security, when you access a server resource, the browser checks that the current site is allowed to access that server.
 
 This matters because it reduces the possibility that a malicious website will communicate with a site where you are authenticated, without your knowledge.
 
@@ -45,5 +43,20 @@ jopiApp.startApp(import.meta, jopiEasy => {
 			.disable_cors()
 
             .DONE_configure_cors();
+    });
+```
+
+You can also use `fastConfigure_cors` which do the same, but with a shorter syntax.
+
+```typescript
+import {jopiApp} from "jopi-rewrite";
+
+jopiApp.startApp(import.meta, jopiEasy => {
+    jopiEasy.create_creatWebSiteServer()
+        // Without params: enable cors.
+        .fastConfigure_cors()
+        
+        // With params: enable cors and allows these origins.
+        .fastConfigure_cors(["http://mywebsiteA", "http://mywebsiteB"])
     });
 ```

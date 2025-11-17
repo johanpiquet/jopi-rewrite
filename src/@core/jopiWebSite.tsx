@@ -86,7 +86,7 @@ export interface WebSite {
      * Set the function which will verify user authentification
      * and returns information about this user once connected.
      */
-    setAuthHandler<T>(authHandler: AuthHandler<T>): void;
+    setAuthHandler<T>(authHandler: UserAuthentificationFunction<T>): void;
 
     /**
      * Create a JWT token with the data.
@@ -595,7 +595,7 @@ export class WebSiteImpl implements WebSite {
 
     private JWT_SECRET?: string;
     private jwtSignInOptions?: jwt.SignOptions;
-    private authHandler?: AuthHandler<any>;
+    private authHandler?: UserAuthentificationFunction<any>;
     private jwtTokenStore?: JwtTokenStore;
 
     public storeJwtToken(req: JopiRequest) {
@@ -643,7 +643,7 @@ export class WebSiteImpl implements WebSite {
         return {isOk: false};
     }
 
-    setAuthHandler<T>(authHandler: AuthHandler<T>) {
+    setAuthHandler<T>(authHandler: UserAuthentificationFunction<T>) {
         this.authHandler = authHandler;
     }
 
@@ -920,7 +920,7 @@ export type TextModifier = (text: string, req: JopiRequest) => string|Promise<st
 export type TestCookieValue = (value: string) => boolean|Promise<boolean>;
 
 export type JwtTokenStore = (jwtToken: string, cookieValue: string, req: JopiRequest) => void;
-export type AuthHandler<T> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
+export type UserAuthentificationFunction<T = any> = (loginInfo: T) => AuthResult|Promise<AuthResult>;
 
 export type JopiMiddleware = (req: JopiRequest) => Response | Promise<Response|null> | null;
 export type JopiPostMiddleware = (req: JopiRequest, res: Response) => Response | Promise<Response>;

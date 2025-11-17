@@ -15,7 +15,7 @@ Best practices:
 - Never store plaintext passwords.
 - Keep role assignments explicit and auditable.
 
-# Create a user bank
+## Create a user bank
 
 Jopi provides a basic mechanism to manage an application's users:
 
@@ -70,3 +70,50 @@ Here we enabled JWT and defined a user store that we populated from a JSON file.
 ```
 
 In this example, the `login` and `password` fields are used to authenticate the user, while `userInfos` contains information about the user.
+
+
+## Using a faster configuration
+
+This sample shows the use of `fastConfigure_jwtTokenAuth` which make configuration faster.
+What we do here, is exactly the same as the previous sample, but with a shorter syntax.
+
+**File src/index.ts**
+```typescript
+import {jopiApp} from "jopi-rewrite";
+import myUsers from "./myUsers.json" with { type: "json" };
+
+jopiApp.startApp(import.meta, jopiEasy => {
+    jopiEasy.create_creatWebSiteServer()
+        .fastConfigure_jwtTokenAuth("my-private-key", myUsers);
+});
+```
+
+## Using your own implementation
+
+You can use a custom function for check auth information. Here is a sample.
+There is no constraint on the input data, which is what you send through `JopiRequest.tryAuthWithJWT` call.
+The returned user info only requires the user id. Other fields are optional.
+
+**File src/index.ts**
+```typescript
+import {jopiApp} from "jopi-rewrite";
+import myUsers from "./myUsers.json" with { type: "json" };
+
+jopiApp.startApp(import.meta, jopiEasy => {
+    jopiEasy.create_creatWebSiteServer()
+        .fastConfigure_jwtTokenAuth("key", async (info: any) => {
+            if (info.email == "allowed@domain.com") {
+                return {
+                    isOk: true,
+
+                    userInfos: {
+                        id: "user1",
+                        roles: ["admin", "writer"]
+                    }
+                }
+            }
+
+            return {isOk: false};
+        })
+});
+```
