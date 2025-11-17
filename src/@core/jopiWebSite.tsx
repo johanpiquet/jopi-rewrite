@@ -307,14 +307,12 @@ export class WebSiteImpl implements WebSite {
         this.addGlobalPostMiddleware(undefined, PostMiddlewares.cors({accessControlAllowOrigin: allows}), {priority: PriorityLevel.veryHigh});
     }
 
-    applyMiddlewares(verb: HttpMethod, route: string, handler: JopiRouteHandler): JopiRouteHandler {
+    applyMiddlewares(verb: HttpMethod, route: string, handler: JopiRouteHandler, isPage: boolean): JopiRouteHandler {
         function merge<T>(a: T[]|undefined, b: T[]|undefined): T[]|undefined {
             if (!a) return b;
             if (!b) return a;
             return a.concat(b);
         }
-
-        const webSite = this;
 
         const routeInfos = this.getRouteInfos(verb, route);
         const routeRawMiddlewares = routeInfos ? routeInfos.middlewares : undefined;
@@ -349,7 +347,7 @@ export class WebSiteImpl implements WebSite {
         const postMiddlewares = sortByPriority(merge(routeRawPostMiddlewares, globalRawPostMiddleware));
         const postMiddlewares_count = postMiddlewares ? postMiddlewares.length : 0;
 
-        if (verb==="GET") {
+        if (isPage) {
             return async function (req: JopiRequest) {
                 // >>> Check the required roles.
 
@@ -359,12 +357,12 @@ export class WebSiteImpl implements WebSite {
 
                 // >>> Apply the middlewares.
 
-                if (middlewares) {
+                if (middlewares_count) {
                     // Use a simple loop, which allow us to add/remove middleware at runtime.
                     // For example, it allows enabling / disabling logging requests.
                     //
                     for (let i = 0; i < middlewares_count; i++) {
-                        let mRes = middlewares[i](req);
+                        let mRes = middlewares![i](req);
 
                         if (mRes) {
                             if (mRes instanceof Promise) mRes = await mRes;
@@ -409,9 +407,9 @@ export class WebSiteImpl implements WebSite {
 
                 // >>> Apply the post-middlewares.
 
-                if (postMiddlewares) {
+                if (postMiddlewares_count) {
                     for (let i = 0; i < postMiddlewares_count; i++) {
-                        const mRes = postMiddlewares[i](req, res);
+                        const mRes = postMiddlewares![i](req, res);
                         res = mRes instanceof Promise ? await mRes : mRes;
                     }
                 }
@@ -430,44 +428,55 @@ export class WebSiteImpl implements WebSite {
                 return res;
             }
         } else {
-            return async function (req: JopiRequest) {
-                // >>> Check the required roles.
+            if (middlewares_count || postMiddlewares_count) {
+                return async function (req: JopiRequest) {
+                    // >>> Check the required roles.
 
-                if (req.routeInfos.requiredRoles) {
-                    req.assertUserHasRoles(req.routeInfos.requiredRoles);
-                }
+                    if (req.routeInfos.requiredRoles) {
+                        req.assertUserHasRoles(req.routeInfos.requiredRoles);
+                    }
 
-                // >>> Apply the middlewares.
+                    // >>> Apply the middlewares.
 
-                if (middlewares) {
-                    // Use a simple loop, which allow us to add/remove middleware at runtime.
-                    // For example, it allows enabling / disabling logging requests.
-                    //
-                    for (let i = 0; i < middlewares_count; i++) {
-                        let res = middlewares[i](req);
+                    if (middlewares_count) {
+                        // Use a simple loop, which allow us to add/remove middleware at runtime.
+                        // For example, it allows enabling / disabling logging requests.
+                        //
+                        for (let i = 0; i < middlewares_count; i++) {
+                            let res = middlewares![i](req);
 
-                        if (res) {
-                            if (res instanceof Promise) res = await res;
-                            if (res) return res;
+                            if (res) {
+                                if (res instanceof Promise) res = await res;
+                                if (res) return res;
+                            }
                         }
                     }
-                }
 
-                // >>> Create the content.
+                    // >>> Create the content.
 
-                const pRes = handler(req);
-                let res = pRes instanceof Promise ? await pRes : pRes;
+                    const pRes = handler(req);
+                    let res = pRes instanceof Promise ? await pRes : pRes;
 
-                // >>> Apply the post-middlewares.
+                    // >>> Apply the post-middlewares.
 
-                if (postMiddlewares) {
-                    for (let i = 0; i < postMiddlewares_count; i++) {
-                        const mRes = postMiddlewares[i](req, res);
-                        res = mRes instanceof Promise ? await mRes : mRes;
+                    if (postMiddlewares_count) {
+                        for (let i = 0; i < postMiddlewares_count; i++) {
+                            const mRes = postMiddlewares![i](req, res);
+                            res = mRes instanceof Promise ? await mRes : mRes;
+                        }
                     }
-                }
 
-                return res;
+                    return res;
+                }
+            } else {
+                return async function (req: JopiRequest) {
+                    if (req.routeInfos.requiredRoles) {
+                        req.assertUserHasRoles(req.routeInfos.requiredRoles);
+                    }
+
+                    const pRes = handler(req);
+                    return pRes instanceof Promise ? await pRes : pRes;
+                }
             }
         }
     }
@@ -677,7 +686,7 @@ export class WebSiteImpl implements WebSite {
     //region Path handler
 
     onVerb(verb: HttpMethod, path: string, handler: (req: JopiRequest) => Promise<Response>): WebSiteRouteInfos {
-        handler = this.applyMiddlewares(verb, path, handler);
+        handler = this.applyMiddlewares(verb, path, handler, false);
 
         const routeInfos: WebSiteRouteInfos = {handler};
         this.saveRouteInfos(verb, path, routeInfos);

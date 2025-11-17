@@ -124,7 +124,7 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
             return await req.reactPage(pageKey, reactComponent);
         };
 
-        routeInfos.handler = this.webSite.applyMiddlewares("GET", path, routeInfos.handler);
+        routeInfos.handler = this.webSite.applyMiddlewares("GET", path, routeInfos.handler, true);
         this.addRoute("GET", path, routeInfos);
     }
 

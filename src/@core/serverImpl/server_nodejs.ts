@@ -263,7 +263,7 @@ export class NodeJsServerInstanceBuilder implements ServerInstanceBuilder {
             return req.reactPage(pageKey, reactComponent);
         };
 
-        routeInfos.handler = this.webSite.applyMiddlewares("GET", path, routeInfos.handler);
+        routeInfos.handler = this.webSite.applyMiddlewares("GET", path, routeInfos.handler, true);
         this.addRoute("GET", path, routeInfos);
     }
 }
