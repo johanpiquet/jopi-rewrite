@@ -1,10 +1,10 @@
-# Connaître l'utilisateur et ses rôles
+# Knowing the user and their roles
 
-## Côté serveur
+## Server-side
 
-La fonction `req.getUserInfos` permet d'obtenir des informations de base sur l'utilisateur actuellement connecté. Elle opère en décodant le token JWT reçut par l'appelant, après avoir vérifié son authenticité.
+The `req.getUserInfos` function allows you to obtain basic information about the currently logged-in user. It operates by decoding the JWT token received from the caller, after verifying its authenticity.
 
-**Exemple onGET.ts***
+**Example onGET.ts***
 ```typescript
 import {JopiRequest} from "jopi-rewrite";  
   
@@ -19,9 +19,9 @@ export default async function(req: JopiRequest) {
 }
 ```
 
-## Coté React
+## React-side
 
-Un composant React peut utiliser le hook `useUserInfos` pour obtenir un objet `UiUserInfos`. Cela que ce soit dans le browser, ou côté serveur (React SSR).
+A React component can use the `useUserInfos` hook to obtain a `UiUserInfos` object. This works both in the browser and on the server-side (React SSR).
 
 ```typescript
 import {useUserInfos} from "jopi-rewrite/uikit";  
@@ -32,7 +32,7 @@ export default async function() {
     if (user) {  
         return <div>  
             <div>Hello {user.name}</div>  
-            <div>You roles: {user.roles?.join(", ")}</div>  
+            <div>Your roles: {user.roles?.join(", ")}</div>  
         </div>;  
     }  
     else {  

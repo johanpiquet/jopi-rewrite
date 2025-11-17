@@ -1,16 +1,16 @@
-# Limiter l'accès à des rôles
+# Limit access to roles
 
-Plusieurs fonctionnalités permettent de modifier les comportements en fonction des rôles.
+Several features allow you to modify behaviors based on roles.
 
-**Côté React.js**
-* Le hook `useUserHasRoles`  renvoie un boolean indiquant si l'utilisateur possède l'ensemble des rôles indiqués en paramètre.
-* Le composant `RequireRoles` permet d'entourer un composant qui ne sera affiché que si l'utilisateur possède les rôles indiqués.
+**On the React.js side**
+* The `useUserHasRoles` hook returns a boolean indicating whether the user has all the roles specified in the parameter.
+* The `RequireRoles` component allows you to wrap a component that will only be displayed if the user has the specified roles.
 
-**Dans le fichier `uiInit.ts`**
-* La fonction `myModule.ifUserHasRoles` permet d'exécuter une fonction si l'utilisateur possède l'ensemble des rôles indiqués.
+**In the `uiInit.ts` file**
+* The `myModule.ifUserHasRoles` function allows you to execute a function if the user has all the specified roles.
 
-Dans le traitement d'une requête (GET/POST/...)
-* La fonction `req.getUserRoles` permet de connaître les rôles de l'utilisateur en renvoyant un tableau contenant le nom de ses rôles.
-* La fonction `req.userHasRoles` renvoie un boolean indiquant si l'utilisateur à l'ensemble des rôles indiqués.
-* Emettre une exception `SBPE_NotAuthorizedException`   provoque une réponse 401 (non autorisé).
-* La fonction `req.assertUserHasRoles` émet une exception `SBPE_NotAuthorizedException` si l'utilisateur n'a pas l'ensemble des rôles indiqués.
+In request processing (GET/POST/...)
+* The `req.getUserRoles` function allows you to know the user's roles by returning an array containing the names of their roles.
+* The `req.userHasRoles` function returns a boolean indicating whether the user has all the specified roles.
+* Throwing an `SBPE_NotAuthorizedException` exception causes a 401 (unauthorized) response.
+* The `req.assertUserHasRoles` function throws an `SBPE_NotAuthorizedException` exception if the user does not have all the specified roles.

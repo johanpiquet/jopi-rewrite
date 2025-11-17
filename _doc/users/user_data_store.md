@@ -1,19 +1,19 @@
-# Créer une banque d'utilisateur
+# Create a user store
 
-Jopi offre un mécanisme basique permettant de gérer les utilisateurs d'une application :
+Jopi offers a basic mechanism for managing application users:
 
-* Gestion de l'authentification, en vérifiant un login mot de passe (ou un hash du mot de passe).
-* Gestion du token de connexion, en utilisant la technologie JWT (Json Web Token).
-* Gestion de l'obtention d'informations sur l'utilisateur, au niveau d'une API serveur, ou depuis  le code React.js (serveur et browser).
+*   Authentication management, by verifying a login/password (or a password hash).
+*   Connection token management, using JWT (Json Web Token) technology.
+*   Management of obtaining user information, at the server API level, or from React.js code (server and browser).
 
-Ici nous utilisons le format JWT pour les tokens de connexion. Ces tokens sont transmis au serveur en même temps que les appels provenant du navigateur, cela grâce à un cookie. Les tokens JWT ont deux particularités:
+Here we use the JWT format for connection tokens. These tokens are transmitted to the server along with calls from the browser, thanks to a cookie. JWT tokens have two special features:
 
-* Ils encodent des informations publiques à propos de l'utilisateur. Elles peuvent être décodées côté serveur mais aussi côté navigateur, et cela sans clé de chiffrement.
-* Ces tokens intègrent une preuve, qui permet de savoir si ces données sont authentiques et non des données trafiquées. Cela en se basant sur une clé de chiffrement privée, stockée côté serveur.
+*   They encode public information about the user. They can be decoded on the server side as well as on the browser side, without an encryption key.
+*   These tokens include a proof, which allows verifying if this data is authentic and not tampered with. This is based on a private encryption key, stored on the server side.
 
-L'activation de JWT se fait depuis le fichier `src/index.ts`, selon l'exemple suivant.
+JWT activation is done from the `src/index.ts` file, as in the following example.
 
-**Fichier src/index.ts**
+**File src/index.ts**
 ```typescript
 import {jopiApp} from "jopi-rewrite";  
 import myUsers from "./myUsers.json" with { type: "json" };  
@@ -35,9 +35,9 @@ jopiApp.startApp(import.meta, jopiEasy => {
     });
 ```
 
-Ici nous avons activé JWT, et définit un magasin d'utilisateurs que nous avons rempli à l'aide d'un fichier JSON.
+Here we have enabled JWT, and defined a user store that we have populated using a JSON file.
 
-**Fichier myUsers.json**
+**File myUsers.json**
 ```json
 [  
   {  
@@ -53,4 +53,4 @@ Ici nous avons activé JWT, et définit un magasin d'utilisateurs que nous avons
 ]
 ```
 
-Ici les informations `login`et `password`sont celles utilisées pour authentifier l'utilisateur. Tandis que l'information `userInfos` contient des informations sur l'utilisateur.
+Here the `login` and `password` information is what is used to authenticate the user. While the `userInfos` information contains information about the user.

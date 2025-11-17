@@ -1,10 +1,10 @@
-# Authentifier un utilisateur
+# Authenticate a user
 
-Jopi gère automatiquement tout un ensemble de choses. Cependant il vous faudra ajouter vous-même un écran et connexion et un point de terminaison pour vérifier le login / mot de passe.
+Jopi automatically handles a whole set of things. However, you will need to add a login screen and an endpoint to verify the login/password yourself.
 
-L'exemple suivant montre comment authentifier l'utilisateur côté serveur. Elle est appelé lorsque l'utilisateur saisi son login / mot de passe depuis un formulaire de connexion (champs texte login et password). 
+The following example shows how to authenticate the user on the server side. It is called when the user enters their login/password from a login form (login and password text fields).
 
-**Exemple de traitement du login/password**
+**Example of login/password processing**
 ```typescript
 import {JopiRequest, type LoginPassword} from "jopi-rewrite";  
   
@@ -15,16 +15,16 @@ export default async function(req: JopiRequest) {
     if (!authResult.isOk) console.log("Auth failed");  
   
     // Will automatically set a cookie containing information.  
-    // It why we don't return these information here.    
+    // That's why we don't return this information here.    
     return req.jsonResponse({isOk: authResult.isOk});  
 }
 ```
 
-Quand l'authentification a réussi, Jopi enrichit automatiquement la réponse avec un cookie contenant le token JWT. 
+When authentication is successful, Jopi automatically enriches the response with a cookie containing the JWT token.
 
-Si votre application est de type SPA (Single Page Application) il faudra que le code côté navigateur utilise le hook `useUserStateRefresh` afin de prévenir le système que le cookie d'authentification a changé et qu'il doit mettre à jour son état interne.
+If your application is a SPA (Single Page Application), the browser-side code will need to use the `useUserStateRefresh` hook to notify the system that the authentication cookie has changed and that it needs to update its internal state.
 
-**Exemple côté React***
+**React-side example***
 ```typescript
 // Here we are inside a React component.
 
