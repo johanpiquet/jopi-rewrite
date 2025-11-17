@@ -661,7 +661,7 @@ class WebSite_ConfigureCors {
         return this;
     }
 
-    DONE_configureCors(): JopiEasyWebSite {
+    DONE_configure_cors(): JopiEasyWebSite {
         return this.webSite;
     }
 }
