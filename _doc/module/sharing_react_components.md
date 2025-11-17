@@ -1,10 +1,10 @@
-# Partager un composant React
+# Sharing a React component
 
-## Le dossier @alias/uiBlocks
+## The @alias/uiBlocks folder
 
-Ce dossier permet de définir de partager des composants React entre les différents modules. Tout ce que vous mettez dans ce dossier, sera accessible aux autres composants via un mécanismes très simple, ce que nous allons voir ici.
+This folder allows you to define and share React components between different modules. Everything you put in this folder will be accessible to other components via a very simple mechanism, which we will see here.
 
-**Exemple de composant partagé**
+**Example of a shared component**
 ```
 |- mod_moduleA/
    |- @alias/
@@ -14,9 +14,9 @@ Ce dossier permet de définir de partager des composants React entre les différ
             |- default.priority    < Automatically added if missing      
 ```
 
-## Partage un composant
+## Sharing a component
 
-Ici le composant que nous avons exposé, est nommé `page.header`. Son contenu est défini dans `index.tsx`de la façon suivantes:
+Here the component we have exposed is named `page.header`. Its content is defined in `index.tsx` as follows:
 
 **Content of index.tsx**
 ```typescript tsx
@@ -25,9 +25,9 @@ export default function() {
 }
 ```
 
-## Utiliser un composant partagé
+## Using a shared component
 
-Pour accéder à ce composant, depuis n'importe quel module et n'import quel endroit de votre code, il vous suffit de faire ceci.
+To access this component, from any module and any part of your code, you just need to do this.
 
 **Using the shared component**
 ```typescript tsx

@@ -1,36 +1,36 @@
-# Créer un module
+# Create a module
 
-## Que sont les modules ?
+## What are modules?
 
-Les modules permettent de découper votre applications en unités fonctionnelles. Vous pouvez voir cela comme une application ayant une base et des plugins enrichissant celle-ci.
+Modules allow you to break down your applications into functional units. You can think of it as an application with a base and plugins that enrich it.
 
-Par exemple, un module définit la structure du site (le layout avec un menu en haut, un menu utilisateur à droite, une zone centrale et un footer) tandis qu'un module ajoute un catalogue de produits (e-commerce) et un autre module ajoute une page de contact.
+For example, one module defines the site structure (the layout with a top menu, a user menu on the right, a central area, and a footer), while another module adds a product catalog (e-commerce), and another module adds a contact page.
 
-Ici ce sont trois parties découplées, avec pour intérêt que :
-* Vous savez où chercher quoi, dans une zone bien délimitée.
-* Si vous travaillez en équipe, chaque travaillant sur une partie sans se télescoper.
+Here we have three decoupled parts, with the advantage that:
+* You know where to look for what, in a well-defined area.
+* If you work in a team, each person works on a part without overlapping.
 
-Bien que séparés en unités logiques, les modules ne sont pas entièrement cloisonnés :
-* Un système d'évènements permet de communiquer entre les modules par envoie de message et réponse à ces messages.
-* Un système permet de rendre des éléments publiques, ce qui signifie que les autres modules peuvent les utiliser. Par exemple des composants React.js et des schémas de données.
-* Un troisième mécanisme permet de créer des listes que chaque module peut enrichir. Par exemple pour une liste d'icônes à afficher sous le bouton "Ajout au panier" d'un produit.
+Although separated into logical units, modules are not entirely partitioned:
+* An event system allows communication between modules by sending messages and responding to them.
+* A system allows making elements public, which means other modules can use them. For example, React.js components and data schemas.
+* A third mechanism allows creating lists that each module can enrich. For example, for a list of icons to display under the "Add to cart" button of a product.
 
-## Comment créer un module ?
+## How to create a module?
 
-Un module est un dossier à la racine du dossier `src/` contenant vos sources, et dont le nom commence par `mod_`. Il vous suffit de créer un tel dossier pour créer un module.
+A module is a folder at the root of the `src/` directory containing your sources, and its name must start with `mod_`. You just need to create such a folder to create a module.
 
-**Exemple de projet**
+**Project Example**
 ```
 |- src/
 	|- mod_moduleA    < First module 
 	|- mod_moduleB    < Second module
 ```
 
-## L'intérieur d'un module
+## Inside a module
 
-Un dossier de module contient des éléments particuliers dont les noms peuvent vous surprendre.
+A module folder contains specific elements whose names might surprise you.
 
-**Contenu d'un module**
+**Module Content**
 ```
 |- mod_moduleA/
 	|- @alias/                  < For sharing items though modules, allowing: 
@@ -41,11 +41,11 @@ Un dossier de module contient des éléments particuliers dont les noms peuvent 
 	|- uiInit.tsx               < Called on page render
 	|- serverInit.ts            < Called on server start
 ```
-## Le fichier "serverInit.ts"
+## The "serverInit.ts" file
 
-Ce fichier est appel par le serveur au démarrage.  Chaque module possède un tel fichier.
+This file is called by the server on startup. Each module has such a file.
 
-**Exemple de fichier serverInit.ts**
+**Example of a serverInit.ts file**
 ```typescript
 import type {JopiEasyWebSite} from "jopi-rewrite";    
 import {JopiRequest} from "jopi-rewrite";  
@@ -60,11 +60,11 @@ export default async function(webSite: JopiEasyWebSite) {
 }
 ```
 
-## Le fichier "uiInit.ts"
+## The "uiInit.ts" file
 
-Ce fichier est appelé à chaque rendu d'une page. Il est appelé côté serveur lorsqu'il crée le visuel de la page et il est appelé par le navigateur au moment du chargement de la page.
+This file is called for each page render. It is called on the server side when it creates the page's visual and it is called by the browser when the page loads.
 
-**Exemple de fichier uiInit.tsx**
+**Example of a uiInit.tsx file**
 ```typescript tsx
 import {UiKitModule, MenuName} from "jopi-rewrite/uikit";  
   

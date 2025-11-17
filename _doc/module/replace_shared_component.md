@@ -1,29 +1,29 @@
-# Remplacer un composant partagé
+# Replacing a shared component
 
-Chaque module peut exposer des composants React que les autres modules peuvent utiliser. Parfois, pour les besoins de votre application, vous aimeriez pouvoir remplacer un composant par un autre version.
+Each module can expose React components that other modules can use. Sometimes, for the needs of your application, you might want to replace a component with another version.
 
-Pour remplacer un composant, il suffit de déclarer un composant de même nom, et de lui donner une priorité plus élevée.
+To replace a component, you just need to declare a component with the same name and give it a higher priority.
 
 ```
 |- mod_moduleA
 |  |- @alias/uiBlocks/page.header
 |     |- index.tsx
-|     |- default.priority          < Automatically aded if no priority
+|     |- default.priority          < Automatically added if no priority
 |- mod_moduleB
 |  |- @alias/uiBlocks/page.header
 |     |- index.tsx
 |     |- high.priority             < Is higher priority
 ```
 
-Ici, le composant `page.header` du module moduleB a une priorité plus élevée. C'est pourquoi sa version du composant est celle qui sera utilisée.
+Here, the `page.header` component from moduleB has a higher priority. That's why its version of the component will be the one used.
 
-Les différents niveaux de priorités sont :
+The different priority levels are:
 * verylow.priority
 * low.priority
 * default.priority
 * high.priority
 * veryhigh.priority
 
-Le système supporte plusieurs variantes de nomage, pour ces fichiers. Il le passe en minuscule et retirer les caractère tirets et traits-bas. Ainsi vous pouvez écrire `Very-Low.priority`ou `very_low.priority`. Ils seront automatiquement renommés en `verylow.priority`.
+The system supports several naming variations for these files. It converts the name to lowercase and removes hyphens and underscores. So you can write `Very-Low.priority` or `very_low.priority`. They will automatically be renamed to `verylow.priority`.
 
-L'intérêt des niveaux verylow et low, est qu'un élément sans priorité, ce qui signifié une priorité de niveau default, va automatiquement écraser l'existant. Utiliser verylow et low, est donc une façon de définir une valeur par défaut pour un élément.
+The benefit of the `verylow` and `low` levels is that an element without a priority, which means a `default` priority level, will automatically override the existing one. Using `verylow` and `low` is therefore a way to define a default value for an element.

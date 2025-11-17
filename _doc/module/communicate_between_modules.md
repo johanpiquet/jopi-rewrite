@@ -1,25 +1,26 @@
-# Communication inter-modules
+# Inter-module communication
 
-## Le principe de communication par événements
+## The principle of event-based communication
 
-Les modules sont fortement découplés entre eux, ce qui réduit leurs liens et permet une application plus facile à maintenir. Ils peuvent partager des éléments, cependant parfois il faut qu'ils soient capable de communiquer entre eux de façon plus directe.
+Modules are strongly decoupled from each other, which reduces their dependencies and allows for a more easily maintainable application. They can share elements, but sometimes they need to be able to communicate with each other more directly.
 
-C'est là où intervient un mécanisme où un module peut prévenir les autres modules qu'un événement se produit, tout en transmettant des informations. Ici c'est comme avoir un haut-parleur et parler dedans : qui entend ? Nous ne savons pas, cependant ce qui est dit est entendu et provoque des réactions.
+This is where a mechanism comes into play where one module can notify other modules that an event is occurring, while transmitting information. It's like having a loudspeaker and speaking into it: who hears? We don't know, but what is said is heard and causes reactions.
 
-Par exemple, un événement peut indiquer que l'utilisateur vient de se connecter : avec pour conséquence que le module gérant l'UI va demander à réactualiser le contenu des menus afin de refléter le fait que l'utilisateur n'est plus un utilisateur anonyme.
-## Le problème des événements
+For example, an event can indicate that the user has just logged in: with the consequence that the module managing the UI will request to refresh the content of the menus to reflect the fact that the user is no longer an anonymous user.
 
-Le mécanisme de communication proposé, est donc un mécanisme par événements. Le soucis d'un tel mécanisme, est qu'il est incompatible avec les bundler (Vite.js / WebPack / ...) hors en interne Jopi utilise lui aussi un bundler. Si vous essayez de mettre en place un tel mécanisme, alors vous constaterez des comportements en apparence incohérents, du à des effets de bord des système prenant le javascript pour créer un bundler.
+## The problem with events
 
-La raison de ces effets de bord, est que le bundler réalisent une analyse statique : ils n'exécutent pas le code pour savoir qui écoute un événement. Puis ils réalisent un pruning : ils retirent le code qui semble être sans attache avec le reste du système, cela afin de générer des fichiers javascript bien plus petits.
+The proposed communication mechanism is therefore an event-based one. The problem with such a mechanism is that it is incompatible with bundlers (Vite.js / WebPack / ...), and internally Jopi also uses a bundler. If you try to set up such a mechanism, you will notice apparently inconsistent behaviors, due to side effects of the systems that take the javascript to create a bundle.
 
-Cette problématique, est la raison pour laquelle Jopi impose que les événements soient déclarés de façon statique, de façon à ce qu'ils puissent être analysés par le bundler et que le code javascript soit correctement inclut.
+The reason for these side effects is that bundlers perform a static analysis: they do not execute the code to know who is listening for an event. Then they perform pruning: they remove the code that seems to be unattached to the rest of the system, in order to generate much smaller javascript files.
 
-## Ecouter un événement
+This issue is the reason why Jopi requires that events be declared statically, so that they can be analyzed by the bundler and the javascript code is correctly included.
 
-Les événements sont déclarés de façon statique, de manière à ce que le bundler interne puisse comprendre que notre module écoute certains éléments.
+## Listening to an event
 
-**Exemple d'ajout d'écouteurs**
+Events are declared statically, so that the internal bundler can understand that our module is listening to certain elements.
+
+**Example of adding listeners**
 
 ```
 |- mod_moduleA/
@@ -32,37 +33,37 @@ Les événements sont déclarés de façon statique, de manière à ce que le bu
     |- myThirdListener
 ```
 
-Chaque écouteur a un nom. Le but de ce nom, est d'indiquer son ordre de priorité dans la liste d'appel des événements. Ces noms sont triés alphabétiquement (ASC) ce qui permet de savoir qui doit être appelé ou après.
+Each listener has a name. The purpose of this name is to indicate its priority order in the event call list. These names are sorted alphabetically (ASC), which makes it possible to know who should be called before or after whom.
 
-Ici le fichier `index.ts` expose une fonction par défaut qui est appelée lorsque l'événement est appelé. Cette fonction doit être synchrone (pas de `async` / `Promise`). La raison est que concrètement la plupart des événements sont appelés depuis des fonctions synchrones, faisant que si les événements étaient asynchrones alors il y aurait incompatibilité.
+Here the `index.ts` file exposes a default function that is called when the event is triggered. This function must be synchronous (no `async` / `Promise`). The reason is that in practice most events are called from synchronous functions, so if the events were asynchronous, there would be an incompatibility.
 
-**Fichier index.ts**
+**index.ts file**
 ```typescript
 export default function(eventData: any, eventName: string) {
   console.log(`Event ${eventName} received with data`, eventData);
 }
 ```
 
-## Emettre un événement
+## Emitting an event
 
-Voici un exemple montrant comment émettre un événement.
+Here is an example showing how to emit an event.
 
 ```typescript
 import myEventName from "@/events/myEventName";
 await myEventName.send({hello: "world"});
 ```
 
-L'unique contrainte ici, est que l'événement doit exister. Il faut donc créer une déclaration d'événement, même si celui-ci n'a pas d'écouter.
+The only constraint here is that the event must exist. It is therefore necessary to create an event declaration, even if it has no listener.
 
-**Déclaration d'un événement sans écouteurs**
+**Declaration of an event without listeners**
 ```
 |- mod_moduleB/
   |  @alias/
      |- events/ 
-        |- myEventB    < There is no listener, but nowthe event exist
+        |- myEventB    < There is no listener, but now the event exists
 ```
 
-Une autre méthode pour appeler les événements, est l'utilisation directe de `jk_events`. Cette méthode existe, mais elle est déconseillée côté UI pour les raisons exposées quant au linker. C'est pourquoi elle est citée ici, mais déconseillée.
+Another method for calling events is the direct use of `jk_events`. This method exists, but it is not recommended on the UI side for the reasons explained regarding the bundler. That is why it is mentioned here, but not recommended.
 
 ```typescript
 import * as jk_events from "jopi-toolkit/jk_events";
