@@ -36,7 +36,7 @@ import {jopiApp} from "jopi-rewrite";
 
 jopiApp.startApp(import.meta, jopiEasy => {
     jopiEasy.create_creatWebSiteServer()
-        .enable_cors()
+        .configure_cors()
 	        // The current website is always added automatically.
 	        // Here it's a second allowed website.
             .add_allowedHost("http://mywebsiteB")
@@ -44,6 +44,6 @@ jopiApp.startApp(import.meta, jopiEasy => {
             // If you want to disable automatic CORS activation.
 			.disable_cors()
 
-            .DONE_enableCors();
+            .DONE_configure_cors();
     });
 ```

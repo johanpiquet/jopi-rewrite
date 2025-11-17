@@ -625,8 +625,8 @@ export class JopiEasyWebSite {
         return this;
     }
 
-    enable_cors() {
-        return new WebSite_EnableCors(this);
+    configure_cors() {
+        return new WebSite_ConfigureCors(this);
     }
 }
 
@@ -640,7 +640,7 @@ class JopiEasyWebSite_ExposePrivate extends JopiEasyWebSite {
     }
 }
 
-class WebSite_EnableCors {
+class WebSite_ConfigureCors {
     constructor(private readonly webSite: JopiEasyWebSite) {
     }
 
@@ -661,7 +661,7 @@ class WebSite_EnableCors {
         return this;
     }
 
-    DONE_enableCors(): JopiEasyWebSite {
+    DONE_configureCors(): JopiEasyWebSite {
         return this.webSite;
     }
 }

@@ -30,13 +30,13 @@ jopiApp.startApp(import.meta, jopiEasy => {
 	        // ...
             .END_configure_cache()
 
-        .enable_cors()
+        .configure_cors()
 		    // ...
-            .DONE_enableCors()
+            .DONE_configure_cors()
 
-        .enable_jwtTokenAuth()
+        .configure_jwtTokenAuth()
             // ...
-            .DONE_enable_jwtTokenAuth()
+            .DONE_configure_jwtTokenAuth()
     });
 ```
 
