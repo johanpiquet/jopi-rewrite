@@ -1,24 +1,8 @@
-# Bind a page to a URL
+# Associer une page à une url
 
-To bind a React page to a URL in Jopi Rewrite:
+## Le dossier "@routes"
 
-1. Create a folder that matches the URL under a module's @routes directory.
-2. Add a `page.tsx` (or `page.jsx`) file inside that folder.
-
-Example:
-- src/mod_app/@routes/admin/page.tsx → reachable at `/admin`
-
-Behavior:
-- The framework maps file paths to routes automatically.
-- The `page.*` file should export a React component (server-rendered) and optionally export handlers (loaders) or metadata.
-
-Notes:
-- You can also create files handling POST requests using onPOST.ts (or similar naming used by the framework).
-- Use special `.cond` files or config.ts to attach access controls or route-specific options.
-
-## The "@routes" folder
-
-Once created, your project looks like this:
+Une fois créé, votre projet ressemble à ceci.
 
 ```
 |- node_modules/
@@ -28,43 +12,43 @@ Once created, your project looks like this:
    |- mod_moduleA/
       |- @routes/        < The interesting part is here
    |- mod_moduleB/
-      |- @routes/        < Each module can declare routes
+	  |- @routes/        < Each module can declare routes 
 ```
 
-Each module (here moduleA and moduleB) has an `@routes` folder whose contents are interpreted to determine which function corresponds to which URL. Each directory corresponds to a URL segment, while files named `page.tsx` define the content to display.
+Chaque module (ici moduleA et moduleB) possède un dossier `@routes` dont le contenu est interprété afin de savoir à quelle fonction associer une url. Chaque répertoire, correspond à un segment d'url. Tandis que les fichier nommés `page.tsx` permettent de définir le contenu à afficher.
 
-To clarify, here are some examples:
-* The file `@routes/welcome/page.tsx` corresponds to the URL `http://mysite/welcome`.
-* The file `@routes/products/listing/page.tsx` corresponds to the URL `http://mysite/product/listing`.
-* The file `@routes/page.tsx` corresponds to the homepage `http://mysite/`.
+Afin de comprendre, voici quelque exemples. 
+* Le fichier `@routes/welcome/page.tsx` correspond à l'url `http://mysite/welcome`.
+* Le fichier `@routes/products/listing/page.tsx` correspond à l'url `http://mysite/product/listing.
+* Le fichier `@routes/page.tsx` correspond à la page d'accueil `http://mysite/`.
 
-## Example route
+## Exemple de route
 
-The following example defines a route and gives an overview of the files that can be present in the folder. Each item will be explained in detail afterwards.
+L'exemple suivant définit une route, tout en donnant un aperçu des fichiers pouvant se trouver dans le dossier. Chaque élément sera expliquer et détaillé ensuit.
 
 ```
 |- @routes/product/listing
    |- page.tsx                   < Response to GET call
-   |- onPOST.ts                  < Response to POST call
+   |- onPOST.ts                  < Reponse to POST call
    |- onPUT.ts                   < Same for PUT/PATCH/OPTIONS/DELETE
    |- postNeedRole_Admin.cond    < Constraint on caller roles
-   |- postNeedRole_Writer.cond   < Add a second constraint
+   |- postNeedRole_Writer.cond.  < Add a second constraint.   
    |- high.priority              < Set a priority
-   |- config.ts                  < Allows other settings (like cache)
+   |- config.ts                  < Allows others setting (like cache)
    |- cache.disable              < Disable the automatic cache
 ```
 
-## The "page.tsx" file
+## Le fichier "page.tsx"
 
-Files named **page.tsx** allow the URL to respond with the content of a React page. The React content is transformed into HTML by the server and sent to the browser. Once the JavaScript is loaded, event handling becomes functional: the user can interact with the content.
+Les fichiers **page.tsx** permettent que l'url répond avec le contenu d'une page React. Le contenu React est transformé en HTML par le serveur, affiché dans le navigateur. Puis une fois le javascript chargé, tout ce qui est gestion des événements devient fonctionnelle : l'utilisateur peut interagir avec le contenu.
 
-Example `page.tsx` file:
+**Exemple de fichier page.tsx**
 
-```typescript jsx
-import "./my-style.css";
+```typescript tsx
+import "./my-style.css";  
 import {usePageTitle} from "jopi-rewrite/ui";
 
-export default function() {
+export default function() {  
 	usePageTitle("My title");
 
     return <div onClick={()=>alert('click')}>
@@ -73,71 +57,72 @@ export default function() {
 }
 ```
 
-## The "onPOST.ts" file
+## Le fichier "onPOST.ts"
 
-The `onPOST.ts` (or onPOST.tsx) file defines the function that responds to a POST request on the URL.
+Le fichier `onPOST.ts` (ou onPOST.tsx) permet de définir la fonction répondant à un appel de type POST sur l'url.
 
-Example `onPOST.ts` file:
+**Exemple de fichier onPOST.ts**
 
 ```typescript tsx
-import {JopiRequest, type LoginPassword} from "jopi-rewrite";
-
-export default async function(req: JopiRequest) {
-    const data = await req.getBodyData();
-    const authResult = await req.tryAuthWithJWT(data as LoginPassword);
-
-    if (!authResult.isOk) console.log("Auth failed");
-
-    // Will automatically set a cookie.
-    // That's why we don't cover the details here.
+import {JopiRequest, type LoginPassword} from "jopi-rewrite";  
+  
+export default async function(req: JopiRequest) {  
+    const data = await req.getBodyData();  
+    const authResult = await req.tryAuthWithJWT(data as LoginPassword);  
+  
+    if (!authResult.isOk) console.log("Auth failed");  
+  
+    // Will automatically set a cookie.  
+    // It why we don't core of the details here.   
     return req.jsonResponse({isOk: authResult && authResult.isOk});
 }
 ```
 
-> You can do the same for other HTTP methods (PUT/PATCH/DELETE/...)
+> Vous pouvez faire la même chose avec les autres méthodes HTTP (PUT/PATCH/DELETE/...)
 
-## The "config.ts" file
+## Le fichier "config.ts"
 
-The `config.ts` file allows you to modify route configuration.
+Le fichier `config.ts` permettent de modifier la configuration pour une route.
 
-The three most useful items are:
+Les trois éléments les plus utiles sont :
 
-* Middleware configuration.
-* Cache configuration for pages.
-* Role configuration.
+* La configuration de middlewares.
+* La configuration du cache pour les pages.
+* La configuration des rôles.
 
 ```typescript
-import {RouteConfig} from "jopi-rewrite";
-
-export default function(ctx: RouteConfig) {
-    // GET calls will require the user to have
+import {RouteConfig} from "jopi-rewrite";  
+  
+export default function(ctx: RouteConfig) {  
+    // GET call will need the user to have  
 	// the roles "admin" and "writer".
-	ctx.onGET.addRequiredRole("admin", "writer");
+	ctx.onGET.addRequiredRole("admin", "writer");  
 }
 ```
 
-## Condition files (.cond)
+## Les fichiers de conditions (.cond)
 
-Files with the `.cond` extension allow defining role-related conditions. The filename contains information that is decoded according to the following naming convention: `whatNeedRole_roleName.cond`.
+Les fichier dont l'extension est `.cond`permettent de définir des conditions à propos des rôles. Le nom de ces fichiers contient des informations qui seront décodés et correspondant à la nomenclature suivante : `whatNeedRole_roleName.cond`.
 
-The following examples clarify:
-* **postNeedRole_admin.cond**: means POST requests require the user to have the role "admin".
-* **getNeedRole_writer.cond**: means GET requests require the user to have the role "writer".
+Les exemples suivants permettent de comprendre:
+* **postNeedRole_admin.cond** : signifie que les appels de type POST nécessitent que l'utilisateur ait le rôle "admin".
+* **getNeedRole_writer.cond** : signifie que les appels de type GET nécessitent que l'utilisateur ait le rôle "writer".
 
-If multiple constraints apply to the same method, they are cumulative. For example, if both **getNeedRole_writer.cond** and **getNeedRole_admin.cond** are present, the user must have both the writer and admin roles at the same time (not one or the other).
+Si plusieurs contraintes portent sur une même méthodes, alors elles se cumulent. Par exemple si les fichiers **getNeedRoole_writer.cond** et **getNeedRole_admin.cond** sont tout deux présents, alors l'utilisateur devra avoir les rôles writer et admin en même temps (et non pas l'un ou l'autre).
 
-> Here the word `page` is an alias for `get`. So `pageNeedRole_writer` is equivalent to `getNeedRole_writer`.
+> Ici le mot `page`est un alias pour `get`. Ainsi écrite `pageNeedRole_writer` est équivalent à écrire `getNeedRole_writer`.
 
-## Priority files (.priority)
 
-Each module can define routes and add new routes. It's also possible that a module replaces an existing route. When that happens, Jopi must know which module should take precedence: whose route will be used and whose will be ignored.
+## Les fichiers de priorité (.priority)
 
-Priority files indicate which module has higher priority.
+Chaque module peut définir des routes, et ajouter de nouvelles routes. Il est aussi possible qu'un module remplace une route existante. Lorsque c'est le cas, Jopi doit être capable de savoir à quel module donner la priorité : qui verra sa route utilisée, et qui sera ignoré.
 
-Priorities, from least to most priority, are: `verylow.priority`, `low.priority`, `default.priority`, `high.priority`, `veryhigh.priority`.
+Le rôle des fichiers de priorité, est d'indiquer quel module est plus prioritaire.
 
-## The "cache.disable" file
+Les priorités sont les suivantes, par ordre du moins prioritaire au plus prioritaire :  `verylow.priority`, `low.priority`,  `default.priority`, `high.priority`, `veryhigh.priority`.
 
-By default React pages are cached. The `cache.disable` file disables this automatic cache.
+## Le fichier "cache.disable"
 
-You can also do this from the `config.ts` file and define cache rules there.
+Par défaut les pages React.js sont mises en cache. Le fichier `cache.disable` permet de désactiver ce cache automatique.
+
+Vous pouvez aussi le faire depuis le fichier `config.ts` et y définir des règles de mise en cache.

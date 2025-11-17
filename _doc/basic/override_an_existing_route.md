@@ -1,45 +1,29 @@
-# Override an existing route
+# Remplacer une route existante
 
-To override a route provided by a module:
+Un module, peut définir une route déjà existante. Dans ce cas, la nouvelle déclaration écrase la nouvelle déclaration. Si vous déclarez une page à l'aide d'un fichier `page.tsx` alors elle écrase la précédente si celle-ci existait déjà. De même pour `onPOST.ts`, `onPUT.ts`, ...
 
-1. Create a route with the same path in your application module or in a module with a higher priority.
-2. The framework resolves conflicts using module priority so the definition from the higher-priority module takes effect.
+Le problème est l'ordre dans lequel les modules sont évaluer. Qui va écraser qui ?
 
-Use cases:
-- Customize pages from a shared module.
-- Patch or extend behavior without modifying the original module.
-
-Notes:
-- Keep override modules minimal and clearly documented so behavior is easy to track.
-
-## Replacing an existing route
-
-A module can declare a route that already exists. In that case, the new declaration will replace the previous one. If you declare a page using a `page.tsx` file it will overwrite the previous page if one already existed. The same applies for `onPOST.ts`, `onPUT.ts`, etc.
-
-The tricky part is the order in which modules are evaluated. Which one will overwrite the other?
-
-For that reason a priority mechanism exists to indicate which module is more important.
-
-Example:
+C'est pourquoi un mécanisme de priorités permet de dire qui est plus prioritaire.
 
 ```
 |- mod_moduleA
    |- @routes/product/listing/
-       |- default.priority           < Automatically created if no priority is set
-       |- page.tsx
+   	   |- default.priority           < Is automatically created if no priority
+	   |- page.tsx
        |- onPOST.ts
 |- mod_moduleB
-   |- @routes/product/listing/
-       |- high.priority              < Higher priority
-       |- page.tsx                   < This will replace the page from moduleA
-       |- onPUT.ts                   < onPUT is added (plus the old onPOST)
+   |- @routes/product/listing/	
+   	   |- high.priority              < Priority is higher
+       |- page.tsx                   < ... it's why it will replace the page
+       |- onPUT.ts                   < onPUT is added (+ the old onPOST)
 ```
 
-Priority levels are:
+Les différents niveaux de priorités sont :
 * verylow.priority
 * low.priority
 * default.priority
 * high.priority
 * veryhigh.priority
 
-The point of the verylow and low levels is to allow defining defaults: an element without an explicit priority has the default level and will automatically overwrite existing lower-priority items. Using verylow and low is therefore a way to define fallback/default values.
+L'intérêt des niveaux verylow et low, est qu'un élément sans priorité, ce qui signifié une priorité de niveau default, va automatiquement écraser l'existant. Utiliser verylow et low, est donc une façon de définir une valeur par défaut pour un élément.

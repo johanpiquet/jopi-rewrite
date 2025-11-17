@@ -1,29 +1,16 @@
-# Restrict access by roles
+# Limiter l'accès à des rôles
 
-Protect routes by requiring specific roles.
+Plusieurs fonctionnalités permettent de modifier les comportements en fonction des rôles.
 
-Methods:
-- Declare required roles in route config or special `.cond` files (e.g., `pageNeedRole_admin.cond`).
-- Use middleware to verify the current user's roles before executing route logic.
+**Côté React.js**
+* Le hook `useUserHasRoles`  renvoie un boolean indiquant si l'utilisateur possède l'ensemble des rôles indiqués en paramètre.
+* Le composant `RequireRoles` permet d'entourer un composant qui ne sera affiché que si l'utilisateur possède les rôles indiqués.
 
-Behavior:
-- Return 401 (unauthenticated) or 403 (forbidden) when checks fail.
-- Provide clear messages or redirections for unauthorized users.
+**Dans le fichier `uiInit.ts`**
+* La fonction `myModule.ifUserHasRoles` permet d'exécuter une fonction si l'utilisateur possède l'ensemble des rôles indiqués.
 
-Tips:
-- Keep role definitions centralized and document what each role allows.
-
-Several features allow modifying behavior based on roles.
-
-**Client-side React.js**
-* The hook `useUserHasRoles` returns a boolean indicating if the user has all the roles passed as parameters.
-* The `RequireRoles` component wraps content that should only be displayed if the user has the specified roles.
-
-**In the `uiInit.ts` file**
-* The function `myModule.ifUserHasRoles` allows executing a function if the user has all the specified roles.
-
-**During request handling (GET/POST/...)**
-* The function `req.getUserRoles` returns an array containing the names of the user's roles.
-* The function `req.userHasRoles` returns a boolean indicating if the user has all the specified roles.
-* Throwing an `SBPE_NotAuthorizedException` results in a 401 (not authorized) response.
-* The function `req.assertUserHasRoles` throws an `SBPE_NotAuthorizedException` if the user does not have all the specified roles.
+Dans le traitement d'une requête (GET/POST/...)
+* La fonction `req.getUserRoles` permet de connaître les rôles de l'utilisateur en renvoyant un tableau contenant le nom de ses rôles.
+* La fonction `req.userHasRoles` renvoie un boolean indiquant si l'utilisateur à l'ensemble des rôles indiqués.
+* Emettre une exception `SBPE_NotAuthorizedException`   provoque une réponse 401 (non autorisé).
+* La fonction `req.assertUserHasRoles` émet une exception `SBPE_NotAuthorizedException` si l'utilisateur n'a pas l'ensemble des rôles indiqués.

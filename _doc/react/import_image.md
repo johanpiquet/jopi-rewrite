@@ -1,40 +1,30 @@
-# Import an image
 
-Static images can be imported and used in components.
+# Importer une image
 
-Steps:
-1. Place images under an assets folder (e.g., src/assets).
-2. Import them in components:
-   - import logo from '@/assets/logo.png'
-3. Use the image in JSX:
-   - <img src={logo} alt="Logo" />
-
-Notes:
-- Use appropriate optimization and responsive techniques for production.
-
-In a route file `page.tsx` you can import an image directly.
+Dans un fichier de route `page.tsx` vous pouvez directement importer une image.
 
 ```typescript
-import logo from "./bun.png";
-
-console.log(logo);
-
-export default function () {
-    return <img src={logo} alt="" />;
+import logo from "./bun.png";  
+  
+console.log(logo);  
+  
+export default function () {  
+    return <img src={logo} alt="" />;  
 }
 ```
 
-Here the variable `logo` contains either the image URL or a data URL — a string encoding the image binary — which allows embedding it directly in the generated HTML without relying on an external file.
 
-The choice between a URL and a data URL is made automatically based on image size. Images below 3 KB are inlined as data URLs; larger images are referenced by URL. The image file is automatically exposed; you don't need to do anything special.
+Ici la variable `logo` contient soit l'url de l'image, soit un data-url : qui est une chaîne de caractère encodant le binaire de l'image, ce qui permet de l'inclure directement dans le HTML généré, sans dépendance à une fichier externe.
 
-The size limit (3 KB) can be configured via `package.json`.
+Url ou data-url, le choix est réalisé automatiquement en fonction de la taille de l'image. En dessous de 3Ko l'image est transformée en data-url, sinon vous obtenez juste son url. Le fichier image est alors automatiquement exposé, vous n'avez rien de particulier à faire.
 
-**Example configuration in package.json**
+La taille limite (3ko) peut-être configuré via le fichier `package.json`.
+
+**Exemple de configuration dans package.json**
 ```json
 {
-  "jopi": {
-    "inlineMaxSize_ko": 10
-  }
+	"jopi": {  
+	  "inlineMaxSize_ko": 10  
+	}
 }
 ```

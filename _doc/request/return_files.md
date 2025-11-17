@@ -1,38 +1,26 @@
-# Return files
+# Renvoyer des fichiers
 
-To serve files for download or inline viewing:
+Vous avez trois possibilités pour renvoyer des fichiers:
+* Utiliser `req.returnFile` afin de renvoyer le contenu d'un fichier précis.
+* Utiliser `req.serverFromDir` afin de servir un répertoire.
+* Créer un serveur de fichier, où url / pages / API sont mélangés
 
-1. Read the file from disk or cloud storage as a stream or buffer.
-2. Set appropriate headers:
-   - Content-Type: MIME type (e.g., application/pdf, image/png)
-   - Content-Disposition: `attachment; filename="name.ext"` for downloads or `inline` for display
-3. Return the Response with the file body and headers.
+## La fonction "req.returnFile"
 
-Example:
-```js
-return new Response(fileStream, { headers: { 'Content-Type': mimeType } });
-```
-
-Security:
-- Protect private files behind authentication and permission checks.
-- Validate requested paths to prevent directory traversal.
-
-## The function "req.returnFile"
-
-The function `req.returnFile` allows returning a file. This function is optimized for speed; however, it does not support `range` headers that enable pausing/resuming large downloads or seeking within a video file.
+La fonction `req.returnFile` permet de renvoyer un fichier. Cette fonction est optimisée pour la rapidité, cependant elle ne supporte pas les header `range` permettant la mise en pause / reprise d'un téléchargement volumineux, ou le déplacement dans un fichier vidéo.
 
 ```typescript
-import {JopiRequest} from "jopi-rewrite";
-
-export default async function(req: JopiRequest) {
-    const myFilePath = "./logo.png";
-    return req.returnFile(myFilePath)
+import {JopiRequest} from "jopi-rewrite";  
+  
+export default async function(req: JopiRequest) {  
+    const myFilePath = "./logo.png";  
+    return req.returnFile(myFilePath)  
 }
 ```
 
-## The function "req.serveFromDir"
+## La fonction "req.serverFromDir"
 
-The function `req.serveFromDir` allows exposing a directory. It should be used with catch-all routes to capture all calls from a given entry point.
+La fonction `req.serverFromDir` permet d'exposer un dossier. Il est à utiliser avec des routes de type catch-all, permettant de capturer tout les appels à partir d'un point d'entrée.
 
 **Where to bind the route**
 ```
@@ -44,46 +32,46 @@ The function `req.serveFromDir` allows exposing a directory. It should be used w
 
 **File onGET.ts**
 ```typescript
-import {JopiRequest} from "jopi-rewrite";
-
-export default async function(req: JopiRequest) {
-    const publicDirPath = "./www";
-    return req.serveFromDir(publicDirPath)
+import {JopiRequest} from "jopi-rewrite";  
+  
+export default async function(req: JopiRequest) {  
+    const publicDirPath = "./www";  
+    return req.serveFromDir(publicDirPath)  
 }
 ```
 
-## Create a file server
+## Créer un serveur de fichiers
 
-In your application's initialization file `index.ts`, the first lines look like this:
+Dans le fichier d'initialisation de votre application `index.ts`, les premières lignes ressemblent à ceci:
 
 **File src/index.ts**
 ```typescript
-import {jopiApp} from "jopi-rewrite";
-import myUsers from "./myUsers.json" with { type: "json" };
-
-jopiApp.startApp(import.meta, jopiEasy => {
+import {jopiApp} from "jopi-rewrite";  
+import myUsers from "./myUsers.json" with { type: "json" };  
+  
+jopiApp.startApp(import.meta, jopiEasy => {  
     jopiEasy.create_creatWebSiteServer();
     //...
 });
 ```
 
-Here we create a simple website as a starting point. Jopi also offers other options to create specialized servers, including the `create_fileServer` function.
+Ici nous créons un simple site internet comme point de départ. Jopi offre d'autre options, permettant de créer des serveur spécialisés. Dont la fonction `create_fileServer`.
 
 **File src/index.ts**
 ```typescript
-import {jopiApp} from "jopi-rewrite";
-import myUsers from "./myUsers.json" with { type: "json" };
-
-jopiApp.startApp(import.meta, jopiEasy => {
-	jopiEasy.create_fileServer()
-	    // The directory with our public files
-	    .set_rootDir("./public")
-	    .DONE_create_fileServer()
-
+import {jopiApp} from "jopi-rewrite";  
+import myUsers from "./myUsers.json" with { type: "json" };  
+  
+jopiApp.startApp(import.meta, jopiEasy => {  
+	jopiEasy.create_fileServer()  
+	    // The directory with our public files  
+	    .set_rootDir("./public")  
+	    .DONE_create_fileServer()   
+	    
 	    // --> After DONE_new_fileServer the methods
 	    // exposed are the same as what you get with
 	    // create_creatWebSiteServer
 });
 ```
 
-In this example we created a file server exposing the `public` folder. Although it is a file server, the routing system still applies, so this server also acts as an application server.
+Dans cet exemple nous avons créé un serveur de fichier exposant le dossier `public`. Bien qu'il soit un serveur de fichier, le système de routes s'applique, faisant que ce serveur est aussi un serveur applicatif.

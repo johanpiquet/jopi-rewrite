@@ -1,35 +1,21 @@
-# Use parameterized URLs
+# Utiliser des urls paramétrées
 
-Jopi supports parameterized routes using bracket syntax similar to modern frameworks.
+## Définir une url paramétrée
 
-Examples:
-- src/.../@routes/product/[id]/page.tsx → matches `/product/123`
-- src/.../@routes/user/[username]/page.tsx → matches `/user/jdoe`
+Supposons que vous avec les urls suivantes :
 
-How to use parameters:
-- In server-rendered pages, the framework provides the parameter values through the request context or page props.
-- In client-side code, parameters can be read via the routing utilities or props passed during hydration.
-
-Guidelines:
-- Use descriptive parameter names.
-- Validate and sanitize parameters before using them in lookups.
-
-## Defining a parameterized URL
-
-Suppose you have the following URLs:
-
-* http://mysite/product/productAA
-* http://mysite/product/productAB
+* http://monsite/product/productAA
+* http://monsite/product/productAB
 * ...
-* http://mysite/product/productZZ
+* http://monsite/product/productZZ
 
-Here the URL indicates the product identifier we want to display. However, we would like to use the same code to handle all these products.
+Ici l'url permet de connaître l'identifiant du produit que nous désirons afficher. Cependant ce que nous aimerions, c'est avoir le même code pour gérer tout ces produits.
 
-This is where parameterized URLs are essential.
+C'est là où les urls paramétrées sont indispensables.
 
-At the router files level, using brackets defines a URL parameter. What is inside the brackets is the parameter name.
+Au niveau des fichiers du routeur, l'usage de crochet permet de définir un paramètre d'url. Ce qui est entre les crochet, est le nom du paramètre.
 
-**Example of defining the parameter productId**
+**Exemple de définition du paramètre productId**
 ```
 @routes/
 |- product/                < mapped to url http://mysite/product
@@ -37,35 +23,30 @@ At the router files level, using brackets defines a URL parameter. What is insid
      |- page.tsx           < define the visual
 ```
 
-## Retrieving the information
+## Retrouver l'information
 
-### Using a React hook
+### A l'aide d'un hook React
 
-The following example shows how to use a hook to retrieve URL parameters from React.js.
+L'exemple suivant montre comment utiliser un hook pour retrouver les paramètres d'url depuis React.js.
 
-You can use:
-* The `useParams` hook.
-* The `params` parameter send to the page. 
-
-```typescript tsx
-import {useParams} from "jopi-rewrite/uikit";
-
-export default function Product({params, searchParams}: any) {
-    // params and pageParams are the same.
-    const pageParams = useParams();
-    return <div>Product is {pageParams.productId}</div>;
+```typescript
+import {usePageParams} from "jopi-rewrite/uikit";  
+  
+export default function Product() {  
+    const pageParams = usePageParams();  
+    return <div>Product is {pageParams.productId}</div>;  
 }
 ```
 
-### From a listener such as onPOST.ts
+### Depuis un écouteur de type onPOST.ts
 
-The following example shows how to retrieve URL parameters from a JopiRequest object, as provided in files like `onPOST.ts`, `onPUT.ts`, ...
+L'exemple suivant permet de retrouver les paramètres d'url depuis un objet JopiRequest, tel que transmis dans les fichier `onPOST.ts`, `onPUT.ts`, ...
 
 ```typescript
-import {JopiRequest} from "jopi-rewrite";
-
-export default async function(req: JopiRequest) {
-    console.log("ProductId: ", req.urlParts.productId);
-    return req.htmlResponse("");
+import {JopiRequest} from "jopi-rewrite";  
+  
+export default async function(req: JopiRequest) {  
+    console.log("ProductId: ", req.urlParts.productId);  
+    return req.htmlResponse("");  
 }
 ```

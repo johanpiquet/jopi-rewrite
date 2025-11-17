@@ -1,119 +1,56 @@
-# Define a user store
+# Créer une banque d'utilisateur
 
-A user store contains account records and roles.
+Jopi offre un mécanisme basique permettant de gérer les utilisateurs d'une application :
 
-Options:
-- Simple JSON file for prototypes.
-- Database (Postgres, MySQL, SQLite) for production.
-- External identity provider (Auth0, Keycloak) for managed authentication.
+* Gestion de l'authentification, en vérifiant un login mot de passe (ou un hash du mot de passe).
+* Gestion du token de connexion, en utilisant la technologie JWT (Json Web Token).
+* Gestion de l'obtention d'informations sur l'utilisateur, au niveau d'une API serveur, ou depuis  le code React.js (serveur et browser).
 
-Data to store:
-- Unique user identifier, username/email, hashed password, roles, profile data.
-- Use a secure password hash (bcrypt, argon2).
+Ici nous utilisons le format JWT pour les tokens de connexion. Ces tokens sont transmis au serveur en même temps que les appels provenant du navigateur, cela grâce à un cookie. Les tokens JWT ont deux particularités:
 
-Best practices:
-- Never store plaintext passwords.
-- Keep role assignments explicit and auditable.
+* Ils encodent des informations publiques à propos de l'utilisateur. Elles peuvent être décodées côté serveur mais aussi côté navigateur, et cela sans clé de chiffrement.
+* Ces tokens intègrent une preuve, qui permet de savoir si ces données sont authentiques et non des données trafiquées. Cela en se basant sur une clé de chiffrement privée, stockée côté serveur.
 
-## Create a user bank
+L'activation de JWT se fait depuis le fichier `src/index.ts`, selon l'exemple suivant.
 
-Jopi provides a basic mechanism to manage an application's users:
-
-* Authentication management, verifying a login/password (or a password hash).
-* Management of the connection token, using JWT (JSON Web Token).
-* Retrieval of user information at the server API level or from React.js code (server and browser).
-
-Here we use JWT for connection tokens. These tokens are sent to the server with requests coming from the browser via a cookie. JWT tokens have two characteristics:
-
-* They encode public information about the user. This can be decoded on the server but also in the browser without an encryption key.
-* These tokens include a proof that allows knowing whether the data is authentic and not tampered with, based on a private signing key stored on the server.
-
-Enabling JWT is done from the `src/index.ts` file, as in the following example.
-
-**File src/index.ts**
+**Fichier src/index.ts**
 ```typescript
-import {jopiApp} from "jopi-rewrite";
-import myUsers from "./myUsers.json" with { type: "json" };
-
-jopiApp.startApp(import.meta, jopiEasy => {
+import {jopiApp} from "jopi-rewrite";  
+import myUsers from "./myUsers.json" with { type: "json" };  
+  
+jopiApp.startApp(import.meta, jopiEasy => {  
     jopiEasy.create_creatWebSiteServer()
+        // Tips: you can also use 'fastConfigure_jwtTokenAuth' for a one line configuration.
 
-        .configure_jwtTokenAuth()
-            // WARNING: you must change this key!
-            .step_setPrivateKey("my-private-key")
-
-            .step_setUserStore()
-                .use_simpleLoginPassword()
-                    .addMany(myUsers)
-                    .DONE_use_simpleLoginPassword()
-                .DONE_setUserStore()
-            .DONE_configure_jwtTokenAuth()
+        .configure_jwtTokenAuth()  
+            // WARNING: you must change this key!  
+            .step_setPrivateKey("my-private-key")  
+            
+            .step_setUserStore()  
+                .use_simpleLoginPassword()  
+                    .addMany(myUsers)  
+                    .DONE_use_simpleLoginPassword()  
+                .DONE_setUserStore()  
+            .DONE_configure_jwtTokenAuth()  
     });
 ```
 
-Here we enabled JWT and defined a user store that we populated from a JSON file.
+Ici nous avons activé JWT, et définit un magasin d'utilisateurs que nous avons rempli à l'aide d'un fichier JSON.
 
-**File myUsers.json**
+**Fichier myUsers.json**
 ```json
-[
-  {
-    "login": "johan@mymail.com",
-    "password": "mypassword",
-    "userInfos": {
-      "id": "johan",
-      "fullName": "Johan P",
-      "email": "johan@mymail.com",
-      "roles": ["admin", "writer"]
-    }
-  }
+[  
+  {  
+    "login": "johan@mymail.com",  
+    "password": "mypassword",  
+    "userInfos": {  
+      "id": "johan",  
+      "fullName": "Johan P",  
+      "email": "johan@mymail.com",  
+      "roles": ["admin", "writer"]  
+    }  
+  }  
 ]
 ```
 
-In this example, the `login` and `password` fields are used to authenticate the user, while `userInfos` contains information about the user.
-
-
-## Using a faster configuration
-
-This sample shows the use of `fastConfigure_jwtTokenAuth` which make configuration faster.
-What we do here, is exactly the same as the previous sample, but with a shorter syntax.
-
-**File src/index.ts**
-```typescript
-import {jopiApp} from "jopi-rewrite";
-import myUsers from "./myUsers.json" with { type: "json" };
-
-jopiApp.startApp(import.meta, jopiEasy => {
-    jopiEasy.create_creatWebSiteServer()
-        .fastConfigure_jwtTokenAuth("my-private-key", myUsers);
-});
-```
-
-## Using your own implementation
-
-You can use a custom function for check auth information. Here is a sample.
-There is no constraint on the input data, which is what you send through `JopiRequest.tryAuthWithJWT` call.
-The returned user info only requires the user id. Other fields are optional.
-
-**File src/index.ts**
-```typescript
-import {jopiApp} from "jopi-rewrite";
-import myUsers from "./myUsers.json" with { type: "json" };
-
-jopiApp.startApp(import.meta, jopiEasy => {
-    jopiEasy.create_creatWebSiteServer()
-        .fastConfigure_jwtTokenAuth("key", async (info: any) => {
-            if (info.email == "allowed@domain.com") {
-                return {
-                    isOk: true,
-
-                    userInfos: {
-                        id: "user1",
-                        roles: ["admin", "writer"]
-                    }
-                }
-            }
-
-            return {isOk: false};
-        })
-});
-```
+Ici les informations `login`et `password`sont celles utilisées pour authentifier l'utilisateur. Tandis que l'information `userInfos` contient des informations sur l'utilisateur.

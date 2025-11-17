@@ -1,14 +1,28 @@
-# Use catch-all URLs
 
-Catch-all routes match multiple path segments.
+# Utiliser des urls catch-all
 
-Example:
-- src/.../@routes/docs/[...slug]/page.tsx → matches `/docs/a/b/c`
+Supposons que vous voulez que tout ce qui débute par l'url `http://monsite/blog` affiche le contenu du site `http://localhost:8080`. Pour mettre en place un tel fonctionnement, une des nécessité est de mettre un écouteur pour toutes les urls débutant par `http://monsite/blog`.
+Par exemple `/blog/topicA/20251101` et `/blog/author`. 
 
-Behavior:
-- The `slug` parameter will be provided as an array of path segments.
-- Use catch-all routes for documentation, file previews, or any nested content structure.
+C'est là où les urls catch-all sont utiles.
 
-Implementation tips:
-- Handle an empty array for the base path (e.g., `/docs`).
-- Normalize and validate segments before using them to locate resources.
+Au niveau des fichiers du routeur, le nom de dossier spécial `[...]` permet de définir un écouteur pour toutes les urls.
+
+**Exemple de définition d'un catch-url**
+```
+@routes/
+|- blog/                   < Mapped to url http://mysite/blog
+   |-[...]/                < Will catch all url staring by /blog/
+     |- onGET.ts           < Define the function to call
+```
+
+**Contenu du fichier onGET.ts**
+```typescript
+import {JopiRequest, ServerFetch} from "jopi-rewrite";  
+  
+const sf = ServerFetch.useIP("myblog", "127.0.0.1:8080");  
+  
+export default async function (req: JopiRequest) {  
+    return await req.proxyRequestTo(sf);  
+}
+```

@@ -1,21 +1,11 @@
-# Import a CSS file
 
-To include a CSS file:
+# Importer une CSS
 
-1. Place the CSS file under src or an assets folder.
-2. Import it in your root layout or main entry file:
-   - import './styles.css'
-3. Ensure the bundler processes the file and includes it in the build.
-
-Tips:
-- For global styles prefer a single import in the root layout.
-- For component-level styles use CSS modules or scoped solutions.
-
-In a route file `page.tsx`, when you import a CSS or SCSS (Sass) file that CSS is included in the page's HTML after being minified.
+Dans un fichier de route `page.tsx` lorsque vous importez une fichier CSS, ou SCSS (Sass) alors ce fichier CSS est inclut par le HTML de la page après avoir été minimisé.
 
 ```
-import "./mystyle-1.css";
+import "./mystyle-1.css";  
 import "./mystyle-2.scss";
 ```
 
-Referenced CSS is included only by the pages that import it: there is no global bundle. If you want to create a global bundle, create a common file that imports multiple CSS files.
+Le CSS référencé est inclut uniquement par les pages important cette CSS : il n'y a pas de bundle global. Si vous désirez en créer un, il suffit d'avoir un fichier commun important plusieurs CSS.
