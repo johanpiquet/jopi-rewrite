@@ -22,6 +22,9 @@ To understand, here are some examples.
 * The file `@routes/products/listing/page.tsx` corresponds to the URL `http://mysite/product/listing`.
 * The file `@routes/page.tsx` corresponds to the home page `http://mysite/`.
 
+> **To know**: directories which name starts with an underscore are ignored
+> Example: `@routes/products/_willBeIgnore/page.tsx` 
+
 ## Example route
 
 The following example defines a route while giving an overview of files that may be found in the folder. Each item will be explained in more detail below.

@@ -440,7 +440,7 @@ export abstract class ArobaseType {
      * @param rules
      * @param useThisUid
      */
-    protected async dir_extractInfos(dirPath: string, rules: DirAnalizingRules, useThisUid?: string | undefined): Promise<ExtractDirectoryInfosResult> {
+    protected async dir_extractInfos(dirPath: string, rules: DirAnalyzingRules, useThisUid?: string | undefined): Promise<ExtractDirectoryInfosResult> {
         const decodeFeature = async (dirItem: jk_fs.DirItem, ext: string): Promise<string> => {
             let featureName = dirItem.name.toLowerCase();
             featureName = featureName.slice(0, -ext.length);
@@ -661,7 +661,7 @@ export abstract class ArobaseType {
     //endregion
 }
 
-export interface DirAnalizingRules {
+export interface DirAnalyzingRules {
     requireRefFile?: boolean;
     allowConditions?: boolean;
     requirePriority?: boolean;
@@ -682,7 +682,7 @@ export interface ScanDirItemsParams {
     rules?: ProcessDirItemParams;
 }
 
-export interface ProcessDirItemParams extends DirAnalizingRules {
+export interface ProcessDirItemParams extends DirAnalyzingRules {
     rootDirName: string;
     filesToResolve?: Record<string, string[]>;
     nameConstraint: "canBeUid"|"mustNotBeUid"|"mustBeUid";

@@ -58,13 +58,13 @@ export default class TypeRoutes extends ArobaseType {
     async processDir(p: { moduleDir: string; arobaseDir: string; genDir: string; }) {
         this.outputDir = getWriter().dir.output_dir;
 
-        let dirAttributs = await this.scanAttributs(p.arobaseDir);
+        let dirAttributes = await this.scanAttributes(p.arobaseDir);
         //
-        if (dirAttributs.configFile) {
-            this.routeConfig["/"] = dirAttributs.configFile;
+        if (dirAttributes.configFile) {
+            this.routeConfig["/"] = dirAttributes.configFile;
         }
 
-        await this.scanDir(p.arobaseDir, "/", dirAttributs);
+        await this.scanDir(p.arobaseDir, "/", dirAttributes);
     }
 
     private bindPage(route: string, filePath: string, attributs: RouteAttributs) {
@@ -121,7 +121,7 @@ export default class TypeRoutes extends ArobaseType {
         return target + "NeedRole_" + role;
     }
 
-    private async scanAttributs(dirPath: string): Promise<RouteAttributs> {
+    private async scanAttributes(dirPath: string): Promise<RouteAttributs> {
         const res: RouteAttributs = {needRoles: {}};
 
         const infos = await this.dir_extractInfos(dirPath, {
@@ -160,16 +160,19 @@ export default class TypeRoutes extends ArobaseType {
         }
     }
 
-    private async scanDir(dir: string, route: string, attributs: RouteAttributs) {
+    private async scanDir(dir: string, route: string, attributes: RouteAttributs) {
         let dirItems = await jk_fs.listDir(dir);
 
         for (let dirItem of dirItems) {
             if (dirItem.name[0] === '.') continue;
 
+            // Ignore if starts with '_'.
+            if (dirItem.name[0] === '_') continue;
+
             if (dirItem.isDirectory) {
                 let segmentInfos = convertRouteSegment(dirItem.name);
                 let newRoute = route==="/" ? route + segmentInfos.routePart : route + "/" + segmentInfos.routePart;
-                let dirAttributs = await this.scanAttributs(dirItem.fullPath);
+                let dirAttributs = await this.scanAttributes(dirItem.fullPath);
 
                 if (segmentInfos.isCatchAll && segmentInfos.name) {
                     dirAttributs.catchAllSlug = segmentInfos.name;
@@ -189,28 +192,28 @@ export default class TypeRoutes extends ArobaseType {
 
                     switch (name) {
                         case "page":
-                            this.addToRegistry({verb: "PAGE", route, filePath: dirItem.fullPath, attributs});
+                            this.addToRegistry({verb: "PAGE", route, filePath: dirItem.fullPath, attributs: attributes});
                             break;
                         case "onGET":
-                            this.addToRegistry({verb: "GET", route, filePath: dirItem.fullPath, attributs});
+                            this.addToRegistry({verb: "GET", route, filePath: dirItem.fullPath, attributs: attributes});
                             break;
                         case "onPOST":
-                            this.addToRegistry({verb: "POST", route, filePath: dirItem.fullPath, attributs});
+                            this.addToRegistry({verb: "POST", route, filePath: dirItem.fullPath, attributs: attributes});
                             break;
                         case "onPUT":
-                            this.addToRegistry({verb: "PUT", route, filePath: dirItem.fullPath, attributs});
+                            this.addToRegistry({verb: "PUT", route, filePath: dirItem.fullPath, attributs: attributes});
                             break;
                         case "onDELETE":
-                            this.addToRegistry({verb: "DELETE", route, filePath: dirItem.fullPath, attributs});
+                            this.addToRegistry({verb: "DELETE", route, filePath: dirItem.fullPath, attributs: attributes});
                             break;
                         case "onHEAD":
-                            this.addToRegistry({verb: "HEAD", route, filePath: dirItem.fullPath, attributs});
+                            this.addToRegistry({verb: "HEAD", route, filePath: dirItem.fullPath, attributs: attributes});
                             break;
                         case "onPATCH":
-                            this.addToRegistry({verb: "PATCH", route, filePath: dirItem.fullPath, attributs});
+                            this.addToRegistry({verb: "PATCH", route, filePath: dirItem.fullPath, attributs: attributes});
                             break;
                         case "onOPTIONS":
-                            this.addToRegistry({verb: "OPTIONS", route, filePath: dirItem.fullPath, attributs});
+                            this.addToRegistry({verb: "OPTIONS", route, filePath: dirItem.fullPath, attributs: attributes});
                             break;
                     }
                 }
