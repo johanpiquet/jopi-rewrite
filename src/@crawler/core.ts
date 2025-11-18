@@ -486,6 +486,7 @@ export class WebSiteCrawler {
             catch (e: any) {
                 console.error("Crawler - Error while fetching:", sourceUrl);
                 console.error("|--> Message:", getErrorMessage(e));
+                console.log(e);
 
                 return sendSignal(ProcessUrlResult.ERROR);
             }
@@ -549,6 +550,13 @@ export class WebSiteCrawler {
         });
 
         html = $.html();
+
+        // Security for residual urls.
+        if (html.includes(this.newWebSite_basePath + "/"))
+            html = html.replaceAll(this.newWebSite_basePath, "")
+        if (html.includes(this.newWebSite_basePath))
+            html = html.replaceAll(this.newWebSite_basePath, "/")
+
         return html;
     }
 
