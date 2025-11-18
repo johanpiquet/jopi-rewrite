@@ -581,7 +581,7 @@ export class WebSiteImpl implements WebSite {
         this.cacheRules = rules;
     }
 
-    setOnFakeNoUser(listener: FakeNoUserListener) {
+    setOnFakeNoUser(listener: FakeNoUserListener|undefined) {
         this.fakeNoUser = listener;
     }
 

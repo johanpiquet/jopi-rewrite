@@ -85,28 +85,6 @@ export class JopiEasy {
         return res;
     }
 
-    create_reverseProxyServer(url?: string|undefined, ref?: RefFor_WebSite): ReverseProxyBuilder {
-        if (gWebSiteCreated) throw new Error("WebSite already created");
-        gWebSiteCreated = true;
-
-        if (!url) {
-            url = this.getDefaultUrl();
-        }
-
-        return new ReverseProxyBuilder(url, ref);
-    }
-
-    create_fileServer(url?: string|undefined, ref?: RefFor_WebSite): FileServerBuilder {
-        if (gWebSiteCreated) throw new Error("WebSite already created");
-        gWebSiteCreated = true;
-
-        if (!url) {
-            url = this.getDefaultUrl();
-        }
-
-        return new FileServerBuilder(url, ref);
-    }
-
     create_webSiteDownloader(urlOrigin?: string|undefined): CrawlerDownloader {
         if (gWebSiteCreated) throw new Error("WebSite already created");
         gWebSiteCreated = true;
@@ -380,6 +358,12 @@ class IfServerDownBuilder<T> extends CreateServerFetch<T, CreateServerFetch_Next
 
 //region WebSite
 
+export interface FileServerOptions {
+    rootDir: string;
+    replaceIndexHtml: boolean,
+    onNotFound: (req: JopiRequest) => Response|Promise<Response>
+}
+
 export class JopiEasyWebSite {
     protected readonly origin: string;
     protected readonly hostName: string;
@@ -391,6 +375,8 @@ export class JopiEasyWebSite {
 
     protected readonly internals: WebSiteInternal;
     protected _isWebSiteReady: boolean = false;
+
+    protected fileServerOptions: FileServerOptions;
 
     public readonly events = jk_events.defaultEventGroup;
 
@@ -422,6 +408,21 @@ export class JopiEasyWebSite {
                 }
             })
         }
+
+        this.fileServerOptions = {
+            rootDir: "public",
+            replaceIndexHtml: true,
+            onNotFound: req => req.returnError404_NotFound()
+        };
+
+        this.internals.afterHook.push(async webSite => {
+            webSite.onGET("/**", req => {
+                return req.serveFromDir(this.fileServerOptions.rootDir, {
+                    replaceIndexHtml: this.fileServerOptions.replaceIndexHtml,
+                    onNotFound: this.fileServerOptions.onNotFound
+                });
+            });
+        });
     }
 
     private async initWebSiteInstance(): Promise<void> {
@@ -479,6 +480,33 @@ export class JopiEasyWebSite {
 
     add_httpCertificate(): CertificateBuilder {
         return new CertificateBuilder(this, this.internals);
+    }
+
+    fastConfigure_fileServer(options: FileServerOptions) {
+        this.fileServerOptions = options;
+        return this;
+    }
+
+    configure_fileServer() {
+        const parent = this;
+
+        const me = {
+            set_rootDir: (rootDir: string) => {
+                this.fileServerOptions.rootDir = rootDir;
+                return me;
+            },
+
+            set_onNotFound: (handler: (req: JopiRequest) => Response|Promise<Response>) => {
+                this.fileServerOptions.onNotFound = handler;
+                return me;
+            },
+
+            DONE_configure_fileServer: (): JopiEasyWebSite => {
+                return parent;
+            }
+        };
+
+        return me;
     }
 
     configure_jwtTokenAuth(): JWT_BEGIN {
@@ -800,7 +828,10 @@ class WebSite_CacheBuilder {
     constructor(private readonly webSite: JopiEasyWebSite, private readonly internals: WebSiteInternal) {
         this.internals.afterHook.push(async webSite => {
             (webSite as WebSiteImpl).setCacheRules(this.rules);
-            (webSite as WebSiteImpl).setOnFakeNoUser(this.onFakeNoUser);
+
+            if (this.onFakeNoUser) {
+                (webSite as WebSiteImpl).setOnFakeNoUser(this.onFakeNoUser);
+            }
 
             if (this.cache) {
                 webSite.setCache(this.cache);
@@ -928,58 +959,6 @@ class ReverseProxyBuilder_AddTarget_NextStep<T> extends CreateServerFetch_NextSt
 
     DONE_add_target(): ReverseProxyBuilder {
         return this.parent;
-    }
-}
-
-//endregion
-
-//region File server
-
-interface FileServerOptions {
-    rootDir: string;
-    replaceIndexHtml: boolean,
-    onNotFound: (req: JopiRequest) => Response|Promise<Response>
-}
-
-class FileServerBuilder {
-    private readonly webSite: JopiEasyWebSite_ExposePrivate;
-    private readonly internals: WebSiteInternal;
-    private readonly options: FileServerOptions;
-
-    constructor(url: string, ref?: RefFor_WebSite) {
-        this.webSite = new JopiEasyWebSite_ExposePrivate(url);
-        if (ref) ref.webSite = this.webSite;
-
-        this.internals = this.webSite.getInternals();
-
-        this.options = {
-            rootDir: "www",
-            replaceIndexHtml: true,
-            onNotFound: req => req.returnError404_NotFound()
-        };
-
-        this.internals.afterHook.push(async webSite => {
-            webSite.onGET("/**", req => {
-                return req.serveFromDir(this.options.rootDir, {
-                    replaceIndexHtml: this.options.replaceIndexHtml,
-                    onNotFound: this.options.onNotFound
-                });
-            });
-        });
-    }
-
-    set_rootDir(rootDir: string): this {
-        this.options.rootDir = rootDir;
-        return this;
-    }
-
-    set_onNotFound(handler: (req: JopiRequest) => Response|Promise<Response>): this {
-        this.options.onNotFound = handler;
-        return this;
-    }
-
-    DONE_create_fileServer(): JopiEasyWebSite_ExposePrivate {
-        return this.webSite;
     }
 }
 

@@ -75,6 +75,8 @@ The documentation is organized as a cookbook: you want to do this, here is how.
 [Use parameterized urls.](_doc/basic/use_parametred_url.md)
 [Use catch-all urls.](_doc/basic/use_catchall_url.md)
 [Override an existing route.](_doc/basic/override_an_existing_route.md)
+[The /public dir](_doc/basic/the_public_dir.md)
+
 
 [Enable developer mode.](_doc/basic/enable_developper_mode.md)
 [Enable HTTPS.](_doc/basic/enable_https.md)
