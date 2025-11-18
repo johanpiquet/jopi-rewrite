@@ -19,6 +19,8 @@ jk_events.addListener("jopi.route.newPage", async ({route, filePath}: {route: st
     gPagePathToRoute[filePath] = route;
 });
 
+let gCreatingBundleEventData: any = undefined;
+
 // This event is called when creating the bundled is creating.
 //
 // Here we will:
@@ -27,10 +29,20 @@ jk_events.addListener("jopi.route.newPage", async ({route, filePath}: {route: st
 // - Add this file to EsBuild entryPoints to build it with shared resources.
 // - It will also generate a "page_xxxx.html" for Bun.js / React HMR.
 //
-jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config, webSite}: {
+jk_events.addListener("jopi.bundler.creatingBundle", async (event: any) => {
+    gCreatingBundleEventData = event;
+    await rebuildPages(gCreatingBundleEventData);
+});
+
+// This event is called when the bundler is rebuilding (watch mode).
+jk_events.addListener("jopi.bundler.watch.beforeRebuild", async () => {
+    await rebuildPages(gCreatingBundleEventData);
+});
+
+async function rebuildPages({genDir, config, webSite}: {
     webSite: WebSiteImpl, genDir: string,
     tailwindCss: string, config: BundlerConfig
-}) => {
+}) {
     const installScript = getBrowserInstallScript();
 
     if (isReactHMR()) {
@@ -79,7 +91,7 @@ jk_events.addListener("jopi.bundler.creatingBundle", async ({genDir, config, web
         outFilePath = jk_fs.join(genDir, fileName + ".html");
         await jk_fs.writeTextToFile(outFilePath, txt);
     }
-});
+}
 
 const HTML_TEMPLATE = `<!doctype html>
 <html lang="en">

@@ -105,23 +105,28 @@ export function jopiReplaceText(): Plugin {
 }
 
 export function jopiDetectRebuild(params: EsBuildParams): Plugin {
-    let isFirstCall = true;
+    // Allow avoiding behaviors with TypeScript compiler doing some late works.
+    //
+    let isEnabled = false;
+    setTimeout(() => { isEnabled = true }, 1000);
 
     return {
         name: "jopi-detect-rebuild",
         setup(build) {
             build.onStart(async () => {
+                if (!isEnabled) return;
+
                 if (params.requireTailwind) {
                     await applyTailwindProcessor(params);
                 }
 
-                if (!isFirstCall && params.enableUiWatch) {
+                if (params.enableUiWatch) {
                     await jk_events.sendAsyncEvent("jopi.bundler.watch.beforeRebuild");
                 }
             });
 
             build.onEnd(async () => {
-                isFirstCall = false;
+                if (!isEnabled) return;
 
                 if (params.enableUiWatch) {
                     await jk_events.sendAsyncEvent("jopi.bundler.watch.afterRebuild");

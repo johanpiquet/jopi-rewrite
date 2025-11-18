@@ -789,6 +789,9 @@ export async function compile(importMeta: any, config: LinkerConfig): Promise<vo
         return undefined;
     }
 
+    // Reset the registry in case of a second call to compile.
+    gRegistry = {};
+
     gDir_ProjectRoot = config.projectRootDir;
     gDir_ProjectSrc = jk_fs.join(gDir_ProjectRoot, "src");
     gDir_ProjectDist = jk_fs.join(gDir_ProjectRoot, "dist");

@@ -1,5 +1,6 @@
-import {type InstallFunction, loadServerInstall, getBrowserInstallFunction, getDefaultLinkerConfig, compile, getBrowserInstallScript} from "jopi-rewrite/linker";
+import {type InstallFunction, loadServerInstall, getBrowserInstallFunction, getDefaultLinkerConfig, compile} from "jopi-rewrite/linker";
 import {ModuleInitContext} from "jopi-rewrite/ui";
+import * as jk_events from "jopi-toolkit/jk_events";
 import {JopiEasyWebSite, type WebSite} from "jopi-rewrite";
 
 let gBrowserInstallFunction: InstallFunction<ModuleInitContext>;
@@ -19,3 +20,7 @@ export function executeBrowserInstall(ctx: ModuleInitContext) {
     if (!gIsInit) return;
     gBrowserInstallFunction(ctx);
 }
+
+jk_events.addListener("jopi.bundler.watch.beforeRebuild", async () => {
+    await compile(import.meta, getDefaultLinkerConfig());
+});

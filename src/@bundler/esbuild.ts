@@ -3,6 +3,7 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as n_what from "jopi-toolkit/jk_what";
 import type {CreateBundleEvent} from "../@core/index.ts";
 import {jopiReplaceText, jopiLoaderPlugin, jopiDetectRebuild} from "./plugins.ts";
+import {applyTailwindProcessor} from "./tailwind.ts";
 
 export interface EsBuildParams extends CreateBundleEvent {
     metaDataFilePath: string;
@@ -75,6 +76,8 @@ export async function esBuildBundle(params: EsBuildParams) {
         // Produce metadata about the build.
         metafile: true
     };
+
+    await applyTailwindProcessor(params);
 
     const context = await esbuild.context(buildOptions);
     let result: BuildResult = await context.rebuild();
