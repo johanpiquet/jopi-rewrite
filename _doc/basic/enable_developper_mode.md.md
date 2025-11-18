@@ -34,9 +34,21 @@ The two environment variables, JOPI_DEV and JOPI_DEV_UI, enable development mode
 * JOPI_DEV=1 enables automatic server restart when sources change.
 * JOPI_DEV_UI=1 enables automatic refresh when one of the browser-related files changes (React HMR for Bun.js or a simple refresh for Node.js).
 
-## Issues related to React HMR
+## Issues related to UI Watch
 
-Some unfixable issues relate to the use of React HMR (bun.js + JOPI_DEV_UI=1) and apply only to pages (see `page.tsx`).
+Some behaviors are to consider when using UI Watch, du to the fact that the server doesn't update his content.
+
+The implications are:
+* When adding a new page, this new page is can be accessed until the server is restarted.
+* When changing role constraints on a page, these constraints are not updated until the server is restarted.
+
+Also, the server-side version of the page is not updated.
+
+This is not bug, but behaviors that are expected.
+
+## Issues related to UI Watch with Bun.js
+
+Bun.js use React HMR to update the browser content when a file changes. Some unfixable issues relate to the use of React HMR and apply only to pages (see `page.tsx`).
 
 * Security: roles cannot be verified.
 * Middleware: middlewares cannot be executed.
