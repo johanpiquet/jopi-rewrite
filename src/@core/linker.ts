@@ -23,6 +23,5 @@ export function executeBrowserInstall(ctx: ModuleInitContext) {
 
 // Will allows updating shared components and composites.
 jk_events.addListener("jopi.bundler.watch.beforeRebuild", async () => {
-    debugger;
     await compile(import.meta, getDefaultLinkerConfig());
 });

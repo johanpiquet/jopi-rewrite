@@ -53,3 +53,5 @@ Bun.js use React HMR to update the browser content when a file changes. Some unf
 * Security: roles cannot be verified.
 * Middleware: middlewares cannot be executed.
 * Cache: caching cannot be used.
+
+* React shared components and UI composites are not updated.
