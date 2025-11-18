@@ -43,6 +43,14 @@ export async function useCanonicalFileName(fileFullPath: string, expectedFileNam
 }
 
 export async function addNameIntoFile(filePath: string, name: string = jk_fs.basename(filePath)) {
+    if (!await jk_fs.isFile(filePath)) {
+        await jk_fs.writeTextToFile(filePath, name);
+        return;
+    }
+
+    let content = await jk_fs.readTextFromFile(filePath);
+    if (content===name) return;
+
     await jk_fs.writeTextToFile(filePath, name);
 }
 
@@ -413,7 +421,7 @@ export abstract class ArobaseType {
             priority = PriorityLevel.default;
 
             if (p.requirePriority) {
-                await jk_fs.writeTextToFile(jk_fs.join(thisFullPath, "default.priority"), "default.priority");
+                await addNameIntoFile(jk_fs.join(thisFullPath, "default.priority"), "default.priority");
             }
         }
 

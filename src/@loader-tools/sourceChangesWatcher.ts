@@ -5,6 +5,7 @@ import * as jk_timer from "jopi-toolkit/jk_timer";
 
 export interface SourceChangesWatcherParams {
     watchDirs: string[];
+    excludeDir: string[];
     env?: Record<string, string>;
     cmd?: string;
     args?: string[];
@@ -18,16 +19,18 @@ export interface SourceChangesWatcherParams {
  * - Includes a helper to auto-detect the source directory when using TypeScript.
  */
 export class SourceChangesWatcher {
-    private readonly _fileWatchingDelay: number = 500;
+    private readonly _fileWatchingDelay: number = 1000;
+    private readonly _restartDelay: number = 500;
+
     private _areSignalCatch = false;
 
     private restarting = false;
     private _isStarted = false;
 
     private _enableLogs: boolean = false;
-    private _restartDelay: number = 1500;
 
     private readonly watchDirs: string[];
+    private readonly excludeDir: string[];
     private readonly env: Record<string, string>;
 
     private readonly _cmd: string;
@@ -38,6 +41,7 @@ export class SourceChangesWatcher {
 
     constructor(params: SourceChangesWatcherParams) {
         this.watchDirs = params.watchDirs;
+        this.excludeDir = params.excludeDir;
 
         if (params.env) this.env = params.env;
         else this.env = process.env as Record<string, string>;
@@ -61,6 +65,11 @@ export class SourceChangesWatcher {
     }
 
     private async askToRestart(filePath: string) {
+        if (this.excludeDir) {
+            let isExcluded = this.excludeDir.find(p => filePath.startsWith(p))
+            if (isExcluded) return;
+        }
+
         // Avoid it if inside a hidden directory (start by .).
         let pathParts = filePath.split(path.sep);
         let hiddenPart = pathParts.find(e => e[0] === '.')
@@ -82,7 +91,7 @@ export class SourceChangesWatcher {
             if (this.restarting) return;
             this.restarting = true;
 
-            console.clear();
+            //console.clear();
 
             if (this._enableLogs) {
                 console.log("File change watcher - RESTART for:", filePath);
@@ -116,6 +125,7 @@ export class SourceChangesWatcher {
         watcher.on('all', async (_event, paths) => {
             await this.askToRestart(paths)
         });
+
         watcher.on('error', () => { /* swallow watcher errors to keep running */
         });
     }

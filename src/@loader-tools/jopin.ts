@@ -5,10 +5,11 @@ import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_os from "jopi-toolkit/jk_os";
 import * as jk_term from "jopi-toolkit/jk_term";
+import {SourceChangesWatcher} from "./sourceChangesWatcher.ts";
 
 // *************************
 const FORCE_LOG = false;
-const VERSION = "20251014a";
+const VERSION = "20251118a";
 // *************************
 
 let mustLog = false; // Set env var JOPI_LOG to 1 to enable.
@@ -197,12 +198,30 @@ export async function jopiLauncherTool(jsEngine: string) {
     const knowPackagesToPreload = ["jopi-rewrite"];
 
     // Here first is node.js, second is jopi. (it's du to shebang usage).
-    const argv = process.argv.slice(2);
+    let argv = process.argv.slice(2);
 
     if (!argv.length) {
         console.log("jopi-loader "+ VERSION +" installed at ", import.meta.dirname);
         return;
     }
+
+    // Catch --hot and --watch, and remove them.
+    //
+    argv = argv.filter(arg => {
+        if (arg === "--hot") {
+            config.needHot = true;
+            config.needWatch = true;
+            return false;
+        }
+
+        if (arg === "--watch") {
+            config.needHot = false;
+            config.needWatch = true;
+            return false;
+        }
+
+        return arg !== "--watch-path";
+    });
 
     let toPreload = getPreloadModules();
     toPreload = ["jopi-rewrite/loader", ...toPreload];
@@ -225,24 +244,9 @@ export async function jopiLauncherTool(jsEngine: string) {
 
     let config = await getConfiguration();
 
-    args = args.filter(arg => {
-        if (arg === "--hot") {
-            config.needHot = true;
-            config.needWatch = true;
-            return false;
-        }
-
-        if (arg === "--watch") {
-            config.needHot = false;
-            config.needWatch = true;
-            return false;
-        }
-
-        return arg !== "--watch-path";
-    });
-
     const cwd = process.cwd();
     let env: Record<string, string> = {...process.env} as Record<string, string>;
+    let enableFileWatcher = false;
 
     if (config.needWatch || config.needUiWatch) {
         env["JOPIN_BROWSER_REFRESH_ENABLED"] = "1";
@@ -252,15 +256,17 @@ export async function jopiLauncherTool(jsEngine: string) {
         let toPrepend: string[] = [];
 
         if (config.needWatch) {
-            if (config.needHot) toPrepend.push("--hot");
-            else toPrepend.push("--watch");
+            if (config.needHot) {
+                toPrepend.push("--hot");
+            }
+            else {
+                //toPrepend.push("--watch");
+                enableFileWatcher = true;
+                env["JOPI_CUSTOM_WATCHER"] = "1";
+                jk_term.logBlue("JopiN - Source watching enabled.");
+            }
 
             args = [...toPrepend, ...args];
-            jk_term.logBlue("JopiN - Full source watching enabled.");
-        }
-
-        if (config.needUiWatch) {
-            jk_term.logBlue("JopiN - UI source watching enabled.");
         }
     }
 
@@ -268,12 +274,6 @@ export async function jopiLauncherTool(jsEngine: string) {
         console.log("jopiN - Use current working dir:", cwd);
         console.log("jopiN - Executing:", cmd, ...args);
     }
-
-    let mainSpawnParams: SpawnParams =  {
-        cmd, env, args, onSpawned, cwd: process.cwd(), killOnExit: false
-    };
-
-    spawnChild(mainSpawnParams);
 
     // If dev-mode, then execute the scripts
     // jopiWatch_node/jopiWatch_bun from package.json
@@ -289,6 +289,21 @@ export async function jopiLauncherTool(jsEngine: string) {
         if (config.hasJopiWatchTask) execTask("jopiWatch");
         if (isNodeJs && config.hasJopiWatchTask_node) execTask("jopiWatch_node");
         if (!isNodeJs && config.hasJopiWatchTask_bun) execTask("jopiWatch_bun");
+    }
+
+    if (enableFileWatcher) {
+        const watcher = new SourceChangesWatcher({
+            watchDirs: [path.join(process.cwd(), "src")],
+            excludeDir: [path.join(process.cwd(), "src", "_jopiLinkerGen")],
+            isDev: true, env, cmd, args
+        });
+
+        await watcher.start();
+
+    } else {
+        spawnChild({
+            cmd, env, args, onSpawned, cwd: process.cwd(), killOnExit: false
+        });
     }
 }
 
