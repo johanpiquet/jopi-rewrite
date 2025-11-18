@@ -8,12 +8,13 @@ Its operating principle is very similar to Next.js:
 
 The goal of Jopi Rewrite is simplicity: to be able to create an application without drowning in technical details. That's why Jopi Rewrite is not just a server, but also a framework. It is minimalist, but with very useful additions:
 
-* Native Tailwind integration, already preconfigured. As well as React HMR integration so that any UI code change is instantly reflected in the browser.
-* Inclusion of a Docker script to quickly convert your project into a very lightweight Docker VM.
-* Built-in JWT authentication enabled by default, with the ability to easily create a user directory: a minimalist system that is easy to understand and extend for your own needs.
-* User role management is included. It allows limiting access to certain resources and customizing behavior according to user roles.
+* **Tailwind already configured and enabled**. As well as **React HMR integration** so that any UI code change is instantly reflected in the browser.
+* Inclusion of a **Docker script** to quickly convert your project into a very lightweight Docker VM.
+* Built-in **JWT authentication** with the ability to easily create a user directory: a minimalist system that is easy to understand and extend for your own needs.
+* **User role based security** is included. It allows limiting access to certain resources and customizing behavior according to user roles.
 * A cache management system that makes your site as fast as a static site. You have full control over this cache, which can be global, per-user, to distinguish desktop/mobile, ...
-* Creating an SSL certificate (for https) is trivial: Jopi generates development certificates (local machine) and also handles Let's Encrypt: with automatic renewal and no connection loss.
+* Creating an SSL certificate (for https) is trivial: Jopi **generates development certificates** (local machine) and also handles **Let's Encrypt**: with automatic renewal and no connection loss.
+* Simple but powerful **module system** to organize your application and reuse module between your apps.
 
 ## Application organization
 
@@ -46,13 +47,12 @@ The module organization allows clear separations between different aspects of yo
 
 Modules can share dependencies with other modules thanks to powerful alias mechanisms. For example a module defines a component MyComp, which becomes accessible to all modules by importing `import MyComp from @/uiBlocks/MyComp`.
 
-Jopi's module system has the major advantage of being compatible with code pruning performed by its internal bundler to minimize the size of generated JavaScript files (similar to Vite.js and WebPack). This pruning means some patterns that are easy to implement on the server can become the source of strange errors in the browser because the bundler may accidentally remove pieces of code that are actually needed. This is the case for event/listener patterns.
+Jopi's module system has the major advantage of being compatible with code pruning performed by JavasScript Bundlers, avoid common pitfalls with low-coupled code.
 
-This complexity is why Jopi provides its own mechanisms, implemented without side effects for bundlers, and without generating abnormally large JavaScript files for the browser.
-
-* Events / listeners — This mechanism lets modules communicate via a flexible "notify when this happens" system.
-* Composites — This mechanism allows React components to have content enriched by modules. For example, so that a module can add content to a toolbar.
-* Exposure and replacement — Modules can expose elements shared among them. For example one module exposes a `Product` component that renders a product. Another module can decide to replace this component with a new version: this is done through a priority system. The new component has a higher priority, and therefore replaces the old one.
+The module system is based on a set of mechanisms:
+* **Events / listeners** — This mechanism lets modules communicate via a flexible "notify when this happens" system.
+* **Composites** — This mechanism allows React components to have content enriched by modules. For example, so that a module can add content to a toolbar.
+* **Sharing React.js components** — Modules can share React components, which are automatically registered in the global namespace. Also, a module can replace a shared component with its own version.
 
 ### Server-only code, browser-only code?
 
