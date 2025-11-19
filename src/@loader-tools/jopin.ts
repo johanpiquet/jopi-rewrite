@@ -20,8 +20,10 @@ interface WatchInfos {
     needHot?: boolean;
 
     hasJopiWatchTask?: boolean;
+    hasJopiBuildTask_node?: boolean;
     hasJopiWatchTask_node?: boolean;
     hasJopiWatchTask_bun?: boolean;
+    hasJopiBuildTask_bun?: boolean;
 
     packageJsonFilePath?: string;
 }
@@ -72,6 +74,12 @@ function getDevModeType(): DevModType {
 }
 
 export async function jopiLauncherTool(jsEngine: string) {
+    function execTask(taskName: string) {
+        let cwd = path.dirname(config.packageJsonFilePath!);
+        cmd = isNodeJs ? "npm" : "bun";
+        spawnChild({cmd, env, cwd, args: ["run", taskName], killOnExit: false})
+    }
+
     function onSpawned() {
         // Nothing to do. Keep for future usages.
     }
@@ -155,6 +163,9 @@ export async function jopiLauncherTool(jsEngine: string) {
                     if (scripts.jopiWatch) res.hasJopiWatchTask = true;
                     if (scripts.jopiWatch_node) res.hasJopiWatchTask_node = true;
                     if (scripts.jopiWatch_bun) res.hasJopiWatchTask_bun = true;
+
+                    if (scripts.jopiBuild_node) res.hasJopiBuildTask_node = true;
+                    if (scripts.jopiBuild_bun) res.hasJopiBuildTask_bun = true;
                 }
             }
             catch (e) {
@@ -188,6 +199,7 @@ export async function jopiLauncherTool(jsEngine: string) {
     }
 
     const importFlag = jsEngine === "node" ? "--import" : "--preload";
+    const isNodeJs = jsEngine == "node";
 
     mustLog = process.env.JOPI_LOG==="1" || FORCE_LOG;
 
@@ -279,16 +291,12 @@ export async function jopiLauncherTool(jsEngine: string) {
     // jopiWatch_node/jopiWatch_bun from package.json
     //
     if (gDevModeType === DevModType.FULL_RELOAD) {
-        function execTask(taskName: string) {
-            let cwd = path.dirname(config.packageJsonFilePath!);
-            cmd = isNodeJs ? "npm" : "bun";
-            spawnChild({cmd, env, cwd, args: ["run", taskName], killOnExit: false})
-        }
-
-        let isNodeJs = jsEngine == "node";
         if (config.hasJopiWatchTask) execTask("jopiWatch");
         if (isNodeJs && config.hasJopiWatchTask_node) execTask("jopiWatch_node");
         if (!isNodeJs && config.hasJopiWatchTask_bun) execTask("jopiWatch_bun");
+    } else {
+        if (isNodeJs && config.hasJopiBuildTask_node) execTask("jopiBuild_node");
+        if (!isNodeJs && config.hasJopiBuildTask_bun) execTask("jopiBuild_bun");
     }
 
     if (enableFileWatcher) {
