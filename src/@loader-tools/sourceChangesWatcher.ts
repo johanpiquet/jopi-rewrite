@@ -10,6 +10,7 @@ export interface SourceChangesWatcherParams {
     cmd?: string;
     args?: string[];
     isDev: boolean;
+    mustLog: boolean;
 }
 
 /**
@@ -38,6 +39,7 @@ export class SourceChangesWatcher {
 
     private _timerId: number = 0;
     private readonly _isDev: boolean;
+    private readonly _mustLog: boolean;
 
     constructor(params: SourceChangesWatcherParams) {
         this.watchDirs = params.watchDirs;
@@ -50,6 +52,7 @@ export class SourceChangesWatcher {
         this._args = params.args || [];
 
         this._isDev = params.isDev;
+        this._mustLog = params.mustLog;
     }
 
     async start() {
@@ -171,6 +174,10 @@ export class SourceChangesWatcher {
             process.on('SIGINT', () => this.killAll());
             process.on('SIGHUP', () => this.killAll());
             process.on('exit', () => this.killAll());
+        }
+
+        if (this._mustLog) {
+            console.log("spawning", {cmd: this._cmd, args: this._args, cwd: process.cwd(), useShell})
         }
 
         const child = spawn(this._cmd, this._args, {

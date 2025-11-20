@@ -74,10 +74,21 @@ function getDevModeType(): DevModType {
 }
 
 export async function jopiLauncherTool(jsEngine: string) {
-    function execTask(taskName: string) {
-        let cwd = path.dirname(config.packageJsonFilePath!);
-        cmd = isNodeJs ? "npm" : "bun";
-        spawnChild({cmd, env, cwd, args: ["run", taskName], killOnExit: false})
+    function execTask(taskName: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let cwd = path.dirname(config.packageJsonFilePath!);
+            let cmd = isNodeJs ? "npm" : "bun";
+            const child = spawn(cmd, ["run", taskName], {stdio: "inherit", cwd, env});
+
+            child.on('exit', (code) => {
+                if (code === 0) { resolve() }
+                else { reject(new Error(`Task ${taskName} exited with code ${code}`)); }
+            });
+
+            child.on('error', (err) => {
+                reject(err);
+            });
+        });
     }
 
     function onSpawned() {
@@ -291,24 +302,28 @@ export async function jopiLauncherTool(jsEngine: string) {
     // jopiWatch_node/jopiWatch_bun from package.json
     //
     if (gDevModeType === DevModType.FULL_RELOAD) {
-        if (config.hasJopiWatchTask) execTask("jopiWatch");
-        if (isNodeJs && config.hasJopiWatchTask_node) execTask("jopiWatch_node");
-        if (!isNodeJs && config.hasJopiWatchTask_bun) execTask("jopiWatch_bun");
+        if (config.hasJopiWatchTask) await execTask("jopiWatch");
+        if (isNodeJs && config.hasJopiWatchTask_node) await execTask("jopiWatch_node");
+        if (!isNodeJs && config.hasJopiWatchTask_bun) await execTask("jopiWatch_bun");
     } else {
-        if (isNodeJs && config.hasJopiBuildTask_node) execTask("jopiBuild_node");
-        if (!isNodeJs && config.hasJopiBuildTask_bun) execTask("jopiBuild_bun");
+        if (isNodeJs && config.hasJopiBuildTask_node) await execTask("jopiBuild_node");
+        if (!isNodeJs && config.hasJopiBuildTask_bun) await execTask("jopiBuild_bun");
     }
 
     if (enableFileWatcher) {
+        if (mustLog) console.log("Using SourceChangesWatcher");
+
         const watcher = new SourceChangesWatcher({
             watchDirs: [path.join(process.cwd(), "src")],
             excludeDir: [path.join(process.cwd(), "src", "_jopiLinkerGen")],
-            isDev: true, env, cmd, args
+            isDev: true, env, cmd, args, mustLog: mustLog
         });
 
         await watcher.start();
 
     } else {
+        if (mustLog) console.log("Is not using SourceChangesWatcher");
+
         spawnChild({
             cmd, env, args, onSpawned, cwd: process.cwd(), killOnExit: false
         });
@@ -350,6 +365,10 @@ function killAll(signalName: NodeJS.Signals) {
 
 function spawnChild(params: SpawnParams): void {
     let useShell = params.cmd.endsWith('.cmd') || params.cmd.endsWith('.bat') || params.cmd.endsWith('.sh');
+
+    if (mustLog) {
+        console.log("spawnChild", {cmd: params.cmd, args: params.args, cwd: process.cwd(), useShell})
+    }
 
     const child = spawn(params.cmd, params.args, {
         stdio: "inherit", shell: useShell,
