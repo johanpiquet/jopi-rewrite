@@ -11,6 +11,7 @@ export interface SourceChangesWatcherParams {
     args?: string[];
     isDev: boolean;
     mustLog: boolean;
+    jsEngine: string;
 }
 
 /**
@@ -20,8 +21,8 @@ export interface SourceChangesWatcherParams {
  * - Includes a helper to auto-detect the source directory when using TypeScript.
  */
 export class SourceChangesWatcher {
-    private readonly _fileWatchingDelay: number = 1000;
-    private readonly _restartDelay: number = 500;
+    private readonly _fileWatchingDelay: number;
+    private readonly _restartDelay: number;
 
     private _areSignalCatch = false;
 
@@ -42,6 +43,11 @@ export class SourceChangesWatcher {
     private readonly _mustLog: boolean;
 
     constructor(params: SourceChangesWatcherParams) {
+        const isNodeJS = params.jsEngine === "node";
+
+        this._fileWatchingDelay = isNodeJS ? 1000 : 500;
+        this._restartDelay = isNodeJS ? 500 : 10;
+
         this.watchDirs = params.watchDirs;
         this.excludeDir = params.excludeDir;
 

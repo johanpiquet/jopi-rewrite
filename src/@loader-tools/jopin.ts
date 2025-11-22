@@ -15,9 +15,9 @@ const VERSION = "20251118a";
 let mustLog = false; // Set env var JOPI_LOG to 1 to enable.
 
 interface WatchInfos {
+    needHot: boolean;
     needWatch: boolean;
     needUiWatch: boolean;
-    needHot?: boolean;
 
     hasJopiWatchTask?: boolean;
     hasJopiBuildTask_node?: boolean;
@@ -139,9 +139,9 @@ export async function jopiLauncherTool(jsEngine: string) {
 
     async function getConfiguration(): Promise<WatchInfos> {
         let res: WatchInfos = {
+            needHot: false,
             needUiWatch: gDevModeType === DevModType.UI_REBUILD,
-            needWatch: gDevModeType === DevModType.FULL_RELOAD,
-            needHot: (gDevModeType === DevModType.FULL_RELOAD) && (jsEngine==="bun")
+            needWatch: gDevModeType === DevModType.FULL_RELOAD
         };
 
         let pckJson = jk_app.findPackageJson();
@@ -161,10 +161,6 @@ export async function jopiLauncherTool(jsEngine: string) {
                     }
                     else if (jopi.watch===true) {
                         res.needWatch = true;
-                    }
-
-                    if (jopi.hot===true) {
-                        res.needHot = true;
                     }
                 }
 
@@ -198,10 +194,6 @@ export async function jopiLauncherTool(jsEngine: string) {
                 case "true":
                 case "yes":
                     res.needWatch = true;
-                    break;
-                case "hot":
-                    res.needWatch = true;
-                    res.needHot = true;
                     break;
             }
         }
@@ -316,7 +308,8 @@ export async function jopiLauncherTool(jsEngine: string) {
         const watcher = new SourceChangesWatcher({
             watchDirs: [path.join(process.cwd(), "src")],
             excludeDir: [path.join(process.cwd(), "src", "_jopiLinkerGen")],
-            isDev: true, env, cmd, args, mustLog: mustLog
+            isDev: true, env, cmd, args, mustLog: mustLog,
+            jsEngine
         });
 
         await watcher.start();
