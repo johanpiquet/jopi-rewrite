@@ -6,10 +6,6 @@ import {launchEsBuildProcess} from "./launcher.ts";
 async function createBundle(params: CreateBundleEvent): Promise<void> {
     const config = params.config;
 
-    let replaceRules: Record<string, string> = {
-        "jBundler_ifServer": "jBundler_ifBrowser"
-    };
-
     // Load the metadata generated.
     const metaDataFilePath = jk_fs.join(params.genDir, "esbuildMeta.json");
 
@@ -23,7 +19,7 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
         ...params
     });
 
-    // Virtual url are temporaire url used by Server Side.
+    // Virtual url are temporary url used by Server Side.
     // If they are required, it's because at compile-time
     // we aren't able to know what is the final bundled url.
     //

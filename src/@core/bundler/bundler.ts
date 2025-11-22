@@ -50,7 +50,7 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     const enableUiWatch = (process.env.JOPI_DEV_UI === "1") && !isBunJS;
     const config = getBundlerConfig();
 
-    await jk_events.sendAsyncEvent("jopi.bundler.creatingBundle", {
+    await jk_events.sendAsyncEvent("jopi.bundler.beforeCreateBundle", {
         webSite, genDir, config, publicUrl, innerUrl, enableUiWatch,
         tailwindCss: requireTailwind ? innerUrl + "tailwind.css" : undefined
     });

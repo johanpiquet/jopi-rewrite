@@ -27,7 +27,7 @@ jk_events.addListener("jopi.route.newPage", async ({route, filePath}: {route: st
 // - Add this file to EsBuild entryPoints to build it with shared resources.
 // - It will also generate a "page_xxxx.html" for Bun.js / React HMR.
 //
-jk_events.addListener("jopi.bundler.creatingBundle", rebuildPages);
+jk_events.addListener("jopi.bundler.beforeCreateBundle", rebuildPages);
 
 async function rebuildPages({genDir, config, webSite}: {
     webSite: WebSiteImpl, genDir: string,
