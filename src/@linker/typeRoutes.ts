@@ -116,8 +116,6 @@ export default class TypeRoutes extends ArobaseType {
         else ctx[target].push(role);
 
         target = target.toLowerCase();
-        if (target==="page") target = "get";
-
         return target + "NeedRole_" + role;
     }
 

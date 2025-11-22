@@ -120,6 +120,7 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
             this.pageToBuild[path] = pageKey;
             return;
         }
+
         routeInfos.handler = async (req) => {
             return await req.reactPage(pageKey, reactComponent);
         };
