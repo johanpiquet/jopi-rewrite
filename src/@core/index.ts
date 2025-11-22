@@ -17,5 +17,5 @@ export * from "./jopiServer.ts";
 
 export * from "./bundler/config.ts";
 
-export {type CreateBundleEvent} from "./bundler/bundler.ts";
+export {type CreateBundleParams} from "./bundler/bundler.ts";
 export {type BundlerConfig} from "./bundler/config.ts";

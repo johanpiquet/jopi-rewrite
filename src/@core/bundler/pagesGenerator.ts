@@ -3,7 +3,7 @@ import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_crypto from "jopi-toolkit/jk_crypto";
 import {type BundlerConfig} from "./config.ts";
 import {getBrowserInstallScript} from "jopi-rewrite/linker";
-import {getBrowserRefreshScript, isBrowserRefreshEnabled, isReactHMR} from "jopi-rewrite/loader-client";
+import {getBrowserRefreshScript, isBrowserRefreshEnabled, isDevMode, isReactHMR} from "jopi-rewrite/loader-client";
 import {getGlobalCssFileContent} from "jopi-rewrite/bundler";
 import type {WebSiteImpl} from "../jopiWebSite.tsx";
 
@@ -40,15 +40,15 @@ async function rebuildPages({genDir, config, webSite}: {
         await jk_fs.writeTextToFile(jk_fs.join(genDir, "tailwind-hmr.css"), globalCss);
     }
 
-    for (let filePath in gPagePathToRoute) {
-        let route = gPagePathToRoute[filePath];
-        let fileName = "page_" + jk_crypto.fastHash(route);
+    for (let sourceFilePath in gPagePathToRoute) {
+        let route = gPagePathToRoute[sourceFilePath];
+        let pageKey = "page_" + jk_crypto.fastHash(route);
 
         // Here we save the name without extension.
-        gRouteToPageFile[route] = fileName;
+        gRouteToPageFile[route] = pageKey;
 
         let txt = REACT_TEMPLATE;
-        txt = txt.replace("__PATH__", filePath);
+        txt = txt.replace("__PATH__", sourceFilePath);
         txt = txt.replace("__INSTALL__", installScript);
         txt = txt.replace("__ROUTE__", JSON.stringify(route));
         txt = txt.replace("__OPTIONS__", JSON.stringify({removeTrailingSlashs: webSite.mustRemoveTrailingSlashs}));
@@ -69,16 +69,25 @@ async function rebuildPages({genDir, config, webSite}: {
             // The uncompiled version of tailwind.
             txt = txt.replace("__EXTRA_IMPORTS__", 'import "./tailwind-hmr.css";');
         } else {
-            txt = txt.replace("__EXTRA_IMPORTS__", 'import "./tailwind.css";');
+            if (isDevMode()) {
+                txt = txt.replace("__EXTRA_IMPORTS__", `import "./${pageKey}/tailwind.css";`);
+            } else {
+                txt = txt.replace("__EXTRA_IMPORTS__", 'import "./tailwind.css";');
+            }
         }
 
-        let outFilePath = jk_fs.join(genDir, fileName + ".jsx");
+        let outFilePath = jk_fs.join(genDir, pageKey + ".jsx");
         config.entryPoints.push(outFilePath);
         await jk_fs.writeTextToFile(outFilePath, txt);
 
         txt = HTML_TEMPLATE;
-        txt = txt.replace("__SCRIPT_PATH__", "./" + fileName + ".jsx");
-        outFilePath = jk_fs.join(genDir, fileName + ".html");
+
+        if (gIsDevMode) {
+            txt = txt.replace("__SCRIPT_PATH__", "./" + pageKey + '/' + pageKey + ".jsx");
+        } else {
+            txt = txt.replace("__SCRIPT_PATH__", "./" + pageKey + ".jsx");
+        }
+        outFilePath = jk_fs.join(genDir, pageKey + ".html");
         await jk_fs.writeTextToFile(outFilePath, txt);
     }
 }
@@ -150,3 +159,5 @@ const gPagePathToRoute: Record<string, string> = {};
  * Allow knowing the name of the .js and .css file for a page.
  */
 const gRouteToPageFile: Record<string, string> = {};
+
+const gIsDevMode = isDevMode();

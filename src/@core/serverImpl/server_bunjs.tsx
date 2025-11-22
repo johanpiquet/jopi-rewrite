@@ -121,6 +121,8 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
             return;
         }
 
+        console.log(`Registering page ${pageKey} for route ${path}`);
+
         routeInfos.handler = async (req) => {
             return await req.reactPage(pageKey, reactComponent);
         };

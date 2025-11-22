@@ -28,6 +28,8 @@ import {parseCookies} from "./internalTools.ts";
 import * as jk_term from "jopi-toolkit/jk_term";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import {isNodeJS} from "jopi-toolkit/jk_what";
+import {isDevMode} from "../@loader-client";
+import {createBundleForPage} from "./bundler/bundler.ts";
 
 export class JopiRequest {
     public cache: PageCache;
@@ -870,11 +872,21 @@ export class JopiRequest {
      * Used while refactoring the renderer.
      */
     async reactPage(pageKey: string, C: React.FC<any>): Promise<Response> {
+        if (pageKey==="page_14963930285981118137") debugger;
         try {
+            let bundlePath = "/_bundle/";
+
+            // When dev-mode (JOPI_DEV or JOPI_DEV_UI) then we compile the page one by one.
+            //
+            if (gIsSinglePageMode) {
+                await createBundleForPage(pageKey);
+                bundlePath += pageKey + "/";
+            }
+
             // What we will include in our HTML.
             const options = {
-                head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={"/_bundle/" + pageKey + ".css"} />],
-                bodyEnd: [<script key="jopi.mainSript" type="module" src={"/_bundle/" + pageKey + ".js"}></script>]
+                head: [<link key="jopi.mainBundle" rel="stylesheet" type="text/css" href={bundlePath + pageKey + ".css"} />],
+                bodyEnd: [<script key="jopi.mainSript" type="module" src={bundlePath + pageKey + ".js"}></script>]
             };
 
             // Allow faking the environment of the page.
@@ -1211,3 +1223,5 @@ export enum ContentTypeCategory {
 }
 
 const gEmptyObject = {};
+
+const gIsSinglePageMode = isDevMode();

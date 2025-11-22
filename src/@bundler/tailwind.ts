@@ -1,4 +1,4 @@
-import type {BundlerConfig, CreateBundleEvent} from "jopi-rewrite";
+import type {BundlerConfig, CreateBundleParams} from "jopi-rewrite";
 import * as jk_app from "jopi-toolkit/jk_app";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import path from "node:path";
@@ -6,24 +6,30 @@ import fs from "node:fs/promises";
 import postcss from "postcss";
 import tailwindPostcss from "@tailwindcss/postcss";
 
-export async function applyTailwindProcessor(params: CreateBundleEvent): Promise<void> {
+export async function applyTailwindProcessor(params: CreateBundleParams): Promise<void> {
     function append(text: string) {
         return fs.appendFile(outFilePath, "\n" + text + "\n", "utf-8");
     }
 
-    // Prefer the sources if possible.
-    const sourceFiles = params.entryPoints;
+    let sourceFiles = params.entryPoints;
+    let genDir = params.genDir;
 
     // >>> Tailwind transform
 
-    const outFilePath = path.resolve(params.genDir, "tailwind.css");
+    if (params.singlePageMode) {
+        genDir = jk_fs.join(genDir, params.pageKey!);
+        sourceFiles = [genDir + ".jsx"];
+        debugger;
+    }
+
+    const outFilePath = path.resolve(genDir, "tailwind.css");
 
     if (await jk_fs.isFile(outFilePath)) {
         await jk_fs.unlink(outFilePath);
     }
 
     // Assure the file exists.
-    await fs.appendFile(outFilePath, "", "utf-8");
+    await jk_fs.writeTextToFile(outFilePath, "");
 
     let postCss = await applyPostCss(params, sourceFiles);
     if (postCss) await append(postCss);
@@ -32,7 +38,7 @@ export async function applyTailwindProcessor(params: CreateBundleEvent): Promise
 /**
  * Generate Tailwind CSS file a list of source files and returns the CSS or undefined.
  */
-async function applyPostCss(params: CreateBundleEvent, sourceFiles: string[]): Promise<string|undefined> {
+async function applyPostCss(params: CreateBundleParams, sourceFiles: string[]): Promise<string|undefined> {
     if (!sourceFiles.length) return "";
 
     const bundlerConfig = params.config;

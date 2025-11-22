@@ -1,9 +1,10 @@
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as jk_events from "jopi-toolkit/jk_events";
-import type {CreateBundleEvent} from "jopi-rewrite";
-import {launchEsBuildProcess} from "./launcher.ts";
+import type {CreateBundleParams} from "jopi-rewrite";
+import {isDevMode} from "../@loader-client";
+import {esBuildBundle, type EsBuildParams} from "./esbuild";
 
-async function createBundle(params: CreateBundleEvent): Promise<void> {
+async function createBundle(params: CreateBundleParams): Promise<void> {
     const config = params.config;
 
     // Load the metadata generated.
@@ -26,7 +27,7 @@ async function createBundle(params: CreateBundleEvent): Promise<void> {
     await resolveVirtualUrls(params, metaDataFilePath);
 }
 
-async function resolveVirtualUrls(params: CreateBundleEvent, metaDataFilePath: string) {
+async function resolveVirtualUrls(params: CreateBundleParams, metaDataFilePath: string) {
     if (!await jk_fs.isFile(metaDataFilePath)) return;
 
     let meta = JSON.parse(await jk_fs.readTextFromFile(metaDataFilePath));
@@ -38,11 +39,32 @@ async function resolveVirtualUrls(params: CreateBundleEvent, metaDataFilePath: s
     }
 }
 
+export async function launchEsBuildProcess(params: EsBuildParams) {
+    process.env.JOPI_BUNLDER_ESBUILD = "1";
+
+    try {
+        await esBuildBundle(params);
+    }
+    finally {
+        delete process.env.JOPI_BUNLDER_ESBUILD;
+    }
+}
+
 // createBundle is called when the event is triggered.
 //
 jk_events.addListener("jopi.bundler.createBundle", jk_events.EventPriority.veryLow, (data) => {
+    // If devMode (JOPI_DEV or JOPI_DEV_UI) then we
+    // compile the pages one by one when the page is requested,
+    // and not every page at the same time.
+    //
+    if (isDevMode()) return;
+
     // Already handled?
     if (data.promise) return;
 
     data.promise = createBundle(data);
+});
+
+jk_events.addListener("jopi.bundler.createBundleForPage", jk_events.EventPriority.veryLow, async (data) => {
+    await createBundle(data);
 });

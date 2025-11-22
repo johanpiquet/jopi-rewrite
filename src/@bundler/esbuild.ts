@@ -1,11 +1,11 @@
 import esbuild, {type BuildResult} from "esbuild";
 import * as jk_fs from "jopi-toolkit/jk_fs";
 import * as n_what from "jopi-toolkit/jk_what";
-import type {CreateBundleEvent} from "../@core/index.ts";
+import type {CreateBundleParams} from "../@core/index.ts";
 import {jopiReplaceText, jopiLoaderPlugin, jopiDetectRebuild} from "./plugins.ts";
 import {applyTailwindProcessor} from "./tailwind.ts";
 
-export interface EsBuildParams extends CreateBundleEvent {
+export interface EsBuildParams extends CreateBundleParams {
     metaDataFilePath: string;
     dontEmbed: string[]|undefined;
 }
@@ -76,6 +76,15 @@ export async function esBuildBundle(params: EsBuildParams) {
         // Produce metadata about the build.
         metafile: true
     };
+
+    // Note: each page is compiled one time.
+    // Once compiled, the watch mode will refresh it.
+    //
+    if (params.singlePageMode) {
+        buildOptions.publicPath += params.pageKey! + '/';
+        buildOptions.entryPoints = [params.pageScript!];
+        buildOptions.outdir = jk_fs.join(buildOptions.outdir!, params.pageKey!);
+    }
 
     await applyTailwindProcessor(params);
 

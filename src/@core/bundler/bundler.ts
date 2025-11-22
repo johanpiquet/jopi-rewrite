@@ -9,9 +9,12 @@ import {configureServer} from "./server.ts";
 import {getVirtualUrlMap, type VirtualUrlEntry} from "jopi-rewrite/loader-tools";
 import "./pagesGenerator.ts";
 import {isBunJS} from "jopi-toolkit/jk_what";
-import {isReactHMR} from "jopi-rewrite/loader-client";
+import {isDevMode, isReactHMR} from "jopi-rewrite/loader-client";
 
-export interface CreateBundleEvent {
+export interface CreateBundleParams {
+    // Is enabled when JOPI_DEV or JOPI_DEV_UI
+    singlePageMode: boolean;
+
     entryPoints: string[];
     outputDir: string;
     genDir: string;
@@ -22,6 +25,8 @@ export interface CreateBundleEvent {
     virtualUrlMap: VirtualUrlEntry[];
 
     enableUiWatch?: boolean;
+    pageKey?: string;
+    pageScript?: string;
 
     promise?: Promise<void>;
 }
@@ -59,7 +64,8 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     // It's why we don't generate the default bundle here.
     //
     if (!isReactHMR()) {
-        await executeBundler({
+        await executeBundler(gCreateBundleData = {
+            singlePageMode: isDevMode(),
             outputDir, genDir, publicUrl, webSite, requireTailwind, enableUiWatch,
             config: getBundlerConfig(), entryPoints: [...config.entryPoints],
             virtualUrlMap: getVirtualUrlMap()
@@ -70,7 +76,27 @@ export async function createBundle(webSite: WebSite): Promise<void> {
     serverInitChronos.end();
 }
 
-async function executeBundler(data: CreateBundleEvent, useFallback = true) {
+let gCreateBundleData: CreateBundleParams|undefined;
+
+let gPageBundlerIsOk: Record<string, boolean> = {};
+
+export async function createBundleForPage(pageKey: string) {
+    // Allow knowing of this page is already compiled.
+    if (gPageBundlerIsOk[pageKey]) return;
+    gPageBundlerIsOk[pageKey] = true;
+
+    let fileName = pageKey + ".jsx";
+
+    if (!gCreateBundleData) return;
+
+    let params = {...gCreateBundleData};
+    params.pageKey = pageKey;
+    params.pageScript = jk_fs.join(params.genDir, fileName);
+
+    await jk_events.sendAsyncEvent("jopi.bundler.createBundleForPage", params);
+}
+
+async function executeBundler(data: CreateBundleParams, useFallback = true) {
     // Using an event allows replacing the bundler
     // through the use of event priority. The default
     // bundle has a very low priority.

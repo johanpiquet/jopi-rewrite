@@ -3,14 +3,16 @@ import type {WebSite} from "../@core";
 import * as jk_events from "jopi-toolkit/jk_events";
 import {isBunJS} from "jopi-toolkit/jk_what";
 
-let gIsBrowserRefreshEnabled: boolean|undefined;
-
 export function isBrowserRefreshEnabled(): boolean {
-    if (gIsBrowserRefreshEnabled===undefined) {
-        gIsBrowserRefreshEnabled = process.env.JOPIN_BROWSER_REFRESH_ENABLED === '1';
-    }
+    return isDevEnabled() || isDevUiEnabled();
+}
 
-    return gIsBrowserRefreshEnabled!;
+export function isDevMode() {
+    return isDevEnabled() || isDevUiEnabled();
+}
+
+export function isDevEnabled() {
+    return process.env.JOPI_DEV === "1";
 }
 
 export function isDevUiEnabled() {
@@ -19,10 +21,6 @@ export function isDevUiEnabled() {
 
 export function isReactHMR() {
     return isDevUiEnabled() && isBunJS;
-}
-
-export function getBrowserRefreshHtmlSnippet() {
-    return `<script type="application/javascript">${getBrowserRefreshScript()}</script>`;
 }
 
 function sse_onChange() {
@@ -38,7 +36,7 @@ function sse_onChange() {
     });
 
     // This allows refreshing the browser when
-    // the server send a signal to the browser.
+    // the server sends a signal to the browser.
     //
     event.addEventListener("change", () => window.location.reload());
 }
