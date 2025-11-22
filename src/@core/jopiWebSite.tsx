@@ -266,15 +266,15 @@ export class WebSiteImpl implements WebSite {
         await jk_events.sendAsyncEvent("jopi.server.before.start", {webSite: this});
         await createBundle(this);
         installBundleServer(this);
+
+        if (isBrowserRefreshEnabled()) {
+            installBrowserRefreshSseEvent(this);
+        }
     }
 
     async onServerStarted() {
         if (this._onWebSiteReady) {
             this._onWebSiteReady.forEach(e => e());
-        }
-
-        if (isBrowserRefreshEnabled()) {
-            installBrowserRefreshSseEvent(this);
         }
 
         if (this.welcomeUrl) {

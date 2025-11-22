@@ -105,12 +105,12 @@ export class BunJsServerInstanceBuilder implements ServerInstanceBuilder {
         //TODO
     }
 
-    addSseEVent(path: string, handler: SseEvent): void {
-        handler = {...handler};
+    addSseEVent(path: string, eventInfos: SseEvent): void {
+        eventInfos = {...eventInfos};
 
         this.addRoute("GET", path, {
             handler: async _ => {
-                return onSseEvent(handler);
+                return onSseEvent(eventInfos);
             }
         });
     }
